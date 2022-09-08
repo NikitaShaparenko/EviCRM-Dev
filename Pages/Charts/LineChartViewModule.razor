@@ -1,0 +1,299 @@
+﻿@using Blazorise.Charts 
+@using EviCRM.Server.Core
+@page "/chart_interop_line"
+@inject NavigationManager UriHelper
+@inject IWebHostEnvironment _env
+
+<LineChart @ref="lineChart" TItem="WatcherEvent" Options="@lineChartOptions" />
+
+@code{
+    private LineChart<WatcherEvent> lineChart;
+    MipkoIntegrator mi = new MipkoIntegrator();
+    MipkoIntegratorCore mic = new MipkoIntegratorCore();
+    MySQL_Controller mysqlc = new MySQL_Controller();
+
+    [Parameter]
+    public List<string> thinclient_dt { get; set; }
+
+    [Parameter]
+    public LineChartDataset<WatcherEvent> data { get; set; }
+
+    [Parameter]
+    public List<LineChartDataset<WatcherEvent>> lst_data { get; set; }
+
+
+    private List<string> backgroundColors = new() { ChartColor.FromRgba(255, 99, 132, 0.2f), ChartColor.FromRgba(54, 162, 235, 0.2f), ChartColor.FromRgba(255, 206, 86, 0.2f), ChartColor.FromRgba(75, 192, 192, 0.2f), ChartColor.FromRgba(153, 102, 255, 0.2f), ChartColor.FromRgba(255, 159, 64, 0.2f) };
+    private List<string> borderColors = new() { ChartColor.FromRgba(255, 99, 132, 1f), ChartColor.FromRgba(54, 162, 235, 1f), ChartColor.FromRgba(255, 206, 86, 1f), ChartColor.FromRgba(75, 192, 192, 1f), ChartColor.FromRgba(153, 102, 255, 1f), ChartColor.FromRgba(255, 159, 64, 1f) };
+
+
+    LineChartOptions lineChartOptions = new()
+        {
+            Plugins = new ChartPlugins
+            {
+                Legend = new ChartLegend
+                {
+                    Display = false,
+                }
+            },
+
+
+            Parsing = new ChartParsing
+            {
+                XAxisKey = "sector",
+                YAxisKey = "count",
+            },
+
+            Scales = new ChartScales
+            {
+                Y = new ChartAxis
+                {
+                    Min = 0,
+                    SuggestedMax = 1.0,
+                },
+            },
+        };
+
+        
+
+    bool isAlreadyInitialized = false;
+}
+
+
+
+@functions{
+
+    public async Task UpdateGraph(List<LineChartDataset<WatcherEvent>> llcdwe)
+    {
+       await lineChart.Clear();
+
+       //  await lineChart.AddDataSet(GetSystemLineChartDataset());
+
+        lst_data = llcdwe;
+
+         if (data != null  && lst_data == null)
+            {
+                await lineChart.AddDataSet(data);
+            }
+            else if (lst_data != null)
+            {
+                foreach (var elem in lst_data)
+                {
+                    await lineChart.AddDataSet(elem);
+                }
+            }
+
+          
+            StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!isAlreadyInitialized)
+        {
+
+
+            if (data != null  && lst_data == null)
+            {
+                await lineChart.AddDataSet(data);
+            }
+            else if (lst_data != null)
+            {
+                foreach (var elem in lst_data)
+                {
+                    await lineChart.AddDataSet(elem);
+                }
+            }
+
+            await lineChart.AddDataSet(GetSystemLineChartDataset());
+            isAlreadyInitialized = true;
+            StateHasChanged();
+        }
+    }
+
+    public void ReloadElement()
+    {
+        UriHelper.NavigateTo("/chart_chartinterop_line", true);
+        StateHasChanged();
+    }
+
+    public async Task HandleRedraw()
+    {
+        await lineChart.Clear();
+
+        foreach(var elem in lst_data)
+        {
+            await lineChart.AddDatasetsAndUpdate(elem); 
+        }
+    }
+
+    private LineChartDataset<WatcherEvent> GetSystemLineChartDataset()
+    {
+        List<WatcherEvent> Data_ch = new List<WatcherEvent>();
+
+
+        for (int h = 0; h < 24; h++)
+        {
+            for (int m = 0; m < 60; m++)
+            {
+                string h_str = "";
+                string m_str = "";
+
+                h_str = h.ToString();
+                m_str = m.ToString();
+
+                if (h_str.Length < 2)
+                {
+                    h_str = "0" + h;
+                }
+                if (m_str.Length < 2)
+                {
+                    m_str = "0" + m;
+                }
+               
+
+
+                    WatcherEvent we = new WatcherEvent { Sector = h_str + ":" + m_str, Count = 0 };
+                    Data_ch.Add(we);
+                }
+            }
+
+            return new()
+            {
+                Label = "Ось времени",
+                Data = Data_ch,
+                BackgroundColor = backgroundColors[0], // line chart can only have one color
+                BorderColor = borderColors[0],
+                Fill = true,
+                PointRadius = 0.1f,
+                BorderWidth = 0,
+                PointBorderColor = Enumerable.Repeat(borderColors.First(), 6).ToList(),
+                CubicInterpolationMode = "monotone",
+            };
+        }
+
+
+
+        public string genPathToThinClientStatsByUserID(int user_array_id,DateTime dt_n)
+    {
+        string str = "";
+
+        if (Directory.Exists(Path.Combine(_env.WebRootPath,"thinclient")))
+        {
+
+        }
+        else
+        {
+            Directory.CreateDirectory(Path.Combine(_env.WebRootPath, "thinclient"));
+        }
+
+        string thinc = thinclient_dt[user_array_id];
+
+        bool isFirstServer = true;
+
+        if (thinc.Contains("rendev_"))
+        {
+            isFirstServer = true;
+            thinc = thinc.Replace("rendev_", "");
+        }
+        else
+        {
+            isFirstServer = false;
+            thinc = thinc.Replace("renovationdev_", "");
+        }
+
+        string path_base = Path.Combine(_env.WebRootPath, "thinclient");
+        string full_path = path_base;
+
+        if (thinc != "")
+        {
+
+            if (isFirstServer)
+            {
+                string day_str = dt_n.Day.ToString();
+                string month_str = dt_n.Month.ToString();
+                string year_str = dt_n.Year.ToString();
+
+                if (day_str.Length < 2)
+                {
+                    day_str = "0" + dt_n.Day;
+                }
+
+                if (month_str.Length < 2)
+                {
+                    month_str = "0" + dt_n.Month;
+                }
+
+                if (year_str.Length < 2)
+                {
+                    year_str = "0" + dt_n.Year;
+                }
+
+
+
+                full_path = Path.Combine(_env.WebRootPath, "thinclient", "RENDEV",thinc,(day_str + "-" + month_str + "-" + year_str)  + ".csv");
+
+            }
+            else
+            {
+
+                string day_str = dt_n.Day.ToString();
+                string month_str = dt_n.Month.ToString();
+                string year_str = dt_n.Year.ToString();
+
+                if (day_str.Length < 2)
+                {
+                    day_str = "0" + dt_n.Day;
+                }
+
+                if (month_str.Length < 2)
+                {
+                    month_str = "0" + dt_n.Month;
+                }
+
+                if (year_str.Length < 2)
+                {
+                    year_str = "0" + dt_n.Year;
+                }
+
+                full_path = Path.Combine(_env.WebRootPath, "thinclient", "RENOVATIONDEV",thinc,(day_str + "-" + month_str + "-" + year_str)  + ".csv");
+            }
+
+            if (File.Exists(full_path))
+            {
+                str = full_path;
+            }
+        }
+        return str;
+    }
+
+    public string getUserDataByIDAndDay(int i, DateTime dt_ud)
+    {
+        string a_str = "";
+
+        //i - user array id
+        //days - number of days in month
+
+        string log_path = genPathToThinClientStatsByUserID(i,dt_ud);
+
+        if ((log_path) != "")
+        {
+            TerminalServer_AnalyzeMethodActivityModel tsamam = mi.AnalyzeMethodActivityByDate(log_path, dt_ud);
+
+            if (tsamam.tsamaam_start.Year != 1)
+            {
+
+                string str_h = tsamam.tsamaam_time.ToString(@"hh");
+                string str_m = tsamam.tsamaam_time.ToString(@"mm");
+                //string str_s = tsamam.tsamaam_time.ToString(@"ss\:fff");
+
+                a_str += tsamam.tsamaam_start.ToShortTimeString() + " / ";
+                a_str += tsamam.tsamaam_end.ToShortTimeString();
+                a_str += "(" + str_h + " ч " + str_m + " мин)";
+            }
+        }
+
+
+
+        return a_str;
+    }
+}

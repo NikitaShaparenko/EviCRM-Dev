@@ -1,0 +1,148 @@
+﻿@using Blazorise.Charts 
+@using EviCRM.Server.Core
+@using EviCRM.Server.Pages.Charts
+
+@inject NavigationManager UriHelper
+@inject IWebHostEnvironment _env
+
+@inject IJSRuntime JSRuntime
+
+<Chart @ref="pieChart" Type="ChartType.Pie" TItem="int" Options="@chartOptions" />
+
+
+@code{
+    private Chart<int> pieChart;
+
+    [Parameter]
+    public ChartOptions co { get; set; }
+
+    [Parameter]
+    public PieChartDataset<int> pcd { get; set; }
+
+    [Parameter]
+    public string[] lbls { get; set; }
+
+
+    ChartOptions chartOptions = new()
+        {
+            Plugins = new ChartPlugins()
+            {
+                Legend = new ChartLegend()
+                {
+                    Display = false,
+                },
+                 Title = new ChartTitle
+                        {
+                            Display = true,
+                        }
+            },
+             
+            AspectRatio = 1.5,
+        };
+
+    [Parameter]
+    public List<string> thinclient_dt { get; set; }
+
+    [Parameter]
+    public LineChartDataset<WatcherEvent> data { get; set; }
+
+    [Parameter]
+    public List<LineChartDataset<WatcherEvent>> lst_data { get; set; }
+
+    [Parameter]
+    public DateTime dt_datereview { get; set; }
+
+    private List<string> backgroundColors = new() { ChartColor.FromRgba(255, 99, 132, 0.2f), ChartColor.FromRgba(54, 162, 235, 0.2f), ChartColor.FromRgba(255, 206, 86, 0.2f), ChartColor.FromRgba(75, 192, 192, 0.2f), ChartColor.FromRgba(153, 102, 255, 0.2f), ChartColor.FromRgba(255, 159, 64, 0.2f) };
+    private List<string> borderColors = new() { ChartColor.FromRgba(255, 99, 132, 1f), ChartColor.FromRgba(54, 162, 235, 1f), ChartColor.FromRgba(255, 206, 86, 1f), ChartColor.FromRgba(75, 192, 192, 1f), ChartColor.FromRgba(153, 102, 255, 1f), ChartColor.FromRgba(255, 159, 64, 1f) };
+
+    bool isAlreadyInitialized = false;
+   
+}
+
+       
+
+@functions{
+
+    private string[] Labels = { "Red", "Blue", "Yellow", "Green", "Purple", "Orange" };
+
+    public async void LoadExternalData(PieChartDataset<int> pcd, string[] lbls)
+    {
+        await pieChart.Clear();
+        await pieChart.AddLabelsDatasetsAndUpdate(lbls, pcd);
+    }
+
+    public void ReDrawHandler()
+    {
+        StateHasChanged();
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+
+            if (lbls != null && pcd != null)
+            {
+
+                //await  pieChart.Clear();
+                //await pieChart.SetOptions(co);
+
+                PieChartDataset<int> pcd_1 = pcd;
+                PieChartDataset<int> pcd_2 = GetPieChartDataset();
+
+                //await pieChart.AddLabelsDatasetsAndUpdate(lbls, pcd);
+                // await pieChart.AddLabelsDatasetsAndUpdate( Labels, GetPieChartDataset() ); 
+
+                await pieChart.AddLabelsDatasetsAndUpdate(lbls,GetPieChartDataset());
+
+                isAlreadyInitialized = true;
+
+            }
+            StateHasChanged();
+        }
+    }
+    private PieChartDataset<int> GetPieChartDataset()
+    {
+        PieChartDataset<int> pcd_new;
+
+       // pcd_new.
+        
+        //    if (pcd.BackgroundColor != null)
+        //    {
+        //    BackgroundColor = pcd.BackgroundColor,
+        //}
+        //else
+        //{
+        //    BorderColor = borderColors,
+        //}
+        pcd_new = new()
+            {
+                Label = " таких оценок:",
+                Data = pcd.Data,
+                BackgroundColor = backgroundColors,
+
+      
+                BorderWidth = 1
+
+            };
+            return pcd_new;
+        }
+       
+
+         List<int> RandomizeData() => RandomizeData( 3, 50 );
+    private Random random = new( DateTime.Now.Millisecond );
+
+    List<int> RandomizeData( int min, int max )
+    {
+        List<int> lst_ind = new List<int>();
+
+        for (int i = 0; i<10;i++)
+        {
+            lst_ind.Add(i);
+        }
+        return lst_ind;
+    }
+
+}

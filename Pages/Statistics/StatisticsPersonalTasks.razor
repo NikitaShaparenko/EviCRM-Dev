@@ -1,0 +1,198 @@
+﻿@using EviCRM.Server.Pages.Charts.ChartListInterop
+
+
+<AuthorizeView>
+    <Authorized>
+
+        <p></p>
+        <div class="row">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Мои задачи</h5>
+
+                    <p>
+                        <div class="input-group">
+                            <div class="p-2">
+                                <select @bind="isPieString" class="me-2">
+                                    <option value="True">Круговой график</option>
+                                    <option value="False">Столбчатый график</option>
+                                </select>
+                            </div>
+                        </div>
+                    </p>
+
+                    @if (isReady)
+                    {
+                        @if (user_elem != null)
+                        {
+
+                            <table>
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" style="width: 500px;" text-align="center" align-middle>График общих статусов по задачам</th>
+                                        <th scope="col" style="width: 500px;" text-align="center" align-middle>График персональных статусов по задачам</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div style="position: relative; margin-left: auto; margin-right: auto;">
+
+                                                @if (isPie)
+                                                {
+                                                    <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim co=@user_elem.pieOption pcd=@user_elem.pieDatasetList lbls=@user_elem.personal_pieDatasetLabels />
+                                                }
+                                                else
+                                                {
+                                                    <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim co=@user_elem.barOption pcd=@user_elem.pieDatasetList bcd=@user_elem.barDatasetList lbls=@user_elem.personal_barDatasetLabels />
+                                                }
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            <div style="position: relative; margin-left: auto; margin-right: auto;">
+
+                                                @if (isPie)
+                                                {
+                                                    <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=res_pclim co=@user_elem.pieOption pcd=@user_elem.personal_pieDatasetList lbls=@user_elem.personal_pieDatasetLabels />
+                                                }
+                                                else
+                                                {
+                                                    <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=res_bclim co=@user_elem.barOption pcd=@user_elem.personal_pieDatasetList bcd=@user_elem.personal_barDatasetList lbls=@user_elem.personal_barDatasetLabels />
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <p></p>
+
+                            <table>
+                                <thead class="table-light">
+                                <th scope="col" style="width: 500px;" text-align="center">Распределение общих статусов</th>
+                                <th scope="col" style="width: 500px;" text-align="center">Распределение персональных статусов</th>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>
+
+                                            <p><span class="badge rounded-pill badge-secondary font-size-11">Ожидает подтверждения</span> : <b>@user_elem.tasks_status_waiting</b> </p>
+                                            <p><span class="badge rounded-pill badge-info font-size-11">Подтверждено</span> : <b>@user_elem.tasks_status_approved</b> </p>
+                                            <p><span class="badge rounded-pill badge-success font-size-11">Выполняется</span> : <b>@user_elem.tasks_status_pending</b> </p>
+                                            <p><span class="badge rounded-pill badge-danger font-size-11">Просрочена</span> : <b>@user_elem.tasks_status_delayed</b> </p>
+                                            <p><span class="badge rounded-pill bg-success font-size-11">Выполнена</span> : <b>@user_elem.tasks_status_completed</b> </p>
+                                            <p><span class="badge rounded-pill bg-danger  font-size-11">Отменена</span> : <b>@user_elem.tasks_status_canceled</b> </p>
+                                            <p><span class="badge rounded-pill bg-danger  font-size-11">Провалена</span> : <b>@user_elem.tasks_status_failed</b> </p>
+
+                                        </td>
+
+
+                                        <td>
+                                            <p><span class="badge rounded-pill badge-secondary font-size-11">Ожидает подтверждения</span> : <b>@user_elem.tasks_personal_status_waiting</b> </p>
+                                            <p><span class="badge rounded-pill badge-info font-size-11">Подтверждено</span> : <b>@user_elem.tasks_personal_status_approved</b> </p>
+                                            <p><span class="badge rounded-pill badge-success font-size-11">Выполняется</span> : <b>@user_elem.tasks_personal_status_pending</b> </p>
+                                            <p><span class="badge rounded-pill badge-danger font-size-11">Просрочена</span> : <b>@user_elem.tasks_personal_status_delayed</b> </p>
+                                            <p><span class="badge rounded-pill bg-success font-size-11">Выполнена</span> : <b>@user_elem.tasks_personal_status_completed</b> </p>
+                                            <p><span class="badge rounded-pill bg-danger  font-size-11">Отменена</span> : <b>@user_elem.tasks_personal_status_canceled</b> </p>
+                                            <p><span class="badge rounded-pill bg-danger  font-size-11">Провалена</span> : <b>@user_elem.tasks_personal_status_failed</b> </p>
+                                            <p><span class="badge rounded-pill badge-primary font-size-11">Создатель задачи</span> : @user_elem.tasks_personal_status_creater</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p></p>
+                            <table>
+                                <thead class="table-light">
+                                <th scope="col" style="width: 500px;" text-align="center">Балл</th>
+                                <th scope="col" style="width: 500px;" text-align="center">Отклонение от среднего</th>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            @(user_elem.get_totaltasks_Mark() + user_elem.get_personaltasks_Mark())
+                                        </td>
+
+                                        <td>
+                                            @if ((user_elem.get_totaltasks_Mark() + user_elem.get_personaltasks_Mark()) > AverageMark)
+                                            {
+                                                <p><font color="green">+ @((user_elem.get_totaltasks_Mark() + user_elem.get_personaltasks_Mark() - AverageMark).ToString("N3"))</font> (Это на <font color="green">@user_elem.getDiffrencePercent(AverageMark) больше среднего</font></p>
+                                            }
+                                            else
+                                            {
+                                                <p><font color="red">- @((user_elem.get_totaltasks_Mark() + user_elem.get_personaltasks_Mark() - AverageMark).ToString("N3"))</font> (Это на <font color="red">@user_elem.getDiffrencePercent(AverageMark) меньше среднего</font></p>
+                                            }
+                                        </td>
+
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        }
+                    }
+
+                </div>
+            </div>
+        </div>
+
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code
+{
+    [Parameter]
+    public StatisticsChartElement user_elem { get; set; }
+
+    [Parameter]
+    public double AverageMark { get; set; }
+
+    bool isPie = true;
+
+    bool isReady = true;
+
+    public string isPieString
+    {
+        get
+        {
+            if (isPie)
+            {
+                return "True";
+            }
+            else
+            {
+                return "False";
+            }
+        }
+        set
+        {
+            if (value == "True")
+            {
+                isPie = true;
+                StateHasChanged();
+            }
+            else
+            {
+                isPie = false;
+                StateHasChanged();
+            }
+        }
+
+    }
+
+
+
+
+    PieChartListInteropModule _pclim = new PieChartListInteropModule();
+    BarChartListInteropModule _bclim = new BarChartListInteropModule();
+
+    PieChartListInteropModule res_pclim = new PieChartListInteropModule();
+    BarChartListInteropModule res_bclim = new BarChartListInteropModule();
+
+
+}

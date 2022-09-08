@@ -1,0 +1,146 @@
+﻿@using EviCRM.Server.Models;
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Изменить даты задачи</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row mb-4">
+                             <p>Выберите новые даты для текущей задачи:</p>
+                               <div class="col-lg-10">
+                                    @*<div class="input-daterange input-group">*@
+                                        <b>Дата начала: </b><input type="date" class="form-control" @bind=dt_start placeholder="Начало выполнения" name="event_start" />
+                                        <p><b>Дата окончания: </b><input type="date" class="form-control" @bind=dt_end placeholder="Планируемое окончание" name="event_end" /></p>
+                                   @* </div>*@
+                                </div>
+                              <div>
+                            </div>
+                    </div>
+                
+            </div>
+            <div class="modal-footer">
+              
+                        <button type="button" class="btn" @onclick="@ModalCancel">Закрыть</button>
+                        <button type="button" class="btn btn-primary" @onclick="@(() => ModalOk())">Сохранить</button>
+                 
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    DateTime dt_end { get; set; }
+    DateTime dt_start { get; set; }
+
+    [Parameter]
+    public string task_author { get; set; }
+
+    [Parameter]
+    public DateTime modal_dt_start { get; set; }
+
+    [Parameter]
+    public string task_id { get; set; }
+
+    [Parameter]
+    public DateTime modal_dt_end { get; set; }
+
+    [Parameter]
+    public EventCallback<TaskTrackingChangeDatesModel> Updating_dts{ get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnTaskStatusUpdate { get; set; }
+
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+    EviCRM.Server.Models.TaskTrackingChangeDatesModel ttcdm = new EviCRM.Server.Models.TaskTrackingChangeDatesModel();
+
+    private async Task ModalCancel()
+    {
+        await OnClose.InvokeAsync(true);
+    }
+
+    private async Task ModalOk()
+    {
+        if (dt_end > dt_start)
+        {
+            ttcdm.dt_end = dt_end;
+            ttcdm.dt_start = dt_start;
+
+            if (dt_start < DateTime.Now && DateTime.Now < dt_end)
+            {
+                await mysqlc.MySql_ContextAsyncGeneral(mysqlc.updateTaskStatus(task_id, "pending"));
+                await OnTaskStatusUpdate.InvokeAsync("pending");
+            }
+            else if (dt_start>DateTime.Now)
+            {
+                await mysqlc.MySql_ContextAsyncGeneral(mysqlc.updateTaskStatus(task_id, "approved"));
+                await OnTaskStatusUpdate.InvokeAsync("approved");
+            }
+            else
+            {
+                await mysqlc.MySql_ContextAsyncGeneral(mysqlc.updateTaskStatus(task_id, "delayed"));
+                await OnTaskStatusUpdate.InvokeAsync("delayed");
+            }
+
+            TOScript to_script = new TOScript();
+
+            if (dt_start != modal_dt_start)
+            {
+                 ViewModels.TaskTrackingModelChangeDates ttmcd = new  ViewModels.TaskTrackingModelChangeDates();
+
+            ttmcd.date = dt_start;
+            ttmcd.task_author = task_author;
+            ttmcd.task_id = task_id;
+
+            await to_script.CHANGESTARTDATE(ttmcd);
+
+            await Updating_dts.InvokeAsync(ttcdm);
+            await OnClose.InvokeAsync(true);
+            }
+
+            if (dt_end != modal_dt_end)
+            {
+                ViewModels.TaskTrackingModelChangeDates ttmcd = new  ViewModels.TaskTrackingModelChangeDates();
+
+            ttmcd.date = dt_end;
+            ttmcd.task_author = task_author;
+            ttmcd.task_id = task_id;
+
+            await to_script.CHANGEDEADLINE(ttmcd);
+
+            await Updating_dts.InvokeAsync(ttcdm);
+            await OnClose.InvokeAsync(true);
+            }
+
+           
+        }
+        else
+        {
+            dt_start = dt_end;
+        }
+        StateHasChanged();
+
+    }
+
+    protected override void OnInitialized()
+    {
+        dt_start =   modal_dt_start;
+        dt_end = modal_dt_end;
+        StateHasChanged();
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+        DeleteCancel
+    }
+
+    
+}

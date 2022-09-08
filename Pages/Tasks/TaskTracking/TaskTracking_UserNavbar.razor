@@ -1,0 +1,265 @@
+﻿@inject AuthenticationStateProvider authStateProvider
+
+@if (ready)
+{
+    @if (modaleditioncrew_open)
+    {
+        <TaskTrackingCrewModal users_dt=@users_dt
+                       fullname_dt=@fullname_dt
+                       OnChoosen=@ModalEditionCrewOnCloseNew
+                       OnClose=@ModalEditionCrewOnClose
+                       user_=@user
+                       users_avatars=@users_avatars
+                       selected_members_ids=@employees_load_choosen />
+    }
+
+    @if (modaleditiondivs_open)
+    {
+        <TaskTrackingDivsModal divisions_dt=@divisions_ids
+                       divisions_name_dt=@divisions_name
+                       OnChoosen=@ModalEditionDivOnCloseNew
+                       OnClose=@ModalEditionDivClose
+                       user_=@user
+                       divs_avatars=@divs_avatars
+                       selected_divs_ids=@divs_load_choosen />
+    }
+
+    <div class="col-lg-4">
+        <div class="card border border-primary">
+
+            <div class="card-header bg-transparent border-primary">
+                <h5 class="my-0 text-primary"><i class="mdi mdi-bullseye-arrow me-3"></i>Состав участников задачи</h5>
+            </div>
+
+            <div class="card-body">
+                <h5 class="card-title">Отделы</h5>
+
+                @if (divisions_id_selected != null)
+                {
+                    for (int i = 0; i < divisions_id_selected.Count; i++)
+                    {
+                        <p class="card-text"><i class="bx bx-face"></i>@getDivisionNameByID(divisions_id_selected[i])</p>
+                    }
+                }
+            </div>
+
+            <div class="card-body">
+                <h5 class="card-title">Отдельные пользователи</h5>
+
+                @if (members_id_selected != null)
+                {
+                    for (int i = 0; i < members_id_selected.Count; i++)
+                    {
+                        <p class="card-text"><i class="bx bx-face"></i>@getUsernameByLogin(members_id_selected[i])</p>
+                    }
+                }
+
+                @if (IsAdmin)
+                {
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-info waves-effect waves-light" @onclick="ModalEditionCrewClick">Редактировать состав</button>
+                        <button type="button" class="btn btn-primary waves-effect waves-light" @onclick="ModalEditionDivClick">Редактировать отделы</button>
+                    </div>
+                }
+
+            </div>
+
+        </div>
+    </div>
+
+}
+@functions {
+
+    List<int> employees_load_choosen = new List<int>();
+    List<int> divs_load_choosen = new List<int>();
+
+    async void ModalEditionCrewOnCloseNew(List<int> lst_int)
+    {
+        List<string> workers = new List<string>();
+        if (lst_int != null)
+        {
+            if (members_id_selected == null)
+            {
+                members_id_selected = new List<string>();
+            }
+
+            members_id_selected.Clear();
+            employees_load_choosen.Clear();
+            foreach (int elem in lst_int)
+            {
+                workers.Add(users_dt[elem]);
+                members_id_selected.Add(users_dt[elem]);
+                employees_load_choosen.Add(elem);
+            }
+        }
+
+        string encoded_str = bc.getMultipleStringEncodingString(workers);
+
+        await mysqlc.MySql_ContextAsyncL(mysqlc.setListTaskMembersByIDAsync(encoded_str, task_id_cookie.ToString()));
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async void ModalEditionDivOnCloseNew(List<int> lst_int)
+    {
+        List<string> divs = new List<string>();
+
+        if (lst_int != null)
+        {
+            if (divisions_id_selected == null)
+            {
+                divisions_id_selected = new List<string>();
+            }
+
+            divisions_id_selected.Clear();
+            divs_load_choosen.Clear();
+            foreach (int elem in lst_int)
+            {
+                divs.Add(divisions_ids[elem]);
+                divisions_id_selected.Add(divisions_ids[elem]);
+                divs_load_choosen.Add(elem);
+            }
+        }
+
+        string encoded_str = bc.getMultipleStringEncodingString(divs);
+
+        await mysqlc.MySql_ContextAsyncL(mysqlc.setListTaskMembersDivsByIDAsync(encoded_str, task_id_cookie.ToString()));
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        modaleditioncrew_open = false;
+        modaleditiondivs_open = false;
+
+        user = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+
+        ready = true;
+        await InvokeAsync(StateHasChanged);
+
+    }
+}
+
+@code {
+
+    string user { get; set; }
+
+    [Parameter]
+    public string task_id_cookie { get; set; }
+
+    BackendController bc = new BackendController();
+    MySQL_Controller mysqlc = new MySQL_Controller();
+
+    [Parameter]
+    public List<string> divisions_id_selected { get; set; }
+
+    [Parameter]
+    public List<string> members_id_selected { get; set; }
+
+    [Parameter]
+    public List<string> divisions_ids { get; set; }
+
+    [Parameter]
+    public List<string> divisions_name { get; set; }
+
+    [Parameter]
+    public List<string> users_dt { get; set; }
+
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    [Parameter]
+    public List<string> dt_members_list { get; set; }
+
+    [Parameter]
+    public List<string> dt_divs_list { get; set; }
+
+    [Parameter]
+    public List<string> fullname_dt { get; set; }
+
+    [Parameter]
+    public List<string> users_avatars { get; set; }
+
+    [Parameter]
+    public List<string> divs_avatars { get; set; }
+
+    [Parameter]
+    public string global_personal_status { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnCarouselRefresh { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnUserListRefresh { get; set; }
+
+    List<string> workers = new List<string>();
+    List<string> divs = new List<string>();
+
+    bool ready { get; set; }
+    bool modaleditioncrew_open { get; set; }
+    bool modaleditiondivs_open { get; set; }
+
+    int getArrayIDByID(string username)
+    {
+        for (int i = 0; i < users_dt.Count; i++)
+        {
+            if (users_dt[i] == username)
+            {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    string getDivisionNameByID(string div_id)
+    {
+        for (int i = 0; i < divisions_ids.Count; i++)
+        {
+            if (divisions_ids[i] == div_id)
+            {
+                return divisions_name[i];
+            }
+        }
+        return "";
+    }
+
+    string getUsernameByLogin(string input)
+    {
+        for (int ap = 0; ap < users_dt.Count; ap++)
+        {
+            if (users_dt[ap] == input)
+            {
+                return fullname_dt[ap];
+            }
+        }
+        return "";
+    }
+
+    void ModalEditionCrewClick()
+    {
+        modaleditioncrew_open = true;
+        StateHasChanged();
+    }
+
+    void ModalEditionCrewOnClose()
+    {
+        modaleditioncrew_open = false;
+        OnUserListRefresh.InvokeAsync(true);
+        StateHasChanged();
+    }
+
+    void ModalEditionDivClick()
+    {
+        modaleditiondivs_open = true;
+        StateHasChanged();
+    }
+    void ModalEditionDivClose()
+    {
+        modaleditiondivs_open = false;
+         OnUserListRefresh.InvokeAsync(true);
+        StateHasChanged();
+    }
+}
+
+

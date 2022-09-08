@@ -1,0 +1,169 @@
+﻿@inject IJSRuntime JS
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h4 class="modal-title">Напомнить об актуальности задачи</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+
+            <div class="modal-body">
+             
+                @if (ready)
+                {
+
+                <div class="form-group row mb-4">
+                    <label for="workers_list" class="col-form-label col-lg-2">Исполнителям:</label>
+                    <div class="col-lg-10">
+                        <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect 
+                        Label="Список исполнителей"
+                        TItem="@SelectData" 
+                        TValue="string" 
+                        Data="@select_data_personal" 
+                        @bind-Value="@SelectedValues_personal" 
+                        TextSelector="@((p) => p.Name)" 
+                        ValueSelector="@((p) => p.Id)" 
+                        EmptyText="Выберите одно или несколько значений"
+                        NullDataText="Загружаются значения..." />
+                    </div>
+
+                </div>
+
+                <div class="form-group row mb-4">
+                    <label for="workers_divs" class="col-form-label col-lg-2">Отделам:</label>
+                    <div class="col-lg-10">
+                        <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect 
+                        Label="Список отделов"
+                        TItem="@SelectData" 
+                        TValue="string" 
+                        Data="@select_data_divs" 
+                        @bind-Value="@SelectedValues_divs" 
+                        TextSelector="@((p) => p.Name)" 
+                        ValueSelector="@((p) => p.Id)" 
+                        EmptyText="Выберите одно или несколько значений" 
+                        NullDataText="Загружаются значения..." />
+                    </div>
+                    </div>
+
+                    }
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" @onclick=@ModalOk>Разослать уведомления</button>
+                <button type="button" class="btn" @onclick="@ModalCancel">Отмена</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+    @code {
+
+        TOScript to_script = new TOScript();
+        EviCRM.Server.Core.BackendController bc = new EviCRM.Server.Core.BackendController();
+        EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+        public class SelectData
+        {
+            public string Id { get; set; }
+
+            public string Name { get; set; }
+        }
+
+        [Parameter]
+        public List<string> SelectedValues_personal { get; set; }
+
+        [Parameter]
+        public List<string> SelectedValues_divs {get;set;}
+
+        private IList<SelectData> select_data_personal = new List<SelectData>();
+        private IList<SelectData> select_data_divs=  new List<SelectData>();
+
+        //List<string> SelectedOptions = new List<string>();
+        HashSet<string> SelectedOptions = new HashSet<string>();
+
+        [Parameter]
+        public string task_id { get; set; }
+
+        [Parameter]
+        public string task_author { get; set; }
+
+        [Parameter]
+        public List<string> divisions_ids { get; set; }
+
+        [Parameter]
+        public List<string> divisions_name { get; set; }
+
+        [Parameter]
+        public List<string> fullname_dt { get; set; }
+
+        [Parameter]
+        public List<string> users_dt { get; set; }
+
+        [Parameter]
+        public EventCallback<bool> OnClose { get; set; }
+
+
+        private Task ModalCancel()
+        {
+            return OnClose.InvokeAsync(false);
+        }
+
+        private async Task ModalOk()
+        {
+            string selected_option_str = bc.getMultipleStringEncodingString(SelectedValues_personal);
+
+            ViewModels.TaskTrackingModelNotify ttmn = new ViewModels.TaskTrackingModelNotify();
+
+            ttmn.task_author = task_author;
+            ttmn.task_id = task_id;
+            ttmn.ttm_cmd_remind_whom = SelectedValues_personal;
+
+            await to_script.NOTIFY(ttmn);
+            await OnClose.InvokeAsync(true);
+        }
+
+        private async Task OnSelectionChanged(ChangeEventArgs eventArgs)
+        {
+            var selection = await GetSelections(_select_ref);
+            SelectedOptions = selection;
+        }
+
+        private ElementReference _select_ref;
+
+        public async Task<HashSet<string>> GetSelections(ElementReference elementReference)
+        {
+            return (await JS.InvokeAsync<List<string>>("getSelectedValues", _select_ref)).ToHashSet();
+        }
+
+        bool ready = false;
+
+        protected override async Task OnInitializedAsync()
+        {
+
+            for (int i = 0; i < divisions_ids.Count; i++)
+            {
+                SelectData sd = new SelectData();
+                sd.Id = divisions_ids[i];
+                sd.Name = divisions_name[i];
+                select_data_divs.Add(sd);
+            }
+            for (int i = 0; i < users_dt.Count; i++)
+            {
+                SelectData sd = new SelectData();
+                sd.Id = users_dt[i];
+                sd.Name = fullname_dt[i];
+                select_data_personal.Add(sd);
+            }
+
+            if (SelectedValues_personal ==null) SelectedValues_personal = new List<string>();
+            if (SelectedValues_divs ==null) SelectedValues_divs = new List<string>();
+
+            ready = true;
+            await InvokeAsync(StateHasChanged);
+
+   }
+}

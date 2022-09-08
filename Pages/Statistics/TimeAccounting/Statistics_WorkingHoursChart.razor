@@ -1,0 +1,642 @@
+﻿@page "/stats_wdchart"
+@using EviCRM.Server.Core
+@using System.Collections.Generic;
+@using System.Net
+@using EviCRM.Server.Models.MarksChart
+@using EviCRM.Server.Pages.Charts
+@using EviCRM.Server.Pages.Tasks.Components
+@using EviCRM.Server.ViewModels
+@using System.IO
+@using EviCRM.Server.Pages.Modals;
+@using Blazorise.Charts
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+@using Humanizer.Bytes
+@using Majorsoft.Blazor.Components.Modal
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+
+@using Microsoft.AspNetCore.Identity
+@using Radzen.Blazor
+@using System.Globalization
+@using System.Security.AccessControl
+@using static EviCRM.Server.Pages.Statistics.TimeAccounting.Statitics_WorkingHoursTable
+
+@inject NavigationManager UriHelper
+@inject IWebHostEnvironment _env
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject AuthenticationStateProvider authStateProvider
+
+@*@inject IHttpContextAccessor _httpContextAccessor;*@
+<style>
+    select {
+        width: 150px; /* Ширина списка в пикселах */
+    }
+</style>
+
+<h5>Активность по тонким клиентам</h5>
+<PageTitle>Активность по тонким клиентам</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+
+         @if (ready)
+        {
+            @if (!personal)
+            {
+                <div class="row">
+
+                    <div class="col-xl-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Выберите дату для просмотра статистики и кто вас интересует</h5>
+
+                                <div class="p-2">
+                                    <input id="input-date" type="date" class="me-2" value="@(DateTime.Today.ToString("yyyy-MM-dd"))" @onchange="@(e => OnChangeDate(e.Value.ToString()))" />
+                                </div>
+
+                                <div class="row">
+                                    @for (int i = 0; i < users_dt.Count; i++)
+                                    {
+                                        int temp = i;
+                                        <div class="row">
+                                            <div class="p-2">
+                                                <label><input value="true" type="checkbox" id=@("box" + temp) name=@("box" + temp) @onchange="@(e=> CheckboxClicked(temp,e.Value.ToString()))"> @fullname_dt[temp] / (@sentinel.TripleDesDecrypt(users_dt[temp])) </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                               
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-9">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">График активности пользователей</h5>
+
+                                <button class="btn btn-primary waves-effect waves-light btn-sm" @onclick="@ShowGraphActivityFull" id="acitivity_fullscreen" name="acitivity_fullscreen">Открыть график на полный экран</button>
+
+                                @if (modalGraphOpened)
+                                {
+                                    <EviCRM.Server.Pages.Charts.LineChartViewModuleFullScreenrazor dt_review=@activity_date graphData=@graphData2 @ref=lcvm_modal OnClose=FullScreenModalHandler chartExternalOptions=@lineChartOptionsInterop mi_commonlst=@mi_commonlst/>
+                                }
+
+                                <p><h6>Рабочий день</h6></p>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-nowrap align-middle mb-0">
+
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th scope="col" style="width: 70px;">#</th>
+                                                <th scope="col">Имя сотрудника</th>
+                                                <th scope="col">Рабочий день</th>
+                                                <th scope="col">Продолжительность</th>
+
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @{
+                                                int temp2 = 1;
+                                            }
+                                            @foreach (var elem in uavm)
+                                            {
+                                                <tr>
+                                                    <td>@temp2</td>
+                                                    <td>@elem.username</td>
+                                                    <td>@elem.workdaily</td>
+                                                    <td>@elem.workdaily_duration</td>
+                                                </tr>
+                                                temp2 = temp2 + 1;
+                                            }
+                                            @* <p></p>
+                                                <p><b>Рабочий день: </b>@table_activity_page_workdaily</p>
+                                                <p><b>Продолжительность: </b>@table_activity_page_workdaily_duration</p>*@
+
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <p></p>
+                                @if (graph_vis)
+                                {
+                                    <EviCRM.Server.Pages.Charts.LineChartViewModule2 dt_datereview=@dt_review lst_data=@graphData @ref=lcvm_modal_chart chartExternalOptions=@lineChartOptionsInterop />
+                                }
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <p></p>
+                    @foreach (var elem_list in mi_commonlst)
+                    {
+
+                        <p></p>
+                        <h6>Таблица событий</h6>
+
+                         <div class="input-group">
+                        <div class="p-2">
+                         <label><input type="checkbox" id="isCat1" name="isCat1" @onchange=@((e)=>SetViewCat(StatisticsCat.pressed_keys,e))> Нажатые клавиши</label>
+                        </div>
+                         <div class="p-2">
+                        <label><input type="checkbox" id="isCat2" name="isCat2" @onchange=@((e)=>SetViewCat(StatisticsCat.web_pages,e))> Веб-страницы</label>
+                        </div>
+                         <div class="p-2">
+                        <label><input type="checkbox" id="isCat3" name="isCat3"  @onchange=@((e)=>SetViewCat(StatisticsCat.SNS,e))> Социальные сети</label>
+                        </div>
+                         <div class="p-2">
+                         <label><input type="checkbox" id="isCat4" name="isCat4"  @onchange=@((e)=>SetViewCat(StatisticsCat.clipboard,e))> Буфер обмена</label>
+                        </div>
+                         <div class="p-2">
+                         <label><input type="checkbox" id="isCat5" name="isCat5"  @onchange=@((e)=>SetViewCat(StatisticsCat.files,e))>Файлы</label>
+                        </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-wrap align-middle mb-0">
+
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" style="width: 70px;">#</th>
+                                        <th scope="col">Категория</th>
+                                        <th scope="col">Дата и время</th>
+                                        <th scope="col">Путь к приложению</th>
+                                        <th scope="col">Название приложения</th>
+                                        <th scope="col">Описание</th>
+                                        <th scope="col">Данные</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        int temp3 = 1;
+                                    }
+                                    @foreach (var elem in elem_list)
+                                    {
+                                        @if (CatToView.Count < 1 || CatToView.Contains(elem.category))
+                                        {
+                                      
+                                        <tr>
+                                            <td>@temp3</td>
+
+                                            @switch (elem.category)
+                                            {
+                                                case StatisticsCat.clipboard:
+                                                    <td>Буфер обмена</td>
+                                                    break;
+
+                                                case StatisticsCat.files:
+                                                    <td>Файлы</td>
+                                                    break;
+
+                                                case StatisticsCat.pressed_keys:
+                                                    <td>Нажатые клавиши</td>
+                                                    break;
+
+                                                case StatisticsCat.SNS:
+                                                    <td>Социальные сети</td>
+                                                    break;
+
+                                                case StatisticsCat.web_pages:
+                                                    <td>Веб-сайты</td>
+                                                    break;
+                                            }
+
+                                            <td>
+                                                @elem.datetime
+                                            </td>
+
+                                            <td>
+                                                @elem.application_path
+                                            </td>
+
+                                            <td>
+                                               @* @if (elem.category != StatisticsCat.pressed_keys)
+                                                {*@
+                                                    @UTF8_Supressor(elem.application_name)
+                                               @* }
+                                                else
+                                                {
+                                                    @elem.application_name
+                                                }*@
+                                            </td>
+
+                                            <td>
+                                               @* @if (elem.category != StatisticsCat.pressed_keys)
+                                                {*@
+                                                    @UTF8_Supressor(elem.appplication_desc)
+                                               @* }
+                                                else
+                                                {
+                                                    @elem.appplication_desc
+                                                }*@
+                                            </td>
+                                            <td>
+                                                @if (elem.category != StatisticsCat.pressed_keys)
+                                                {
+                                                    @UTF8_Supressor(elem.appplication_data)
+                                                }
+                                                else
+                                                {
+                                                    @elem.appplication_data
+                                                }
+                                            </td>
+
+                                            
+                                            </tr>
+                                            temp3 = temp3 + 1;
+                                        }
+                                    }
+
+                                </tbody>
+
+
+                            </table>
+                        </div>
+                    }
+
+                </div>
+            }
+        }
+
+
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+
+
+@code {
+    //private LineChart<WatcherEvent> lineChart;
+
+    LineChartViewModule2 lcvm_modal_chart = new LineChartViewModule2();
+    LineChartViewModuleFullScreenrazor lcvm_modal = new LineChartViewModuleFullScreenrazor();
+
+    List<LineChartDataset<WatcherEvent>> graphData = new List<LineChartDataset<WatcherEvent>>();
+    List<LineChartDataset<WatcherEvent>> graphData2 = new List<LineChartDataset<WatcherEvent>>();
+
+
+    List<LineChartDataset<WatcherEvent>> data_series_collection = new List<LineChartDataset<WatcherEvent>>();
+    LineChartOptions lineChartOptionsInterop = new LineChartOptions();
+
+    List<UserActivityViewModel> uavm = new List<UserActivityViewModel>();
+
+    LineChartOptions lineChartOptions = new()
+        {
+            Parsing = new ChartParsing
+            {
+                XAxisKey = "sector",
+                YAxisKey = "count",
+            },
+            Scales = new ChartScales
+            {
+                Y = new ChartAxis
+                {
+                    //Max = (how_much_users / 2 + 2),
+                },
+            },
+
+        };
+
+    public void FullScreenModalHandler()
+    {
+        modalGraphOpened = false;
+        StateHasChanged();
+    }
+
+    string table_activity_page_workdaily { get; set; }
+    string table_activity_page_workdaily_duration {get;set;}
+    DateTime dt_review { get; set; }
+    DateTime activity_date { get; set; }
+    bool modalGraphOpened { get; set; }
+
+    bool graph_vis { get; set; }
+    static int how_much_users = 0;
+
+    List<LineChartDataset<WatcherEvent>> chart_interop_lst = new List<LineChartDataset<WatcherEvent>>();
+
+
+    public TerminalServer_AnalyzeMethodActivityModel getUserData(DateTime dt_ud, int i)
+    {
+        TerminalServer_AnalyzeMethodActivityModel tsamam = new TerminalServer_AnalyzeMethodActivityModel();
+        string a_str = "";
+
+        string log_path = genPathToThinClientStatsByUserID(i);
+
+        if ((log_path) != "")
+        {
+            tsamam = mi.AnalyzeMethodActivityByDate(log_path, dt_ud);
+
+            //if (tsamam.tsamaam_start.Year != 1)
+            //{
+
+            //}
+
+            return tsamam;
+
+        }
+
+        return tsamam;
+
+    }
+
+    Sentinel sentinel = new Sentinel();
+    MipkoIntegrator mi = new MipkoIntegrator();
+    MipkoIntegratorCore mic = new MipkoIntegratorCore();
+    MySQL_Controller mysqlc = new MySQL_Controller();
+
+    string user_id { get; set; }
+
+    List<string> users_dt = new List<string>();
+    List<string> email_dt = new List<string>();
+    List<string> passwords_dt = new List<string>();
+    List<string> id_dt = new List<string>();
+    List<string> fullname_dt = new List<string>();
+    List<string> thinclient_dt = new List<string>();
+
+    List<string> idaux_workingdays_idaux_dt = new List<string>();
+    List<string> idaux_workingdays_users_id_dt = new List<string>();
+    List<string> idaux_workingdays_date_dt = new List<string>();
+    List<string> idaux_workingdays_daystart_dt = new List<string>();
+    List<string> idaux_workingdays_dayend_dt = new List<string>();
+
+    List<TerminalServer_LogsData> tsld = new List<TerminalServer_LogsData>();
+
+    bool ready = false;
+    bool isAdmin = false;
+
+    List<int> selected_users = new List<int>();
+    List<double> users_series_max = new List<double>();
+
+    private List<string> backgroundColors = new() { ChartColor.FromRgba(255, 99, 132, 0.2f), ChartColor.FromRgba(54, 162, 235, 0.2f), ChartColor.FromRgba(255, 206, 86, 0.2f), ChartColor.FromRgba(75, 192, 192, 0.2f), ChartColor.FromRgba(153, 102, 255, 0.2f), ChartColor.FromRgba(255, 159, 64, 0.2f),ChartColor.FromRgba(205,92,92,0.2f),ChartColor.FromRgba(255,192,203,0.2f),ChartColor.FromRgba(240,128,128,0.2f),ChartColor.FromRgba(199,21,133,0.2f),ChartColor.FromRgba(0,255,127,0.2f),ChartColor.FromRgba(178,34,34,0.2f),ChartColor.FromRgba(144,238,144,0.2f),ChartColor.FromRgba(139,0,0,0.2f),ChartColor.FromRgba(0,100,0,0.2f),ChartColor.FromRgba(107,142,35,0.2f),ChartColor.FromRgba(255,215,0,0.2f),ChartColor.FromRgba(154,205,50,0.2f),ChartColor.FromRgba(255,250,210,0.2f),ChartColor.FromRgba(189,183,187,0.2f),ChartColor.FromRgba(0,255,255,0.2f),ChartColor.FromRgba(70,130,180,0.2f),ChartColor.FromRgba(176,196,222,0.2f),ChartColor.FromRgba(173,216,230,0.2f),ChartColor.FromRgba(176,224,230,0.2f),ChartColor.FromRgba(0,255,255,0.2f),ChartColor.FromRgba(25,25,112,0.2f),ChartColor.FromRgba(75,0,130,0.2f),ChartColor.FromRgba(255,0,255,0.2f),ChartColor.FromRgba(238,130,238,0.2f),ChartColor.FromRgba(221,160,221,0.2f),ChartColor.FromRgba(72,61,139,0.2f),ChartColor.FromRgba(25,25,112,0.2f),ChartColor.FromRgba(0,0,139,0.2f),ChartColor.FromRgba(255,228,196,0.2f),ChartColor.FromRgba(165,42,42,0.2f),ChartColor.FromRgba(185,134,11,0.2f),ChartColor.FromRgba(210,105,30,0.2f),ChartColor.FromRgba(139,69,19,0.2f),ChartColor.FromRgba(128,0,128,0.2f),ChartColor.FromRgba(192,192,192,0.2f),ChartColor.FromRgba(119,136,153,0.2f),ChartColor.FromRgba(205,133,63,0.2f),ChartColor.FromRgba(0,128,0,0.2f) };
+    private List<string> borderColors = new() { ChartColor.FromRgba(255, 99, 132, 1f), ChartColor.FromRgba(54, 162, 235, 1f), ChartColor.FromRgba(255, 206, 86, 1f), ChartColor.FromRgba(75, 192, 192, 1f), ChartColor.FromRgba(153, 102, 255, 1f), ChartColor.FromRgba(255, 159, 64, 1f) };
+
+    private bool isAlreadyInitialised;
+
+    Statistics_ChartInterop sci = new Statistics_ChartInterop();
+
+    public void RestartChildElement()
+    {
+        sci.ReloadElement();
+    }
+
+
+
+    public async Task OnChangeDate(string date)
+    {
+        if (DateTime.TryParse(date,out DateTime s))
+        {
+            dt_review = DateTime.Parse(date);
+            activity_date = DateTime.Parse(date);
+            UsersLoadData();
+
+            List<int> selected_users_sorted = new List<int>();
+            selected_users_sorted = selected_users.OrderBy(p => p).ToList();
+
+
+            uavm.Clear();
+
+            await ChangeAcitivityInterop(selected_users_sorted);
+            await InvokeAsync(StateHasChanged);
+        }
+
+    }
+
+    public async Task CheckboxClicked(int box_id, string clicked)
+    {
+        bool clicked_bool = false;
+        clicked_bool = bool.Parse(clicked);
+        if (clicked_bool)
+        {
+            selected_users.Add(box_id);
+        }
+        else
+        {
+            int index = selected_users.IndexOf(box_id);
+            selected_users.RemoveAt(index);
+        }
+        uavm.Clear();
+        UsersLoadData();
+
+
+        List<int> selected_users_sorted = new List<int>();
+        selected_users_sorted = selected_users.OrderBy(p => p).ToList();
+
+
+        await ChangeAcitivityInterop(selected_users_sorted);
+        await InvokeAsync(StateHasChanged);
+
+    }
+
+    public void UsersLoadData()
+    {
+
+
+        foreach (int index_str in selected_users)
+        {
+
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!isAlreadyInitialised)
+        {
+            isAlreadyInitialised = true;
+
+            user_id = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+
+            string role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(user_id));
+
+            if (role == "admin" || role == "owner")
+            {
+                isAdmin = true;
+            }
+            else
+            {
+                isAdmin = false;
+            }
+
+            StateHasChanged();
+
+            users_dt = await mysqlc.getListUsersLoginAsync();
+            email_dt = await mysqlc.getListUsersEmailAsync();
+            passwords_dt = await mysqlc.getListUsersPasswordAsync();
+            id_dt = await mysqlc.getListUsersIDAsync();
+            fullname_dt = await mysqlc.getListUsersFullnameAsync();
+            thinclient_dt = await mysqlc.getListUsersThinClientAsync();
+
+            idaux_workingdays_idaux_dt = await mysqlc.getListAuxWorkingDaysIDAUXAsync();
+            idaux_workingdays_users_id_dt = await mysqlc.getListAuxWorkingDaysUserIDAsync();
+            idaux_workingdays_date_dt = await mysqlc.getListAuxWorkingDaysDateAsync();
+            idaux_workingdays_daystart_dt = await mysqlc.getListAuxWorkingDaysDayStartAsync();
+            idaux_workingdays_dayend_dt = await mysqlc.getListAuxWorkingDaysDayEndAsync();
+
+
+            int p = 0;
+            if (users_dt != null)
+            {
+                p = users_dt.Count;
+                how_much_users = users_dt.Count;
+            }
+            personal = false;
+            ready = true;
+
+            dt_review = DateTime.Now;
+            modalGraphOpened = false;
+            graph_vis = true;
+
+            //Load preset for opening()
+
+            if (await GetLocalStorageItems("working_date") != null && await GetLocalStorageItems("working_date") != "")
+            {
+                await LoadPresetDate();
+            }
+
+            StateHasChanged();
+
+            //await lineChart.Clear();
+            //await lineChart.AddDataSet(GetLineChartDataset());
+
+        }
+    }
+
+    private async Task<string> GetLocalStorageItems(string key)
+    {
+        return await _localStorageService.GetItemAsStringAsync(key);
+    }
+
+    async Task LoadPresetDate()
+    {
+        if (await GetLocalStorageItems("working_date_user") != null && await GetLocalStorageItems("working_date_user") != "")
+        {
+            string date = await GetLocalStorageItems("working_date");
+            string employee = await GetLocalStorageItems("working_date_user");
+
+            await CheckboxClicked(int.Parse(employee),bool.TrueString);
+            await OnChangeDate(date);
+
+            await _localStorageService.RemoveItemAsync("working_date");
+            await _localStorageService.RemoveItemAsync("working_date_user");
+        }
+
+    }
+
+
+    public string genPathToThinClientStatsByUserID(int user_array_id)
+    {
+        string str = "";
+
+        if (Directory.Exists(Path.Combine(_env.WebRootPath, "thinclient")))
+        {
+
+        }
+        else
+        {
+            Directory.CreateDirectory(Path.Combine(_env.WebRootPath, "thinclient"));
+        }
+
+        string thinc = thinclient_dt[user_array_id];
+
+        bool isFirstServer = true;
+
+        if (thinc.Contains("rendev_"))
+        {
+            isFirstServer = true;
+            thinc = thinc.Replace("rendev_", "");
+        }
+        else
+        {
+            isFirstServer = false;
+            thinc = thinc.Replace("renovationdev_", "");
+        }
+
+        string path_base = Path.Combine(_env.WebRootPath, "thinclient");
+        string full_path = path_base;
+
+        if (isFirstServer)
+        {
+            full_path = Path.Combine(_env.WebRootPath, "thinclient", "RENDEV", thinc, thinc + ".csv");
+
+        }
+        else
+        {
+            full_path = Path.Combine(_env.WebRootPath, "thinclient", "RENOVATIONDEV", thinc + ".csv");
+        }
+
+        if (File.Exists(full_path))
+        {
+            str = full_path;
+        }
+
+        return str;
+    }
+
+    public string getUserDataByIDAndDay(int i, DateTime dt_ud)
+    {
+        string a_str = "";
+
+        //i - user array id
+        //days - number of days in month
+
+        string log_path = genPathToThinClientStatsByUserID(i);
+
+        if ((log_path) != "")
+        {
+            TerminalServer_AnalyzeMethodActivityModel tsamam = mi.AnalyzeMethodActivityByDate(log_path, dt_ud);
+
+            if (tsamam.tsamaam_start.Year != 1)
+            {
+
+                string str_h = tsamam.tsamaam_time.ToString(@"hh");
+                string str_m = tsamam.tsamaam_time.ToString(@"mm");
+                //string str_s = tsamam.tsamaam_time.ToString(@"ss\:fff");
+
+                a_str += tsamam.tsamaam_start.ToShortTimeString() + " / ";
+                a_str += tsamam.tsamaam_end.ToShortTimeString();
+                a_str += "(" + str_h + " ч " + str_m + " мин)";
+            }
+        }
+
+
+
+        return a_str;
+    }
+
+
+
+    private LineChartDataset<WatcherEvent> GetLineChartDataset()
+    {
+        List<WatcherEvent> Data_ch = new List<WatcherEvent>();
+
+
+        for (int h = 0; h < 24; h++)
+        {
+            for (int m = 0; m < 60; m++)
+            {
+                WatcherEvent we = new WatcherEvent { Sector = h + ":" + m, Count = 50 };
+                Data_ch.Add(we);
+            }
+        }
+
+        return new()
+            {
+                Label = "# of randoms",
+                Data = Data_ch,
+                BackgroundColor = backgroundColors[0], // line chart can only have one color
+                BorderColor = borderColors[0],
+                Fill = true,
+                PointRadius = 3,
+                BorderWidth = 1,
+                PointBorderColor = Enumerable.Repeat(borderColors.First(), 6).ToList(),
+                CubicInterpolationMode = "monotone",
+            };
+    }
+} 

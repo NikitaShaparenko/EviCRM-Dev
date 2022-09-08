@@ -1,0 +1,42 @@
+﻿@using EviCRM.Server.Core;
+
+@*@inject IHttpContextAccessor _httpContextAccessor;*@
+@inject AuthenticationStateProvider authStateProvider
+
+<AuthorizeView>
+    <Authorized>
+        <a href="Identity/Account/Manage">Привет, @user</a>
+        <form method="post" action="/logout">
+            <button type="submit" class="nav-link btn btn-link">Выйти</button>
+        </form>
+    </Authorized>
+    <NotAuthorized>
+        <a href="/register">Зарегистрироваться</a>
+        <a href="/login">Войти</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@functions{
+
+    MySQL_Controller mysqlc = new MySQL_Controller();
+
+    string user { get; set; }
+
+    async Task<string> getFullnameByLogin(string input)
+    {
+
+        string result = await mysqlc.MySql_ContextAsyncL(mysqlc.getUsernameByLogin(input));
+        return result;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //user = await getFullnameByLogin(_httpContextAccessor.HttpContext.User.Identity?.Name!);
+        user =  await getFullnameByLogin(authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name);
+    }
+}
+
+@code{
+      
+}

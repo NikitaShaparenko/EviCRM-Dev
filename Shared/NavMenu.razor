@@ -1,0 +1,415 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject AuthenticationStateProvider authStateProvider
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">EviCRM.Server</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<style>
+.nav-link > hr {
+    /*visibility: hidden;
+    color: white;
+    height: 2px;
+    margin-top: 4px;
+    margin-bottom: 0;*/
+}
+
+.nav-item .nav-link.active > hr {
+    visibility: visible;
+    filter: blur(1.5px);
+</style>
+
+<div class="" style="overflow-y:scroll; overflow-x:hidden height:100%" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        @*<nav class="navbar navbar-default navbar-fixed-top" role="navigation">*@
+     
+        <AuthorizeView>
+        <NotAuthorized>
+     <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/login">
+                <span class="oi oi-account-login" aria-hidden="true"></span> Вход
+                 <hr />
+            </NavLink>
+        </div>
+     <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/register">
+                <span class="oi oi-account-login" aria-hidden="true"></span> Регистрация
+                 <hr />
+            </NavLink>
+        </div>
+    <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/login_recovery">
+                <span class="oi oi-key" aria-hidden="true"></span> Напомни пароль
+                 <hr />
+            </NavLink>
+        </div>
+        </NotAuthorized>
+
+
+
+ <Authorized>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/">
+                <span class="oi oi-home" aria-hidden="true"></span> Главная
+                 <hr />
+            </NavLink>
+        </div>
+        
+        @if (isAdmin)
+        {
+         <div class="nav-item px-3">
+             <NavLink href="#" class="nav-link" @onclick="() => ToggleNavMenu2(MenuCats.AdminMenu)">
+                <span class="oi oi-browser" aria-hidden="true"></span> Админ меню
+                 <hr />
+            </NavLink>
+        </div>
+        @if (expandSubNav_Admin)
+        {
+        
+        <div class="nav-item px-5">
+            <NavLink class="nav-link" href="admin_health">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Состояние
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="admin_loggin">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Журналы
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="admin_settings">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Настройки
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="admin_statistics">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Статистика
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="admin_users">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Пользователи
+            </NavLink>
+        </div>
+             
+        }
+        }
+
+        @if (isAdmin)
+        {
+
+         <div class="nav-item px-3">
+             <NavLink href="#" class="nav-link" @onclick="() => ToggleNavMenu2(MenuCats.StatsMenu)">
+                <span class="oi oi-bar-chart" aria-hidden="true"></span> Статистика
+                 <hr />
+            </NavLink>
+        </div>
+
+        @if (expandSubNav_Stats)
+        {
+        
+        <div class="nav-item px-5">
+            <NavLink class="nav-link" href="stats_marks">
+                <span class="oi oi-pie-chart" aria-hidden="true"></span> Оценки
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="stats_tasks">
+                <span class="oi oi-bar-chart" aria-hidden="true"></span> Задачи
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="stats_wdtable">
+                <span class="oi oi-timer" aria-hidden="true"></span> Табель
+            </NavLink>
+        </div>
+        <div class="nav-item px-5">
+            <NavLink class="nav-link" href="stats_wdchart">
+                <span class="oi oi-timer" aria-hidden="true"></span> Активность
+            </NavLink>
+        </div>
+        }
+        }
+         
+         <div class="nav-item px-3">
+            <NavLink href="" class="nav-link" @onclick="() => ToggleNavMenu2(MenuCats.TasksMenu)">
+                <span class="oi oi-task" aria-hidden="true"></span> Задачи
+            </NavLink>
+        </div>
+        @if (expandSubNav_Tasks)
+        {
+        
+        <div class="nav-item px-5">
+            <NavLink class="nav-link" href="tasks_list">
+                <span class="oi oi-task" aria-hidden="true"></span> Списком
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="tasks_kanban">
+                <span class="oi oi-task" aria-hidden="true"></span> Канбан
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="tasks_create">
+                <span class="oi oi-task" aria-hidden="true"></span> Создать
+            </NavLink>
+        </div>
+        
+             
+        }
+
+         <div class="nav-item px-3">
+            <NavLink href="#" class="nav-link" @onclick="() => ToggleNavMenu2(MenuCats.ProjectsMenu)">
+                <span class="oi oi-folder" aria-hidden="true"></span> Проекты
+            </NavLink>
+        </div>
+
+         @if (expandSubNav_Projects)
+        {
+        
+        <div class="nav-item px-5">
+            <NavLink class="nav-link" href="proj_list">
+                <span class="oi oi-folder" aria-hidden="true"></span> Списком
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="proj_grid">
+                <span class="oi oi-folder" aria-hidden="true"></span> Сеткой
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="proj_create">
+                <span class="oi oi-folder" aria-hidden="true"></span> Создать
+            </NavLink>
+        </div>
+        
+             
+        }
+         <div class="nav-item px-3">
+            <NavLink href="#" class="nav-link" @onclick="() => ToggleNavMenu2(MenuCats.UsersMenu)">
+                <span class="oi oi-people" aria-hidden="true"></span> Пользователи
+            </NavLink>
+        </div>
+         @if (expandSubNav_Users)
+    {
+
+        <div class="nav-item px-5">
+            <NavLink class="nav-link" href="users_list">
+                <span class="oi oi-list" aria-hidden="true"></span> Списком
+            </NavLink>
+        </div>
+        <div class="nav-item px-5">
+            <NavLink class="nav-link" href="users_grid">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Сеткой
+            </NavLink>
+        </div>
+         <div class="nav-item px-5">
+            <NavLink class="nav-link" href="users_hierarchy">
+                <span class="oi oi-person" aria-hidden="true"></span> Отдел
+            </NavLink>
+        </div>
+       } 
+
+       <div class="dropdown-divider"></div>
+
+      
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/calendar">
+                <span class="oi oi-home" aria-hidden="true"></span> Календарь
+            </NavLink>
+        </div>
+
+         <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/marks_chart">
+                <span class="oi oi-home" aria-hidden="true"></span> Дневник
+            </NavLink>
+        </div>
+
+        <div class="dropdown-divider"></div>
+
+         @if(session_cookie_data != "6oFCZd+hkUDEmnOJNutN9CeJ3q3jhL3Sq7N9UDshyZp2Mgkpd4K4jg==")
+       {
+
+         <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/chat">
+                <span class="oi oi-chat" aria-hidden="true"></span> Чат
+            </NavLink>
+        </div>
+
+       }
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/video">
+                <span class="oi oi-globe" aria-hidden="true"></span> Конференции
+            </NavLink>
+        </div>
+
+                @if (true)
+                {
+
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="/remote">
+                            <span class="oi oi-monitor" aria-hidden="true"></span> Рабочий стол
+                        </NavLink>
+                    </div>
+
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="/store">
+                            <span class="oi oi-folder" aria-hidden="true"></span> Хранилище
+                        </NavLink>
+                    </div>
+
+                    @if (isAdmin)
+                    {
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="/mail">
+                                <span class="oi oi-envelope-closed" aria-hidden="true"></span> Почта
+                            </NavLink>
+                        </div>
+                    }
+                    <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/news_list">
+                <span class="oi oi-browser" aria-hidden="true"></span> Новости
+            </NavLink>
+        </div>
+        }
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/maps">
+                <span class="oi oi-map" aria-hidden="true"></span> Карты
+            </NavLink>
+        </div>
+
+        @if (isAdmin)
+        {
+        /* <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/office">
+                <span class="oi oi-browser" aria-hidden="true"></span> Офисы
+            </NavLink>
+        </div>*/
+        }
+
+</Authorized>
+</AuthorizeView>
+
+
+  </nav>
+</div>
+
+@code {
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+          users_dt = await mysqlc.getListUsersLoginAsync();
+            id_dt = await mysqlc.getListUsersIDAsync();
+
+        session_cookie_data = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        session_role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(session_cookie_data));
+
+        current_user_id = getUserArrayIDByUsername(session_cookie_data);
+
+        if (session_role == "admin")
+        {
+            isAdmin = true;
+        }
+        else
+        {
+            isAdmin = false;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    string session_cookie_data { get; set;}
+    string session_role {get;set;}
+    bool isAdmin = false;
+    string  current_user_id { get; set; }
+
+    List<string> id_dt = new List<string>();
+    List<string> users_dt = new List<string>();
+
+    enum MenuCats{
+        AdminMenu,
+        ProjectsMenu,
+        TasksMenu,
+        UsersMenu,
+        StatsMenu,
+    }
+
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+      public string getUserArrayIDByUsername(string username)
+        {
+            for (int i = 0; i<id_dt.Count;i++)
+            {
+                if (users_dt[i] == username)
+                {
+                    return i.ToString();
+                }
+            }
+
+            return "";
+        }
+
+    private void ToggleNavMenu2(MenuCats mc)
+    {
+        switch (mc)
+        {
+            case MenuCats.AdminMenu:
+                expandSubNav_Admin = true;
+                expandSubNav_Projects = false;
+                expandSubNav_Tasks = false;
+                expandSubNav_Users = false;
+                expandSubNav_Stats = false;
+                break;
+            case MenuCats.ProjectsMenu:
+                expandSubNav_Admin = false;
+                expandSubNav_Projects = true;
+                expandSubNav_Tasks = false;
+                expandSubNav_Users = false;
+                expandSubNav_Stats = false;
+                break;
+            case MenuCats.TasksMenu:
+                expandSubNav_Admin = false;
+                expandSubNav_Projects = false;
+                expandSubNav_Tasks = true;
+                expandSubNav_Users = false;
+                expandSubNav_Stats = false;
+                break;
+            case MenuCats.UsersMenu:
+                expandSubNav_Admin = false;
+                expandSubNav_Projects = false;
+                expandSubNav_Tasks = false;
+                expandSubNav_Users = true;
+                expandSubNav_Stats = false;
+                break;
+            case MenuCats.StatsMenu:
+                expandSubNav_Admin = false;
+                expandSubNav_Projects = false;
+                expandSubNav_Tasks = false;
+                expandSubNav_Users = false;
+                expandSubNav_Stats = true;
+                break;
+        }
+    }
+
+        private bool expandSubNav_Stats = false;
+        private bool expandSubNav_Admin= false;
+        private bool expandSubNav_Projects= false;
+        private bool expandSubNav_Tasks= false;
+        private bool expandSubNav_Users= false;
+
+    }

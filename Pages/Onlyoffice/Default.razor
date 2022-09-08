@@ -1,0 +1,282 @@
+﻿@page "/office"
+
+@using System.IO
+@using System.Web.WebPages
+@using System.Linq
+@using System.Collections.Generic
+
+
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>ONLYOFFICE</title>
+
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" type="text/css" href="/assets/css/office/media.css" />
+
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Open+Sans:900,800,700,600,500,400,300&subset=latin,cyrillic-ext,cyrillic,latin-ext" />
+
+ <link rel="stylesheet" type="text/css" href="/assets/css/office/stylesheet.css" />
+    
+@*    <link rel="stylesheet" type="text/css" href="/assets/css/office/jquery-ui.css" />*@
+        <body data-sidebar="dark">
+
+    <div class="d-xl-flex">
+        <div class="w-100">
+            <div class="d-md-flex">
+                <div class="card filemanager-sidebar me-md-2">
+                    <div class="card-body">
+
+                        <div class="clearFix">
+                                    <div class="create-panel clearFix">
+
+                                        <h5>Создать документ</h5>
+
+                                        <ul class="try-editor-list clearFix">
+                                            
+                                            <li>
+                                                <a class="try-editor word" data-type="word">Документ Word</a>
+                                            </li>
+                                            <li>
+                                                <a class="try-editor cell" data-type="cell">Таблица Excel</a>
+                                            </li>
+                                            <li>
+                                                <a class="try-editor slide" data-type="slide">Презентация PowerPoint</a>
+                                            </li>
+                                            <li>
+                                                <a class="try-editor form" data-type="docxf">Шаблон</a>
+                                            </li>
+                                        </ul>
+                                        <label class="create-sample">
+                                            <input id="createSample" class="checkbox" type="checkbox" />На основе корпоративного шаблона
+                                        </label>
+                                    </div>
+                                    <div class="upload-panel clearFix">
+                                        <a class="file-upload">Загрузить файл
+                                            <input type="file" id="fileupload" />
+                                        </a>
+                                    </div>
+                                </div>
+
+                    </div>
+                </div>
+
+               
+
+
+
+        <div class="w-100">
+                    <div class="card">
+                        <div class="card-body">
+                           
+                                <div id="portal-info">
+                                    <span class="portal-name">Добро пожаловать в онлайн-редактор офисных документов!</span>
+                                    <span class="portal-descr">
+                                        В этом окне вы можете редактировать офисные документы и обмениваться ими с другими пользователями
+                                        <br /> Вы можеете загрузить документы с помощью кнопки "<b>Загрузить файл</b>" или выбрать уже существующий документ
+                                    </span>
+                                    <span class="portal-descr">Обращаем внимание, эта функция работает в тестовом режиме, возможны сбои, но надемся, всё будет хорошо</span>
+                                 
+                                      <div class="user-descr">
+                                       <b></b>
+                                           <ul>
+                                        
+                                           </ul>
+                                       </div>
+                                   
+                                </div>
+                          
+                               
+                                    <div class="stored-list">
+                                        <span class="header-list">Ваши документы</span>
+                                        <table class="tableHeader">
+                                            <thead>
+                                                <tr >
+                                                    <td class="tableHeaderCell tableHeaderCellFileName">Названия документов</td>
+                                                    <td class="tableHeaderCell tableHeaderCellEditors contentCells-shift">Редакторы</td>
+                                                    <td class="tableHeaderCell tableHeaderCellViewers">Просмотрщики</td>
+                                                    <td class="tableHeaderCell tableHeaderCellDownload">Скачать</td>
+                                                    <td class="tableHeaderCell tableHeaderCellRemove">Удалить</td>
+                                                </tr>
+                                            </thead>
+                                        </table>
+                                        <div class="scroll-table-body">
+                                            <table cellspacing="0" cellpadding="0">
+                                                <tbody>
+                                                
+                                                        <tr class="tableRow">
+                                                            <td class="contentCells">
+                                                                <a class="stored-edit <%= docType %>" href="<%= editUrl %>" target="_blank">
+                                                                    <span></span>
+                                                                </a>
+                                                            </td>
+                                                       
+                                                                <td class="contentCells contentCells-icon">
+                                                                    <a href="/"target="_blank">
+                                                                        <img src ="/assets/images/onlyoffice/desktop.svg" alt="Открыть в редакторе в полноэкранном режиме" title="Открыть в редакторе в полноэкранном режиме"/>
+                                                                    </a>
+                                                                </td>
+                                                                <td class="contentCells contentCells-icon">
+                                                                    <a href="/" target="_blank">
+                                                                        <img src ="/assets/images/onlyoffice/mobile.svg" alt="Открыть в редакторе для мобильных устройств" title="Открыть в редакторе для мобильных устройств"/>
+                                                                    </a>
+                                                                </td>
+                                                                <td class="contentCells contentCells-icon">
+                                                                    <a href="/" target="_blank">
+                                                                         <img src ="/assets/images/onlyoffice/comment.svg" alt="Открыть в редакторе для комментария" title="Открыть в редакторе для комментария"/>
+                                                                    </a>
+                                                                </td>
+
+                                                               
+                                                                    <td class="contentCells contentCells-icon">
+                                                                        <a href="/" target="_blank">
+                                                                            <img src ="/assets/images/onlyoffice/review.svg" alt="Открыть в редакторе для правок" title="Открыть в редакторе для правок"/>
+                                                                        </a>
+                                                                    </td>
+                                                                
+                                                                    <td class="contentCells contentCells-icon">
+                                                                        <a href="/" target="_blank">
+                                                                            <img src ="/assets/images/onlyoffice/filter.svg" alt="Открыть в редакторе без доступа изменить фильтр" title="Открыть в редакторе без доступа изменить фильтр" />
+                                                                        </a>
+                                                                    </td>
+                                                               
+                                                                    <td class="contentCells contentCells-icon">
+                                                                        <a href="/" target="_blank">
+                                                                            <img src ="/assets/images/onlyoffice/block-content.svg" alt="Открыть в редаторе без контроля модификаций" title="Открыть в редаторе без контроля модификаций"/>
+                                                                        </a>
+                                                                    </td>
+                                                               
+                                                                    <td class="contentCells contentCells-icon"></td>
+                                                               
+                                                                    <td class="contentCells contentCells-icon "></td>
+                                                               
+                                                                   
+                                                                        <td class="contentCells contentCells-shift contentCells-icon firstContentCellShift">
+                                                                            <a href="/" target="_blank">
+                                                                                <img src ="/assets/images/onlyoffice/fill-forms.svg" alt="Открыть в редакторе для заполнения форм" title="Открыть в редакторе для заполнения форм"/>
+                                                                            </a>
+                                                                        </td>
+                                                              
+                                                                    <td class="contentCells contentCells-shift contentCells-icon firstContentCellShift"></td>
+                                                               
+                                                                    <td class="contentCells contentCells-icon "></td>
+                                                                    <td class="contentCells contentCells-icon">
+                                                                        <a href="/" target="_blank">
+                                                                           <imgsrc ="/assets/images/onlyoffice/mobile-fill-forms.svg" alt="Открыть в редакторе для заполнения форм для мобильных устройств" title="Открыть в редакторе для заполнения форм для мобильных устройств" />
+                                                                        </a>
+                                                                    </td>
+                                                                    <td class="contentCells contentCells-icon "></td>
+                                                                    <td class="contentCells contentCells-icon "></td>
+                                                                    <td class="contentCells contentCells-icon "></td>
+                                                                    <td class="contentCells contentCells-shift contentCells-icon firstContentCellShift">
+                                                                        <a href="/" target="_blank">
+                                                                            <img src ="/assets/images/onlyoffice/fill-forms.svg" alt="Открыть в редакторе для заполнения форм" title="Открыть в редакторе для заполнения форм" />
+                                                                        </a>
+                                                                    </td>
+                                                           
+                                                                <td class="contentCells contentCells-shift contentCells-icon contentCellsEmpty" colspan="6"></td>
+                                                         
+                                                            <td class="contentCells contentCells-icon firstContentCellViewers">
+                                                                <a href="/" target="_blank">
+                                                                    <img src ="/assets/images/onlyoffice/desktop.svg" alt="Открыть в просмотрищке на полный экран" title="Открыть в просмотрищке на полный экран"/>
+                                                                </a>
+                                                            </td>
+                                                            <td class="contentCells contentCells-icon">
+                                                                <a href="/" target="_blank">
+                                                                    <img src ="/assets/images/onlyoffice/mobile.svg" alt="Открыть в просмотрщике для мобильных устройств" title="Открыть в просмотрщике для мобильных устройств"/>
+                                                                </a>
+                                                            </td>
+                                                            <td class="contentCells contentCells-icon contentCells-shift">
+                                                                <a href="/" target="_blank">
+                                                                    <img src ="/assets/images/onlyoffice/embeded.svg" alt="Открыть в режиме интеграции" title="Открыть в режиме интеграции"/>
+                                                                </a>
+                                                            </td>
+                                                            <td class="contentCells contentCells-icon contentCells-shift downloadContentCellShift">
+                                                                <a href="webeditor.ashx?type=download&fileName">
+                                                                    <img class="icon-download" src="/assets/images/onlyoffice/download.svg" alt="Скачать" title="Скачать" />
+                                                                </a>
+                                                            </td>
+                                                            <td class="contentCells contentCells-icon contentCells-shift">
+                                                                <a class="delete-file" data-filename="">
+                                                                    <img class="icon-delete" src ="/assets/images/onlyoffice/delete.svg" alt="Удалить" title="Удалить" />
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                          
+                            
+                     </div>
+                </div>
+                
+                 </div>
+            </div>
+        </div>
+
+        <div id="mainProgress">
+            <div id="uploadSteps">
+                <span id="uploadFileName" class="uploadFileName"></span>
+                <div class="describeUpload">After these steps are completed, you can work with your document.</div>
+                <span id="step1" class="step">1. Loading the file.</span>
+                <span class="step-descr">The loading speed depends on file size and additional elements it contains.</span>
+                <br />
+                <span id="step2" class="step">2. Conversion.</span>
+                <span class="step-descr">The file is converted to OOXML so that you can edit it.</span>
+                <br />
+                <div id="blockPassword">
+                    <span class="descrFilePass">The file is password protected.</span>
+                    <br />
+                    <div>
+                        <input id="filePass" type="password"/>
+                        <div id="enterPass" class="button orange">Enter</div>
+                        <div id="skipPass" class="button gray">Skip</div>
+                    </div>
+                    <span class="errorPass"></span>
+                    <br />
+                </div>
+                <span id="step3" class="step">3. Loading editor scripts.</span>
+                <span class="step-descr">They are loaded only once, they will be cached on your computer.</span>
+                <input type="hidden" name="hiddenFileName" id="hiddenFileName" />
+                <br />
+                <span class="progress-descr">Note the speed of all operations depends on your connection quality and server location.</span>
+                <br />
+                <div class="error-message">
+                    <b>Upload error: </b><span></span>
+                    <br />
+                    Please select another file and try again.
+                </div>
+            </div>
+            <iframe id="embeddedView" src="" height="345px" width="432px" frameborder="0" scrolling="no" allowtransparency></iframe>
+            <br />
+            <div class="buttonsMobile">
+                <div id="beginEdit" class="button orange disable">Edit</div>
+                <div id="beginView" class="button gray disable">View</div>
+                <div id="beginEmbedded" class="button gray disable">Embedded view</div>
+                <div id="cancelEdit" class="button gray">Cancel</div>
+            </div>
+        </div>
+
+        <span id="loadScripts" data-docs=""></span>
+        </div>
+                </body>
+      
+        
+
+@code{
+
+    string user_name { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        user_name = "";
+    }
+
+}
+
+@functions{
+
+
+}

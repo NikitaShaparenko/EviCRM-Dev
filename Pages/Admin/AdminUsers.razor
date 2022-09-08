@@ -1,0 +1,186 @@
+﻿@page "/admin_users"
+
+@using EviCRM
+@using System.Diagnostics
+
+<h5>Админ меню \ Список пользователей</h5>
+<PageTitle>Админ меню \ Список пользователей</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Пользователи в системе</h4>
+
+                        @if (isModalOpened)
+                        {
+                            <AdminUsersModal OnChangingPassword=@OnHandlerResetPassword OnClose=CloseModal username=@memory_username />
+                        }
+
+                        @if (ready)
+                        {
+                            int p = 0;
+                            p = users_dt_id.Count;
+                            if (p > 0)
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-wrap align-middle mb-0">
+
+                                <tr>
+                                            <th>№</th>
+                                            <th>ID</th>
+                                            <th>Логин</th>
+                                            <th>Роль</th>
+                                            <th>Электронная почта</th>
+                                            <th>Полное имя</th>
+                                            <th style="width: 200px;">Отдел</th>
+                                            <th>Должность</th>
+                                            <th>Пароль</th>
+                                            <th>Действие</th>
+                                            <th>Админка</th>
+                                        </tr>
+
+
+                                        @for (int i = 0; i < users_dt_id.Count; i++)
+                                        {
+                                            int temp = i;
+
+                                            <tr>
+                                                <td>@(i+1)</td>
+                                                <td>@users_dt_id[i]</td>
+                                                <td>@sentinel.TripleDesDecrypt(users_dt_login[i])</td>
+
+                                                <td>
+                                                    @if (users_dt_role[i]=="admin")
+                                                    {
+                                                        <b>Администратор</b>
+                                                    }
+                                                    else if (users_dt_role[i]=="owner")
+                                                    {
+                                                        <b><font color="red">Владелец</font></b>
+                                                    }
+                                                    else if (users_dt_role[i]=="secretary")
+                                                    {
+                                                        <b><span class="mdi mdi-crown">Секретарь</span></b>
+                                                    }
+                                                    else if (users_dt_role[i]=="user")
+                                                    {
+                                                        <span>Пользователь</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>Неопознанная личность</span>
+                                                    }
+                                                </td>
+
+                                                <td>@sentinel.TripleDesDecrypt(users_dt_email[i])</td>
+                                                <td>@users_dt_fullname[i]</td>
+                                               
+                                                <td>
+                                                    <select data-placeholder="@users_dt_division[i]" style="width: 200px;">
+
+                                                        <optgroup label="Отделы">
+                                                            <option value=" @division_dt[i]">@division_dt[i]</option>
+                                                        </optgroup>
+                                                    </select>
+                                                </td>
+
+                                                <td>@users_dt_position[i]</td>
+
+                                                <td>
+
+                                                    <input type="hidden" name="link" style="border:2;" value=@users_dt_passwords[i] readonly="readonly" />
+                                                    <button type="button" class="btn btn-primary active" @onclick="@(()=>ResetPassword(temp))">Сбросить пароль</button>
+
+                                                </td>
+
+                                                <td>
+
+                                                    @if (users_dt_flagActivated[i] == "0")
+                                                    {
+                                                        <button type="button" class="btn btn-success active" style="border:2;" @onclick="@(()=>Activate(users_dt_id[temp]))">Активировать</button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button type="button" class="btn btn-danger active" style="border:2;" @onclick="@(()=>Deactivate(users_dt_id[temp]))">Деактивировать</button>
+                                                    }
+                                                    </td>
+
+                                                    <td>
+                                                     @if (users_dt_role[i] == "admin")
+                                                    {
+                                                        <button type="button" class="btn btn-primary active" style="border:2;" @onclick="@(()=>DowngradeToUser(users_dt_id[temp]))">Понизить до пользователя</button>
+                                                    }
+                                                    else if (users_dt_role[i] == "owner")
+                                                    {
+                                                        <button type="button" class="btn btn-danger active" style="border:2;" @onclick="@(()=>UpgradeToAdmin(users_dt_id[temp]))">Понизить до администратора</button>
+                                                    }
+                                                    else if (users_dt_role[i] == "secretary")
+                                                    {
+                                                         <button type="button" class="btn btn-primary active" style="border:2;" @onclick="@(()=>DowngradeToUser(users_dt_id[temp]))">Понизить до пользователя</button>
+                                                    }
+                                                    else
+                                                    {
+                                                         <button type="button" class="btn btn-danger active" style="border:2;" @onclick="@(()=>UpgradeToAdmin(users_dt_id[temp]))">Сделать администратором</button>
+                                                    }
+                                                    
+
+                                                </td>
+
+                                            </tr>
+                                        }
+
+
+
+                                    </table>
+                                </div>
+                            }
+                        }
+
+                        <p></p>
+
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти для просмотра этой страницы! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    bool ready { get; set; }
+
+    List<string> users_dt_id = new List<string>();
+    List<string> users_dt_login = new List<string>();
+    List<string> users_dt_email = new List<string>();
+    List<string> users_dt_passwords = new List<string>();
+    List<string> users_dt_position = new List<string>();
+    List<string> users_dt_division = new List<string>();
+    List<string> users_dt_fullname = new List<string>();
+    List<string> users_dt_flagActivated = new List<string>();
+    List<string> users_dt_role = new List<string>();
+
+    List<string> division_dt = new List<string>();
+
+    bool isModalOpened { get; set; }
+
+    string memory_id { get; set; }
+    string memory_username { get; set; }
+    int memory_id_arr { get; set; }
+
+}
+@functions {
+
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+    EviCRM.Server.Core.BackendController bc = new EviCRM.Server.Core.BackendController();
+    EviCRM.Server.Core.Sentinel sentinel = new EviCRM.Server.Core.Sentinel();
+    EviCRM.Server.Core.SystemCore systemCore = new EviCRM.Server.Core.SystemCore();
+
+}

@@ -1,0 +1,70 @@
+﻿@*@using Blazorise.Charts 
+@page "/chart_interop_pie"
+@inject NavigationManager UriHelper
+
+<PieChart @ref="PieChart" TItem="double" Options="@pieChartOptions" />
+
+@code{
+    private LineChart<double> PieChart;
+
+    [Parameter]
+    public LineChartDataset<double> data { get; set; }
+
+    [Parameter]
+    public List<LineChartDataset<double>> lst_data { get; set; }
+
+
+    private List<string> backgroundColors = new() { ChartColor.FromRgba(255, 99, 132, 0.2f), ChartColor.FromRgba(54, 162, 235, 0.2f), ChartColor.FromRgba(255, 206, 86, 0.2f), ChartColor.FromRgba(75, 192, 192, 0.2f), ChartColor.FromRgba(153, 102, 255, 0.2f), ChartColor.FromRgba(255, 159, 64, 0.2f) };
+    private List<string> borderColors = new() { ChartColor.FromRgba(255, 99, 132, 1f), ChartColor.FromRgba(54, 162, 235, 1f), ChartColor.FromRgba(255, 206, 86, 1f), ChartColor.FromRgba(75, 192, 192, 1f), ChartColor.FromRgba(153, 102, 255, 1f), ChartColor.FromRgba(255, 159, 64, 1f) };
+
+
+    PieChartOptions pieChartOptions = new()
+        {
+            Ti
+                Legend = new Legend
+                {
+                    Display = false,
+                },
+                Title = new OptionsTitle
+                {
+                    Display = false,
+                    Text = i.ToString(),
+                }
+            
+    };
+
+    bool isAlreadyInitialized = false;
+}
+
+
+
+@functions{
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!isAlreadyInitialized)
+        {
+            isAlreadyInitialized = true;
+            await lineChart.Clear();
+
+            if (data != null  && lst_data == null)
+            {
+                await lineChart.AddDataSet(data);
+            }
+            else
+            {
+                foreach (var elem in lst_data)
+                {
+                    await lineChart.AddDataSet(elem);
+                }
+            }
+            isAlreadyInitialized = true;
+        }
+    }
+
+     public void ReloadElement()
+    {
+        UriHelper.NavigateTo("/chart_chartinterop_pie", true);
+        StateHasChanged();
+    }
+
+}*@

@@ -1,0 +1,191 @@
+﻿@using EviCRM.Server.Core
+@using EviCRM.Server.Models
+@using EviCRM.Server.ViewModels;
+
+
+@if (!isAdmin)
+{
+<td>@(num+1)</td>
+<td>
+     <input type="text" readonly name="div_name" value="@cdm.div_name"/>
+     <input type="hidden" name="div_id" value=@cdm.div_ids id="div_id" />
+</td>
+                           
+<td>
+
+<Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect Label="Руководитель отдела"
+               TItem="@UserSelectionModel" 
+               TValue="string" 
+               Data="@select_data_users" 
+               @bind-Value="SelectedValues_responsible" 
+               TextSelector="@((p) => p.Name)" 
+               ValueSelector="@((p) => p.ID)" 
+               EmptyText="Выберите одно или несколько значений" 
+               NullDataText="Загружаются значения..." 
+               readonly="readonly"/>
+          
+</td>
+
+<td>
+<Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect 
+               Label="Работники отдела"
+               TItem="@UserSelectionModel" 
+               TValue="string" 
+               Data="@select_data_users" 
+               @bind-Value="SelectedValues_users" 
+               TextSelector="@((p) => p.Name)" 
+               ValueSelector="@((p) => p.ID)" 
+               EmptyText="Выберите одно или несколько значений" 
+               NullDataText="Загружаются значения..." 
+               readonly="readonly" />
+                    
+
+    </td>
+}
+else
+{
+    <td style="vertical-align: middle;">@(num+1)</td>
+<td style="vertical-align: middle;">
+     <input type="text" name="div_name" @bind="@cdm.div_name"/>
+     <input type="hidden" name="div_id" value=@cdm.div_ids id="div_id" />
+</td>
+                           
+<td>
+
+<Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect 
+               Label="Руководитель отдела"
+               TItem="@UserSelectionModel"
+               TValue="string" 
+               Data="@select_data_users" 
+               @bind-Value="SelectedValues_responsible" 
+               TextSelector="@((p) => p.Name)"
+               ValueSelector="@((p) => p.ID)" 
+               EmptyText="Выберите одно или несколько значений" 
+               NullDataText="Загружаются значения..."/>
+          
+</td>
+
+<td>
+<Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect 
+               Label="Работники отдела"
+               TItem="@UserSelectionModel" 
+               TValue="string" 
+               Data="@select_data_users" 
+               @bind-Value="SelectedValues_users"
+               TextSelector="@((p) => p.Name)"
+               ValueSelector="@((p) => p.ID)"
+               EmptyText="Выберите одно или несколько значений"
+               NullDataText="Загружаются значения..." />
+                    
+
+    </td>
+
+    <td style="vertical-align: middle;">
+        <button type="button" class="btn btn-success waves-effect waves-light" @onclick="(()=>SaveChanges())"><i class='bx bx-save'></i></button>
+        <button type="button" class="btn btn-danger waves-effect waves-light" @onclick="(()=>Kill())"> x </button>
+    </td>
+}
+
+@code{
+
+    public void SaveChanges()
+    {
+        ContactsDivisionsModel cdm2 = new ContactsDivisionsModel();
+        cdm2.div_cast = bc.getMultipleStringEncodingString(SelectedValues_users);
+
+        if (SelectedValues_responsible.Count > 0)
+        {
+            cdm2.div_responsible = SelectedValues_responsible[SelectedValues_responsible.Count-1];    
+        }
+
+        cdm2.div_name = cdm.div_name;
+        cdm2.div_ids = cdm.div_ids;
+
+        OnSave.InvokeAsync(cdm2);
+
+    }
+
+    public void Kill()
+    {
+        OnKill.InvokeAsync(cdm.div_ids);
+    }
+
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+    public static BackendController bc = new BackendController();
+
+    [Parameter] public ContactsDivisionsModel cdm { get; set; }
+
+    [Parameter] public int num { get; set; }
+
+    public int users_dt_count { get; set; }
+
+    [Parameter] public List<string> users_dt_arr { get; set; }
+    [Parameter] public List<string> fullname_dt_arr { get; set; }
+
+    [Parameter] public List<string> division_names_dt{ get; set; }
+    [Parameter] public List<string> division_ids_dt{ get; set; }
+
+
+    IList<UserSelectionModel> select_data_users = new List<UserSelectionModel>();
+    IList<DivisionSelectionModel> select_data_divs = new List<DivisionSelectionModel>();
+
+    [Parameter] public bool isAdmin{ get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnKill { get; set; }
+
+    [Parameter]
+    public EventCallback<ContactsDivisionsModel> OnSave { get; set; }
+
+    List<string> cast_list = new List<string>();
+    List<string> cast_list_formatted = new List<string>();
+
+    List<string> SelectedValues_users = new List<string>();
+    List<string> SelectedValues_responsible = new List<string>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        users_dt_count = users_dt_arr.Count;
+        cast_list = bc.getMultipleStringDecodingString(cdm.div_cast);
+        cast_list_formatted = bc.getMultipleStringDecodingString(cdm.div_cast);
+
+        for (int p = 0; p<users_dt_arr.Count;p++)
+        {
+            UserSelectionModel usm = new UserSelectionModel();
+            usm.ID = users_dt_arr[p];
+            usm.Name = fullname_dt_arr[p];
+            select_data_users.Add(usm);
+        }
+
+        for (int p = 0; p<division_ids_dt.Count;p++)
+        {
+            DivisionSelectionModel dsm = new DivisionSelectionModel();
+            dsm.ID = division_ids_dt[p];
+            dsm.Name = division_names_dt[p];
+            select_data_divs.Add(dsm);
+        }
+
+        SelectedValues_users.Clear();
+        foreach(string str in cast_list)
+        {
+            SelectedValues_users.Add(str);
+        }
+
+        SelectedValues_responsible.Clear();
+        SelectedValues_responsible.Add(cdm.div_responsible);
+
+        StateHasChanged();
+
+    }
+
+    
+
+     //@await Program.mysqlc.MySql_ContextAsyncGeneral(Program.mysqlc.getUsernameByLogin(divisions_responsible[i]))
+
+
+}                                
+
+                               
+                              
+                           
+                            

@@ -1,0 +1,31 @@
+﻿@using Blazorise.Charts;
+
+<Chart @ref="radarChart" Type="ChartType.Radar" TItem="double" Options="@chartOptions" />
+
+@code{
+    Chart<double> radarChart;
+
+    ChartOptions chartOptions = new()
+        {
+            Plugins = new ChartPlugins()
+            {
+                Legend = new ChartLegend()
+                {
+                    Display = false,
+                },
+            },
+            AspectRatio = 1.5,
+        };
+
+    [Parameter]
+    public RadarChartDataset<double> rcd { get; set; }
+
+    [Parameter]
+    public string[] rcd_lbls { get; set; }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        return Task.CompletedTask;
+    }
+
+}

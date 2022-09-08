@@ -1,0 +1,140 @@
+﻿@using EviCRM.Server.Core
+@using EviCRM.Server.ViewModels;
+@using System.Net;
+@using System.Net.NetworkInformation;
+@using System.Diagnostics
+
+<tr>
+    <td>@num</td>
+    <td>@ahm.ahm_link</td>
+    <td>@ahm.ahm_http_code</td>
+    <td>@ahm.ahm_status</td>
+    <td>@ahm.ahm_ping_answer</td>
+    <td>
+        <button class="btn btn-primary" @onclick="@(async () => await KillLink())">Удалить</button>
+    </td>
+</tr>
+
+@code {
+
+     private MySQL_Controller mysqlc = new MySQL_Controller();
+
+    [Parameter] public AdminHealthModel ahm { get; set; }
+
+    [Parameter] public int num { get; set; }
+
+    public void Delete()
+    {
+        Debug.WriteLine("Deleting " + @ahm.ahm_link);
+    }
+
+     public async Task KillLink()
+        {
+            await mysqlc.MySql_ContextAsyncAdmHealthNM(mysqlc.delLink(ahm.ahm_link));
+            StateHasChanged();
+        }
+
+    protected async override Task OnInitializedAsync()
+    {
+        ahm.ahm_http_code = getHTTPCode(ahm.ahm_link).ToString();
+
+        if (PingHost(ahm.ahm_link))
+        {
+            ahm.ahm_ping_answer = "Да";
+        }
+        else
+        {
+            ahm.ahm_ping_answer = "Нет";
+        }
+        
+        int http_code_status = 0;
+        if (int.TryParse(ahm.ahm_http_code,out int a))
+        {
+            http_code_status = int.Parse(ahm.ahm_http_code);
+        }
+        ahm.ahm_status = getHTTPCodeDescription(http_code_status);
+
+    }
+
+     public string getHTTPCodeDescription(int http_code)
+        {
+            switch (http_code)
+            {
+                case 200:
+                    return "[Успех] Всё в порядке!";
+                case 301:
+                    return "[Успех] Файл перемещён, используется переадрессация";
+                case 404:
+                    return "[ОШИБКА] Файл не найден!";
+                case 405:
+                    return "[ОШИБКА] Метод не поддерживается!";
+                case 500:
+                    return "[ОШИБКА] Критическая ошибка сервера";
+                case 403:
+                    return "[ОШИБКА] Ошибка доступа, доступ к данной папке каким-либо образом ограничен";
+                case 502:
+                    return "[ОШИБКА] Сервер не может обработать запрос и не знает что ответить";
+                default:
+                    return "[Инфо] Не знаю такого кода";
+            }
+
+        }
+
+    public bool PingHost(string nameOrAddress)
+        {
+            bool pingable = false;
+            Ping pinger = null;
+
+            try
+            {
+                pinger = new Ping();
+                PingReply reply = pinger.Send(nameOrAddress);
+                pingable = reply.Status == IPStatus.Success;
+            }
+            catch (PingException)
+            {
+                // Discard PingExceptions and return false;
+            }
+            finally
+            {
+                if (pinger != null)
+                {
+                    pinger.Dispose();
+                }
+            }
+
+            return pingable;
+        }
+
+    public int getHTTPCode(string link)
+        {
+            var builder = new UriBuilder(link);
+            var uri = builder.Uri;
+            try
+            {
+                HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(uri);
+                webRequest.Timeout = 1000;
+                var response = (HttpWebResponse)webRequest.GetResponse();
+                // This will have statii from 200 to 30x
+                return (int)response.StatusCode;
+            }
+            catch (WebException we) when (we.Response is HttpWebResponse response)
+            {
+                // Statii 400 to 50x will be here
+                if (int.TryParse(response.StatusCode.ToString(), out int a))
+                {
+                    return int.Parse(response.StatusCode.ToString());
+                }
+                else
+                {
+                    return 200;
+                }
+            }
+            catch (Exception ex)
+            {
+                return int.Parse("405");
+            }
+        }
+
+
+}

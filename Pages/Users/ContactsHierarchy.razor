@@ -1,0 +1,213 @@
+﻿@page "/users_hierarchy"
+@using EviCRM.Server.Core
+@using EviCRM.Server.ViewModels
+
+@inject AuthenticationStateProvider authStateProvider
+
+<PageTitle>Отделы</PageTitle>
+<h5>Отделы</h5>
+
+<style>
+    /* Кнопки стиля */
+    .btn-link {
+        /*background-color: DodgerBlue;*/ /* Синий фон */
+        background-color: lightskyblue;
+        border: none; /* Удалить границы */
+        color: white; /* Белый текст */
+        padding: 12px 16px; /* Немного отступов */
+        font-size: 16px; /* Установите размер шрифта */
+        cursor: pointer; /* Указатель мыши при наведении */
+    }
+
+        /* Более темный фон при наведении курсора мыши */
+        .btn-link:hover {
+            background-color: RoyalBlue;
+        }
+</style>
+
+@inject NavigationManager uriHelper;
+
+<AuthorizeView>
+    <Authorized>
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table align-middle table-nowrap table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" style="width: 70px;">#</th>
+                                        <th scope="col">Название отдела</th>
+                                        <th scope="col">Начальник отдела</th>
+                                        <th scope="col">Состав</th>
+                                        @if (isAdmin)
+                                        {
+                                            <th scope="col">Действие</th>
+                                        }
+
+                                    </tr>
+                                </thead>
+
+                                @if (ready)
+                                {
+
+                                    <tbody>
+                                        @if (divisions_ids.Count > 0)
+                                        {
+                                            for (int i = 0; i < divisions_ids.Count; i++)
+                                            {
+                                                <tr>
+                                                    <ContactsHierarchy_Component num=i cdm=ch_c_dt[i] users_dt_arr=users_dt fullname_dt_arr=fullname_dt division_ids_dt=@divisions_ids division_names_dt=@divisions_name isAdmin=@isAdmin OnKill="KillInterpreter" OnSave="SaveInterpreter" />
+                                                </tr>
+                                            }
+                                        }
+
+
+                                    </tbody>
+                                }
+                            </table>
+
+                            <button type="button" class="btn btn-primary" @onclick="CreateDiv">Создать отдел</button>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+    public static BackendController bc = new BackendController();
+
+    ContactsDivisionsModel ch_c = new ContactsDivisionsModel();
+    List<ContactsDivisionsModel> ch_c_dt = new List<ContactsDivisionsModel>();
+
+    string cast = "";
+
+    bool ready { get; set; }
+
+    List<string> cast_list = new List<string>();
+    List<string> cast_list_formatted = new List<string>();
+    List<string> cast_selected = new List<string>();
+    List<string> cast_selected_formatted = new List<string>();
+    List<string> without_cast_clearned = new List<string>();
+    List<string> without_cast_clearned_formatted = new List<string>();
+
+    List<string> users_dt = new List<string>();
+    List<string> fullname_dt = new List<string>();
+    List<string> id_dt = new List<string>();
+    List<string> position_dt = new List<string>();
+    List<string> avatarpath_dt = new List<string>();
+    List<string> divisions_ids = new List<string>();
+    List<string> divisions_name = new List<string>();
+    List<string> divisions_cast = new List<string>();
+    List<string> divisions_responsible = new List<string>();
+
+    bool isAdmin { get; set; }
+
+    string form_bypass_id = "0";
+    string form_bypass_name = "";
+    string[] form_bypass_cast;
+    string form_responsible = "";
+
+    int current_division_selected = 0;
+    string session_cookie_data { get; set; }
+    string session_role { get; set; }
+
+    async Task SaveInterpreter(ContactsDivisionsModel cdm)
+    {
+        await mysqlc.MySql_ContextAsyncGeneral(mysqlc.updateDivisionByID(cdm));
+        uriHelper.NavigateTo("/users_hierarchy", true);
+    }
+
+    async Task CreateDiv()
+    {
+        await mysqlc.MySql_ContextAsyncGeneral(mysqlc.AddDivision("Отдел без названия от " + DateTime.Now.ToShortDateString() + " " + DateTime.Now.ToLongTimeString(), "", ""));
+        uriHelper.NavigateTo("/users_hierarchy", true);
+        ready = true;
+        StateHasChanged();
+
+    }
+
+    async void KillInterpreter(string ki)
+    {
+        if (int.TryParse(ki, out int b))
+        {
+            int k = int.Parse(ki);
+            int i = getArrCounterByDivID(k);
+
+            await mysqlc.MySql_ContextAsyncGeneral(mysqlc.killDivisionByID(ki));
+
+        }
+        uriHelper.NavigateTo("/users_hierarchy", true);
+    }
+
+    int getArrCounterByDivID(int ki_c)
+    {
+        int p = 0;
+        for (int i = 0; i < divisions_ids.Count; i++)
+        {
+            if (divisions_ids[i] != "" && divisions_ids[i] != null)
+            {
+                if (int.TryParse(divisions_ids[i], out int divid))
+                {
+                    if (int.Parse(divisions_ids[i]) == ki_c)
+                    {
+                        p = i;
+                    }
+                }
+            }
+
+        }
+        return p;
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        ready = false;
+        users_dt = await mysqlc.getListUsersLoginAsync();
+        fullname_dt = await mysqlc.getListUsersFullnameAsync();
+        id_dt = await mysqlc.getListUsersIDAsync();
+        position_dt = await mysqlc.getListUsersPositionsAsync();
+        avatarpath_dt = mysqlc.getAvatarPaths(users_dt);
+
+        divisions_ids = await mysqlc.getListDivisionsIDAsync();
+        divisions_name = await mysqlc.getListDivisionsNameAsync();
+        divisions_cast = await mysqlc.getListDivisionsCastAsync();
+        divisions_responsible = await mysqlc.getListDivisionsResponsibleAsync();
+
+        session_cookie_data = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        session_role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(session_cookie_data));
+
+        if (session_role == "owner" || session_role == "admin" || session_role == "secretary")
+        {
+            isAdmin = true;
+        }
+        else
+        {
+            isAdmin = false;
+        }
+
+        for (int z = 0; z < divisions_ids.Count; z++)
+        {
+            ch_c = new ContactsDivisionsModel
+                {
+                    div_ids = divisions_ids[z],
+                    div_num = z.ToString(),
+                    div_cast = divisions_cast[z],
+                    div_name = divisions_name[z],
+                    div_responsible = divisions_responsible[z],
+                };
+            ch_c_dt.Add(ch_c);
+        }
+
+        ready = true;
+    }
+}

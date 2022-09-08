@@ -1,0 +1,1025 @@
+﻿@page "/stats_marks"
+
+<PageTitle>Статистика по оценкам</PageTitle>
+<h5>Статистика по оценкам</h5>
+
+@using Blazored.Modal.Services
+
+@using Blazorise.Charts
+@using EviCRM.Server.Core
+@using EviCRM.Server.Models.Statistics
+@using EviCRM.Server.ViewModels;
+
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
+
+@inject IModalService modalService
+@inject NavigationManager uriHelper;
+
+<AuthorizeView>
+    <Authorized>
+        @if (ready)
+        {
+
+            @if (personal)
+            {
+                 <div class="input-group">
+                    <div class="p-2">
+                        <select value="@StatWindowString2" @onchange="((e) => StatWindowStringChanger(e))" class="me-2">
+                            <option value="@StatWindow.common">Сводная</option>
+                            <option value="@StatWindow.personal">Персональная</option>
+                        </select>
+                    </div>
+
+                    <div class="p-2">
+                        <select value="@personal_users" @onchange="((e) => PersonalUserChanger(e))" class="me-2">
+                            @for(int k = 0; k<users_dt.Count;k++)
+                            {
+                                <option value="@k.ToString()">@fullname_dt[k] / (@(sentinel.TripleDesDecrypt(users_dt[k]))</option>
+                            }
+                        </select>
+                    </div>
+
+                    </div>
+
+                    @if (isPersonalStatVisible)
+                    {
+                         <EviCRM.Server.Pages.Statistics.StatisticsPersonalCharts lst_id_dt=@id_dt lst_fullname_dt=@fullname_dt lst_user_dt=@users_dt lst_marks_date=@marks_date lst_marks_first_mark=@marks_first_mark lst_id_marks=@marks_idmarks lst_marks_second_mark=@marks_second_mark lst_marks_user_id=@marks_user_id lst_marks_isTwoMarks=@marks_isTwoMarks current_user_id=@personal_users_k/>
+                    }
+
+                    }
+
+            @if (!personal)
+            {
+                <div class="input-group">
+                    <div class="p-2">
+                        <select value="@StatWindowString" @onchange="((e) => StatWindowStringChanger(e))" class="me-2">
+                            <option value="@StatWindow.common">Сводная</option>
+                            <option value="@StatWindow.personal">Персональная</option>
+                        </select>
+                    </div>
+
+                    <div class="p-2">
+                        <select value="@InterpolationCatsString" @onchange=InterpolationCatsStringHandler class="me-2">
+                            <option value="@InterpolationCats.disabled">Без интерполяции</option>
+                            <option value="@InterpolationCats.enabled">Линейная интерполяция</option>
+                            <option value="@InterpolationCats.stepbefore">Пошаговая интерполяция Step Before</option>
+                            <option value="@InterpolationCats.stepafter">Пошаговая интерполяция Step After</option>
+                            <option value="@InterpolationCats.stepmiddle">Пошаговая интерполяция Step Middle</option>
+                        </select>
+                    </div>
+
+                      <div class="p-2">
+                        <select @bind="isPieString" class="me-2">
+                            <option value="True">Круговые графики</option>
+                            <option value="False">Столбчатые графики</option>
+                        </select>
+                        </div>
+                    <div class="p-2">
+                            <label><input value=@isOnlyWithMarks type="checkbox" id="marks_only" name="marks_only" @onchange=@isOnlyWithMarksHandler> Только с оценками </label>
+                    </div>
+
+                    @* <div class="p-2">
+                        <label><input type="checkbox" id="modalAllow" name="modalAllow" @bind=@modalAllow>Графики на полный экран </label>
+                        </div>*@
+
+                    <div class="p-2">
+                        <input type="checkbox" id="isTop" name="isTop" value=@isOnlyWithMarks  @onchange=@isTopChange/>
+
+                        <label>Только ТОП-<input type="number" min="0" style="width:100px" max="@id_dt.Count" value=@TopNumber name="charts_num" @onchange=@topnumber_changed /></label>
+                    </div>
+
+                    @*<div class="p-2">
+                        <button type="button" class="btn btn-primary" @onclick="@ClickEventExcelSave">Скачать отчёт</button>
+                    </div>*@
+                </div>
+
+
+                @if (isModalPieOpen)
+                {
+                    //<Statistics_PieModal pie_config=@svp[svp_index].modal_pie_config OnClose="@OnModalPieBarClose" modal_user=@modal_user dataset=@svp[svp_index].dataset_lst labels=@svp[svp_index].stats_lables></Statistics_PieModal>
+                }
+
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-body">
+
+                                <p><div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">Начало и конец обзора</span>
+                                        </div>
+                                        <input type="date" placeholder="Начало выполнения" value=@(dt_start.ToString("dd-MM-yyyy")) name="event_start" @onchange="@((ChangeEventArgs e) => DateStartChangeHandler(e))" />
+                                        <input type="date" placeholder="Планируемое окончание" value=@(dt_end.ToString("dd-MM-yyyy")) name="event_end" @onchange="@((ChangeEventArgs e) => DateEndChangeHandler(e))"/>
+                                    </div></p>
+
+                                <div class="table-responsive">
+                                    
+                                
+                                    @if (!Double.IsNaN(avg_company))
+
+                                    {
+                                        <p><i>Общий cредний балл по коллективу: </i> <b>@avg_company.ToString("N3")</b></p>
+                                    }
+                                    else
+                                    {
+                                        <p><i>Общий cредний балл по коллективу: </i> <b>Невозможно посчитать</b></p>
+                                    }
+
+                                    @if (!Double.IsNaN(academic_perfomace_company))
+                                    {
+                                        <p><i>"Успеваемость коллектива": </i> <b>@academic_perfomace_company.ToString("N3")</b><br>
+                                        <sub>Формула = ( все 5 + 4 + 3 ) / кол-во работников</sub></p>
+                                    }
+                                    else
+                                    {
+                                        <p><i>"Успеваемость коллектива": </i> <b>Невозможно посчитать</b></p>
+                                       
+                                    }
+
+                                    @if (!Double.IsNaN(quality_of_work_company))
+                                    {
+                                        <p><i>"Качество работы": </i> <b>@quality_of_work_company.ToString("N3")</b><br>
+                                        <sub>Формула = ( все 5 + 4 ) / кол-во работников</sub></p>
+                                    }
+                                    else
+                                    {
+                                        <p><i>"Качество работы": </i> <b>Невозможно посчитать</b></p>
+                                    }
+
+                                    @if (!Double.IsNaN(perfomance_company))
+                                    {
+                                        <p><i>"Эффективность": </i><b>@perfomance_company.ToString("N3")</b><br>
+                                        <sub>Формула = ( все 5 + все 4 * 0,64 + все 3 * 0,36 + все 2 * 0,16 + все 1 * 0,08 )</sub></p>
+                                    }
+                                    else
+                                    {
+                                        <p><i>"Эффективность":</i><b>Невозможно посчитать</b></p>
+                                    }
+
+                                  <p></p>
+
+                                    
+
+                                    <table class="table align-middle table-nowrap table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th scope="col" style="width: 70px;" text-align="center">#</th>
+                                                <th scope="col" @onclick="@(()=>ModelSort("name"))" text-align="center"><button type="button" class="btn btn-primary"><i class="bx bx-sort"></i>Имя</button></th>
+                                                <th scope="col" style="width: 500px;" text-align="center" align-middle>Общее распределение оценок</th>
+                                                <th scope="col" @onclick="@ModelSort" text-align="center">Средний балл</th>
+                                                <th scope="col" width="500px" text-align="center" align-middle>Тренды среднего балла</th>
+                                                <th scope="col" @onclick="@ModelSort" text-align="center"><button type="button" class="btn btn-primary"><i class="bx bx-sort"></i>Отклонение среднего балла</button></th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                   @*         <button @onclick="() =>ClickOverHandler()" class="btn btn-primary" style="color:red">Выполнить рассчёты</button>
+                                    *@        @{
+                                                int i_cnt = 0;
+                                                int top_number = 0;
+                                            }   
+
+                                            @foreach (var elem in svmp_main)
+                                            {
+                                                int i_visible = i_cnt+1;
+                                                int i_e = i_cnt;
+                                                int lcl_view = i_e;
+                                                int lcl_view_plus = i_cnt + 1;
+                                                top_number = top_number+1;
+
+                                                @*if (isOnlyWithMarks)
+                                                {*@
+                                                    bool isinMark = false;
+
+                                                    isinMark = elem.isContainsMark();
+
+                                                    if ((isinMark && isOnlyWithMarks) || (!isOnlyWithMarks))
+                                                    {
+                                                        if ((isTop && (top_number <= TopNumber))||(!isTop))
+                                                        {
+                                                        <tr>
+                                                            <td>@i_visible</td>
+                                                            <td>@elem.user_fullname</td>
+
+                                                            <td>
+                                                                <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                    <!--Pie Bar Chart Placeholder-->
+                                                                   @* @if (isPie)
+                                                                    {*@
+
+                                                                   @switch (lcl_view_plus)
+                                                                    {
+                                                                       case 1:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_1 co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_1 co=@elem.barOption  pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                    case 2:
+                                                                     @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_2  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                       }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_2 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/> 
+                                                                        }
+                                                                         break;
+                                                                      case 3:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_3  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_3 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                      case 4:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_4  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_4 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                      case 5:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_5  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_5 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                      case 6:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_6  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                       }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_6 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                      case 7:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_7  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                       }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_7 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                      case 8:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_8  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                       }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_8 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                      case 9:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_9  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                       }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_9 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                        break;
+                                                                      case 10:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_10  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_10 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                      case 11:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_11  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                       }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_11 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                      case 12:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_12  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                       }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_12 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                      case 13:
+                                                                       @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_13  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                       }
+                                                                        else
+                                                                        {
+                                                                            <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_13 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                            break;
+                                                                          case 14:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_14  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_14 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 15:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_15  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                       }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_15 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 16:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_16  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_16 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 17:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_17  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_17 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 18:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_18  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_18 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 19:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_19  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_19 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 20:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_20  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_20 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 21:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_21  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_21 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 22:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_22  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_22 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 23:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_23  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_23 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 24:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_24  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_24 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 25:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_25  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_25 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 26:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_26  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_26 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 27:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_27  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_27 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 28:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_28  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_28 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 29:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_29  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_29 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 30:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_30  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_30 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 31:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_31  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_31 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 32:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_32  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_32 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 33:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_33  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_33 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 34:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_34  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_34 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 35:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_35  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_35 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 36:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_36  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_36 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                        break;
+                                                                    case 37:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_37  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_37 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 38:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_38  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_38 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 39:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_39  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_39 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 40:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_40  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_40 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 41:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_41  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_41 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 42:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_42  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_42 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                        break;
+                                                                    case 43:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_43  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_43 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 44:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_44  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_44 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 45:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_45  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_45 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 46:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_46  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_46 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 47:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_47  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_47 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 48:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_48  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_48 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 49:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_49  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_49 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                          case 50:
+                                                                           @if(isPie){
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim_50  co=@elem.pieOption pcd=@elem.pieDatasetList lbls=@elem.pieDatasetLabels/>
+                                                                      }
+                                                                        else
+                                                                        {
+                                                                         <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim_50 co=@elem.barOption pcd=@elem.pieDatasetList bcd=@elem.barDatasetList lbls=@elem.barDatasetLabels/>
+                                                                        }
+                                                                         break;
+                                                                         break;
+                                                                         break;
+                                                                }
+
+                                                                </div>
+                                                               
+                                                            </td>
+
+                                                            <td>@elem.getAverage()</td>
+
+                                                            <td>
+                                                                @*switch (InterpolationCatsString)
+                                                                {
+                                                                    case "disabled":
+                                                                        <div style="position: relative;margin-left: auto; margin-right: auto;">
+                                                                            <Blazorise.Charts.LineChart @ref="elem.line1" TItem="StatisticsLineData" Options="@elem._line" />
+                                                                        </div>
+                                                                        break;
+
+                                                                    case "enabled":
+                                                                        <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                            <Blazorise.Charts.LineChart @ref="elem.line2" TItem="StatisticsLineData" Options="@elem._line" />
+                                                                        </div>
+                                                                        break;
+
+                                                                    case "stepbefore":
+                                                                        <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                            <Blazorise.Charts.LineChart @ref="elem.line3" TItem="StatisticsLineData" Options="@elem._line" />
+                                                                        </div>
+                                                                        break;
+
+                                                                    case "stepafter":
+                                                                        <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                            <Blazorise.Charts.LineChart @ref="elem.line4" TItem="StatisticsLineData" Options="@elem._line" />
+                                                                        </div>
+                                                                        break;
+
+                                                                    case "stepmiddle":
+                                                                        <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                            <Blazorise.Charts.LineChart @ref="elem.line5" TItem="StatisticsLineData" Options="@elem._line" />
+                                                                        </div>
+                                                                        break;*@
+                                                                        @switch (lcl_view_plus)
+                                                                        {
+                                                                    
+                                                                          case 1:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_1 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString />
+                                                                         </div>
+                                                                         break;
+                                                                          case 2:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_2 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 3:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_3 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 4:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_4 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 5:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_5 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 6:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_6 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 7:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_7 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 8:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_8 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 9:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_9 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 10:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_10 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 11:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_11 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 12:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_12 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 13:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_13 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 14:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_14 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 15:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_15 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 16:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_16 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+
+                                                                         case 17:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_17 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString />
+                                                                         </div>
+                                                                         break;
+                                                                          case 18:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_18 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 19:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_19 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 20:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_20 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 21:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_21 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 22:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_22 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 23:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_23 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 24:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_24 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 25:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_25 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 26:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_26 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                    </div>
+                                                                    break;
+                                                                case 27:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_27 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 28:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_28 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 29:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_29 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                    </div>
+                                                                    break;
+                                                                          case 30:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_30 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                        
+                                                                          case 31:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_31 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 32:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_32 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 33:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_33 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 34:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_34 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 35:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_35 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 36:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_36 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+
+                                                                         case 37:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_37 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString />
+                                                                         </div>
+                                                                         break;
+
+                                                                          case 38:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_38 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 39:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_39 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+
+                                                                          case 40:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_40 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 41:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_41 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 42:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_42 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 43:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_43 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 44:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_44 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 45:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_45 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 46:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_46 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+
+                                                                         case 47:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_47 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString />
+                                                                         </div>
+                                                                         break;
+                                                                          case 48:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_48 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+                                                                          case 49:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_49 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+
+                                                                          case 50:
+                                                                         <div style="position: relative; margin-left: auto; margin-right: auto;">
+                                                                              <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim_50 lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString/>
+                                                                         </div>
+                                                                         break;
+
+                                                                         }
+                                                            </td>
+                                                            <td>
+
+                                                                @if (elem.getAvgDeviation(avg_company) > 0)
+                                                                {
+                                                                    //Зелёный
+                                                                    <p>Отклонение : <font color="green"> + @elem.getAvgDeviation(avg_company).ToString("N3")</font> <br />
+                                                                    На <font color="green">@elem.getDifferencePercentage(avg_company).ToString("N3") % сильнее среднего</font>
+                                                                    </p>
+                                                                }
+                                                                else if (elem.getAvgDeviation(avg_company) < 0)
+                                                                {
+                                                                    <p>Отклонение : <font color="red"> @elem.getAvgDeviation(avg_company).ToString("N3")</font>
+                                                                    <br />
+                                                                    На <font color="red">@(((-1)*elem.getDifferencePercentage(avg_company)).ToString("N3")) % слабее среднего</font>
+                                                                    </p>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <font color="grey">+ / - 0 [ 0.00 % ]</font>
+                                                                }
+
+                                                            </td>
+                                                        </tr>
+                                                         }
+                                                           i_visible++;
+                                                    @* }*@
+                                                }
+                                                i_cnt++;
+                                             
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+
+            }
+
+        }
+        else
+        {
+            <h4><i class="bx bx-buoy bx-spin text-primary display-3"></i>Загружаю информацию...</h4>
+        }
+            
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>  
+
+@code{
+    EviCRM.Server.Core.Sentinel sentinel = new EviCRM.Server.Core.Sentinel();
+}

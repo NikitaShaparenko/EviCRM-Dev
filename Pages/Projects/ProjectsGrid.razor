@@ -1,0 +1,427 @@
+﻿@page "/proj_grid"
+@using EviCRM.Server.Core
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+@using Microsoft.AspNetCore.Identity
+@inject IWebHostEnvironment _env
+@inject SignInManager<IdentityUser> SignInManager
+@inject AuthenticationStateProvider authStateProvider
+@inject NavigationManager UriHelper
+
+@inject ILocalStorageService _localStorageService
+
+<h5>Проекты \ Сеткой</h5>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="row">
+
+            @if (ready)
+            {
+            @if (@proj_id_dt.Count < 1)
+            {
+                <h5>Отсутствуют элементы для текущего представления</h5>
+            }
+
+            @for (int i = 0; i < proj_id_dt.Count; i++)
+            {
+                int temp =  i;
+
+                @if (username_is_incast.Contains(proj_id_dt[i]) || (username_is_inauthors.Contains(proj_id_dt[i])) || session_role == "admin" || session_role == "owner")
+                {
+                    <div class="col-xl-4 col-sm-6">
+                        <div class="card">
+                            <div class="card-body">
+
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0 me-4">
+                                        <div class="avatar-md">
+                                            <span class="avatar-title rounded-circle bg-light text-danger font-size-16">
+                                                @{
+
+                                                    string path_to_file = _env.WebRootPath;
+                                                    path_to_file += "\\uploads\\users\\avatars\\";
+
+
+                                                    if (File.Exists(path_to_file + proj_avatar_path[i]))
+                                                    {
+                                                        <img src="/uploads/users/avatars/@proj_avatar_path[i]" alt="" class="avatar-sm">
+                                                    }
+                                                    else
+
+                                                    {
+                                                        <img src="/avatars_past/img-1.png" alt="" class="avatar-sm">
+                                                    }
+
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="flex-grow-1 overflow-hidden">
+
+                                        <h5 class=text-truncate font-size><button type="button" @onclick="() => ProjectShow(temp.ToString())" class="btn btn-link">@proj_name_dt[i]</button></h5>
+
+
+
+                                        <p class="text-muted mb-4">@proj_short_description_dt[i]</p>
+                                        <div class="avatar-group">
+                                     
+                                                        @{
+                                                            List<string> cast = bc.getMultipleStringDecodingString(proj_users_dt[i]);
+                                                            List<string> users_avatars = new List<string>();
+
+                                                            foreach(string elem in cast)
+                                                            {
+                                                                int p = getUserArrIDByLogin(elem);
+                                                                users_avatars.Add(users_avatars_dt[p]);
+                                                            }
+
+                                                            for(int av = 0; av<cast.Count; av++)
+                                                            {
+                                                                if (users_avatars[av] == "" || users_avatars[av] == null)
+                                                                {
+                                                                    string str = cast[av].ToUpper();
+                                                      char b_str = '?';
+                                       
+                                                     if (str.Length > 0)
+                                                     {
+                                                      b_str = str[0];                                                            
+                                                     }
+
+                                                    <div class="avatar-group-item">
+                                                    <a href="javascript: void(0);" class="d-inline-block">
+                                                 <div class="avatar-xs">
+                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                     @b_str
+
+                                                      </span>
+                                                      </div>
+                                      </a>
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    if (File.Exists(Path.Combine(_env.WebRootPath,"uploads","users","avatars",users_avatars[av])))
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                    <a href="javascript: void(0);" class="d-inline-block">
+                                                 <div class="avatar-xs">
+                                                    <img src="/uploads/users/avatars/@users_avatars[av]" alt="" class="avatar-xs"/>
+                                                      </div>
+                                      </a>
+                                                                    </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                    <a href="javascript: void(0);" class="d-inline-block">
+                                                 <div class="avatar-xs">
+                                                    <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs"/>
+                                                      </div>
+                                      </a>
+                                                                    </div>
+                                                                    }
+                                                                }
+                                                            }
+                          
+                                                }
+                                   </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="px-4 py-3 border-top">
+                                <ul class="list-inline mb-0">
+
+                                    @if (proj_status_dt[i] == "waiting")
+                                    {
+                                        <li class="list-inline-item me-3">
+                                            <span class="badge bg-dark">Ожидает подтверждения</span>
+                                        </li>
+                                    }
+                                    @if (proj_status_dt[i] == "approved")
+                                    {
+                                        <td><span class="badge bg-success">Подтверждён</span></td>
+                                    }
+
+                                </ul>
+                               
+
+                <ul class="list-inline mb-0">
+                    <li class="list-inline-item me-3">
+                        <i class="bx bx-calendar me-1"></i> @proj_end_dt[i]
+                    </li>
+                    <li class="list-inline-item me-3">
+                        <i class="bx bx-task me-1"></i> @how_much_tasks_in_project(temp)
+                    </li>
+                    <li class="list-inline-item me-3">
+                        <i class="bx bx-timer"></i> @getCountdown(DateTime.Parse(proj_end_dt[temp]))
+                    </li>
+                </ul>
+                 </div>
+                </div>
+                </div>
+                }
+            }
+             }
+        </div>
+       
+
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@functions {
+
+    public int getUserArrIDByLogin(string login)
+    {
+        for (int p = 0; p<users_dt.Count; p++)
+        {
+            if (users_dt[p] == login)
+            {
+                return p;
+            }
+        }
+        return 0;
+    }
+
+    List<string> isInCast(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo = 0; zo < proj_users_dt.Count; zo++)
+        {
+            buffer_decoder = bc.getMultipleStringDecodingString(proj_users_dt[zo]);
+            foreach (string bd in buffer_decoder)
+            {
+                if (bd == username)
+                {
+                    lstr.Add(proj_id_dt[zo]);
+                }
+            }
+        }
+        return lstr;
+    }
+
+
+    int how_much_tasks_in_project(int i)
+    {
+        int p = 0;
+
+        string proj_id = proj_id_dt[i];
+
+        foreach(string elem in task_proj_dt)
+        {
+            if (elem.Length > 0)
+            {
+                List<string> proj_internal_dt = new List<string>();
+                proj_internal_dt = bc.getMultipleStringDecodingString(elem);
+                foreach(string elem2 in proj_internal_dt)
+                {
+                    if (elem2==proj_id)
+                    {
+                        p = p + 1;
+                    }
+                }
+                }
+            }
+            return p;
+    }
+
+    List<string> isInAuthors(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo = 0; zo < proj_users_dt.Count; zo++)
+        {
+
+            if (proj_users_dt[zo] == username)
+            {
+                lstr.Add(proj_id_dt[zo]);
+            }
+        }
+        return lstr;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            ready = false;
+            new Timer(DateTimeCallback, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
+    }
+
+
+    private void DateTimeCallback(object state)
+    {
+        Thread.Sleep(10);
+        getCountdownList();
+        InvokeAsync(StateHasChanged);
+    }
+
+    string current_date_time { get; set; }
+
+    private async Task<string> GetLocalStorageItems(string key)
+    {
+        return await _localStorageService.GetItemAsStringAsync(key);
+    }
+
+    private async Task InsertLocalStorageItems(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key, val);
+    }
+
+    string getStringTimeDiffer(int i)
+    {
+        return getCountdown(DateTime.Parse(proj_end_dt[i]));
+    }
+
+    public async Task getCountdownList()
+    {
+        if (ready)
+        {
+        proj_end_countdown_dt.Clear();
+
+        for (int p = 0; p<proj_end_dt.Count;p++)
+        {
+            proj_end_countdown_dt.Add(getCountdown(DateTime.Parse(proj_end_dt[p])));
+        }
+        InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public string getCountdown(DateTime dt_end)
+    {
+        DateTime current = DateTime.Now;
+
+        string countdown = "";
+
+        var diff_dt = dt_end - current;
+
+        
+        if (diff_dt.TotalSeconds < 0)
+        {
+            countdown = "Просрочка на "; 
+            diff_dt = diff_dt.Negate();
+        }
+        else
+        {
+            countdown = "Осталось ";
+        }
+
+        if (diff_dt.Days > 0)
+        {
+            countdown += diff_dt.Days + " дней ";
+        }
+
+         if (diff_dt.Hours > 0)
+        {
+            countdown += diff_dt.Hours + " часов ";
+        }
+
+         if (diff_dt.Minutes > 0)
+        {
+            countdown += diff_dt.Minutes + " минут ";
+        }
+
+        // if (diff_dt.Seconds > 0)
+        //{
+        //    countdown += diff_dt.Seconds + " секунд ";
+        //}
+
+        return countdown;
+    }
+
+     private int _localStorageCount;
+    private IList<KeyValuePair<string, string>> _localStorageItems;
+
+   
+    private async Task RefreshLocalStorageItems()
+    {
+        _localStorageItems = new List<KeyValuePair<string, string>>();
+        await foreach (var key in _localStorageService.GetAllKeysAsync())
+        {
+            if (key is null)
+                continue;
+
+            _localStorageItems.Add(new KeyValuePair<string, string>(key, await _localStorageService.GetItemAsStringAsync(key)));
+        }
+
+    }
+    private async Task SaveCustomLocalStorageItem(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key,val);
+        await RefreshLocalStorageItems();
+    }
+
+    public async Task ProjectShow(string proj_id)
+    {
+         await SaveCustomLocalStorageItem("project_overview", proj_id);
+        UriHelper.NavigateTo("/proj_overview");
+    }
+   }
+
+    @code {
+    private BackendController bc = new BackendController();
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+
+    protected async override Task OnInitializedAsync()
+    {
+        proj_id_dt = await mysqlc.getListProjIDAsync();
+        proj_name_dt = await mysqlc.getListProjNameAsync();
+        proj_description_dt = await mysqlc.getListProjDescriptionAsync();
+        proj_end_dt = await mysqlc.getListProjEndAsync();
+        proj_status_dt = await mysqlc.getListProjStatusAsync();
+        proj_users_dt = await mysqlc.getListProjUsersAsync();
+        proj_short_description_dt = await mysqlc.getListProjShortDescriptionAsync();
+        proj_avatar_path = await mysqlc.getListProjAvatarPathAsync();
+
+        session_cookie_data = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        session_role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(session_cookie_data));
+
+        task_proj_dt = await mysqlc.getListTaskProjAsync();
+
+        username_is_incast = isInCast(session_cookie_data);
+        username_is_inauthors = isInAuthors(session_cookie_data);
+
+        users_avatars_dt = await mysqlc.getListUsersAvatarAsync();
+          users_dt = await mysqlc.getListUsersLoginAsync();
+
+        ready = true;
+
+
+    }
+
+    bool ready { get; set; }
+    List<string> proj_id_dt = new List<string>();
+    List<string> proj_name_dt = new List<string>();
+    List<string> proj_description_dt = new List<string>();
+    List<string> proj_end_dt = new List<string>();
+    List<string> proj_end_countdown_dt = new List<string>();
+
+    List<string> proj_status_dt = new List<string>();
+    List<string> proj_users_dt = new List<string>();
+    List<string> proj_short_description_dt = new List<string>();
+    List<string> proj_avatar_path = new List<string>();
+
+    List<string> task_proj_dt = new List<string>();
+
+    List<string> username_is_incast = new List<string>();
+    List<string> username_is_inauthors = new List<string>();
+
+    List<string> users_avatars_dt = new List<string>();
+    List<string> users_dt = new List<string>();
+
+    int tasks_b1 = 0;
+    int tasks_b2 = 0;
+    int tasks_b3 = 0;
+
+    string session_cookie_data { get; set; }
+    string session_role { get; set; }
+
+}

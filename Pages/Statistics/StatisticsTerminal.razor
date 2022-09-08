@@ -1,0 +1,31 @@
+﻿@page "/statistics_terminal"
+
+<h5>Статистика \ Тонкие клиенты</h5>
+<h6>Продуктивность работы</h6>
+
+<div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+  <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
+  <label class="btn btn-outline-primary" for="btnradio1">По сотрудникам</label>
+
+  <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off">
+  <label class="btn btn-outline-primary" for="btnradio2">По дням</label>
+
+</div>
+
+<div class="btn-group2" role="group" aria-label="Basic radio toggle button group">
+  <input type="radio" class="btn-check" name="btnradio" id="btnradio3" autocomplete="off" checked>
+  <label class="btn btn-outline-primary" for="btnradio3">Проценты</label>
+
+  <input type="radio" class="btn-check" name="btnradio" id="btnradio4" autocomplete="off">
+  <label class="btn btn-outline-primary" for="btnradio4">Время</label>
+
+</div>
+
+@code {
+    DateTime dt_start {get;set;}
+    DateTime dt_end { get; set; }
+}
+
+@functions{
+
+}

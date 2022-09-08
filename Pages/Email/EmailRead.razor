@@ -1,0 +1,243 @@
+﻿@page "/mail_read"
+
+    <!-- Summernote css -->
+    <link href="/assets/libs/summernote/summernote-bs4.min.css" rel="stylesheet" type="text/css" />
+
+<div class="row">
+    <div class="col-12">
+        <!-- Left sidebar -->
+       <div class="email-leftbar card">
+            <button type="button" class="btn btn-danger btn-block waves-effect waves-light" data-bs-toggle="modal" data-bs-target="#composemodal">
+                Новое письмо
+            </button>
+            <div class="mail-list mt-4">
+                <a href="javascript: void(0);" class="active"><i class="mdi mdi-email-outline me-2"></i> Входящая почта <span class="ms-1 float-end">@unread_msgs</span></a>
+                <a href="javascript: void(0);"><i class="mdi mdi-star-outline me-2"></i>Избранные</a>
+                <a href="javascript: void(0);"><i class="mdi mdi-diamond-stone me-2"></i>Важные</a>
+                <a href="javascript: void(0);"><i class="mdi mdi-file-outline me-2"></i>Черновик</a>
+                <a href="javascript: void(0);"><i class="mdi mdi-email-check-outline me-2"></i>Отправленные</a>
+                <a href="javascript: void(0);"><i class="mdi mdi-trash-can-outline me-2"></i>Корзина</a>
+            </div>
+
+
+            <h6 class="mt-4">Ярлыки</h6>
+
+            <div class="mail-list mt-1">
+                <a href="javascript: void(0);"><span class="mdi mdi-arrow-right-drop-circle text-info float-end"></span>Общие</a>
+                <a href="javascript: void(0);"><span class="mdi mdi-arrow-right-drop-circle text-warning float-end"></span>Freelance</a>
+                <a href="javascript: void(0);"><span class="mdi mdi-arrow-right-drop-circle text-primary float-end"></span>Social</a>
+                <a href="javascript: void(0);"><span class="mdi mdi-arrow-right-drop-circle text-danger float-end"></span>Friends</a>
+                <a href="javascript: void(0);"><span class="mdi mdi-arrow-right-drop-circle text-success float-end"></span>Family</a>
+            </div>
+
+            <h6 class="mt-4">Мой отдел</h6>
+
+            <div class="mt-2">
+                <a href="javascript: void(0);" class="d-flex">
+                    <div class="flex-shrink-0 me-3">
+                        <img class="rounded-circle" src="/assets/images/users/avatar-2.jpg" alt="Generic placeholder image" height="36">
+                    </div>
+                    <div class="flex-grow-1 chat-user-box">
+                        <p class="user-title m-0">Scott Median</p>
+                        <p class="text-muted">Hello</p>
+                    </div>
+                </a>
+
+                <a href="javascript: void(0);" class="d-flex">
+                    <div class="flex-shrink-0 me-3">
+                        <img class="rounded-circle" src="/assets/images/users/avatar-3.jpg" alt="Generic placeholder image" height="36">
+                    </div>
+                    <div class="flex-grow-1 chat-user-box">
+                        <p class="user-title m-0">Julian Rosa</p>
+                        <p class="text-muted">What about our next..</p>
+                    </div>
+                </a>
+
+                <a href="javascript: void(0);" class="d-flex">
+                    <div class="flex-shrink-0 me-3">
+                        <img class="rounded-circle" src="/assets/images/users/avatar-4.jpg" alt="Generic placeholder image" height="36">
+                    </div>
+                    <div class="flex-grow-1 chat-user-box">
+                        <p class="user-title m-0">David Medina</p>
+                        <p class="text-muted">Yeah everything is fine</p>
+                    </div>
+                </a>
+
+                <a href="javascript: void(0);" class="d-flex">
+                    <div class="flex-shrink-0 me-3">
+                        <img class="rounded-circle" src="/assets/images/users/avatar-6.jpg" alt="Generic placeholder image" height="36">
+                    </div>
+                    <div class="flex-grow-1 chat-user-box">
+                        <p class="user-title m-0">Jay Baker</p>
+                        <p class="text-muted">Wow that's great</p>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+        <!-- End Left sidebar -->
+        <!-- Right Sidebar -->
+        <div class="email-rightbar mb-3">
+
+            <div class="card">
+                <div class="btn-toolbar p-3" role="toolbar">
+                     <div class="btn-group me-2 mb-2 mb-sm-0">
+                    <button type="button" onclick="window.location.reload()" class="btn btn-primary waves-light waves-effect"><i class="mdi mdi-cloud-refresh"></i></button>
+                    </div>
+
+                    <div class="btn-group me-2 mb-2 mb-sm-0">
+                        <button type="button" class="btn btn-primary waves-light waves-effect"><i class="fa fa-inbox"></i></button>
+                        <button type="button" class="btn btn-primary waves-light waves-effect"><i class="fa fa-exclamation-circle"></i></button>
+                        <button type="button" class="btn btn-primary waves-light waves-effect"><i class="far fa-trash-alt"></i></button>
+                    </div>
+                    <div class="btn-group me-2 mb-2 mb-sm-0">
+                        <button type="button" class="btn btn-primary waves-light waves-effect" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-folder"></i> <i class="mdi mdi-chevron-down ms-1"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="#">Общая папка</a>
+                            <a class="dropdown-item" href="#">Папка 2</a>
+                            <a class="dropdown-item" href="#">Папка 3</a>
+                        </div>
+                    </div>
+                    <div class="btn-group me-2 mb-2 mb-sm-0">
+                        <button type="button" class="btn btn-primary waves-light waves-effect" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-tag"></i> <i class="mdi mdi-chevron-down ms-1"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="#">Ярлык 1</a>
+                            <a class="dropdown-item" href="#">Ярлык 2</a>
+                            <a class="dropdown-item" href="#">Ярлык 3</a>
+                        </div>
+                    </div>
+
+                    <div class="btn-group me-2 mb-2 mb-sm-0">
+                        <button type="button" class="btn btn-primary waves-light waves-effect" data-bs-toggle="dropdown" aria-expanded="false">
+                            Подробнее <i class="mdi mdi-dots-vertical ms-2"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="#">Отметить как непрочитанное</a>
+                            <a class="dropdown-item" href="#">Отметить как важное</a>
+                            <a class="dropdown-item" href="#">Добавить в задачу</a>
+                            <a class="dropdown-item" href="#">Добавить в избранное</a>
+                            <a class="dropdown-item" href="#">Переслать</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="d-flex mb-4">
+                        <div class="flex-shrink-0 me-3">
+                            <img class="rounded-circle avatar-sm" src="/assets/images/users/avatar-2.jpg" alt="Generic placeholder image">
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="font-size-14 mt-1">Humberto D. Champion</h5>
+                            <small class="text-muted">support@domain.com</small>
+                        </div>
+                    </div>
+
+                    <h4 class="font-size-16">This Week's Top Stories</h4>
+
+                    <p>Dear Lorem Ipsum,</p>
+                    <p>
+                        Praesent dui ex, dapibus eget mauris ut, finibus vestibulum enim. Quisque arcu leo, facilisis in fringilla id, luctus in tortor. Nunc vestibulum est quis orci varius viverra. Curabitur dictum volutpat massa vulputate molestie. In at felis ac velit maximus convallis.
+                    </p>
+                    <p>Sed elementum turpis eu lorem interdum, sed porttitor eros commodo. Nam eu venenatis tortor, id lacinia diam. Sed aliquam in dui et porta. Sed bibendum orci non tincidunt ultrices. Vivamus fringilla, mi lacinia dapibus condimentum, ipsum urna lacinia lacus, vel tincidunt mi nibh sit amet lorem.</p>
+                    <p>Sincerly,</p>
+                    <hr />
+
+                    <div class="row">
+                        <div class="col-xl-2 col-6">
+                            <div class="card">
+                                <img class="card-img-top img-fluid" src="/assets/images/small/img-3.jpg" alt="Card image cap">
+                                <div class="py-2 text-center">
+                                    <a href="javascript: void(0);" class="fw-medium">Download</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-6">
+                            <div class="card">
+                                <img class="card-img-top img-fluid" src="/assets/images/small/img-4.jpg" alt="Card image cap">
+                                <div class="py-2 text-center">
+                                    <a href="javascript: void(0);" class="fw-medium">Download</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a href="javascript: void(0);" class="btn btn-secondary waves-effect mt-4"><i class="mdi mdi-reply"></i> Reply</a>
+                </div>
+
+            </div>
+        </div>
+        <!-- card -->
+
+    </div>
+    <!-- end Col-9 -->
+
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="composemodal" tabindex="-1" role="dialog" aria-labelledby="composemodalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="composemodalTitle">New Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <div class="mb-3">
+                        <input type="email" class="form-control" placeholder="To">
+                    </div>
+
+                    <div class="mb-3">
+                        <input type="text" class="form-control" placeholder="Subject">
+                    </div>
+                    <div class="mb-3">
+                        <form method="post">
+                            <textarea id="email-editor" name="area"></textarea>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Send <i class="fab fa-telegram-plane ms-1"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions{
+    protected override async Task OnInitializedAsync()
+    {
+           email_inbox_idaux = await mysqlc.getEmailIDAUXByID(key_recepient);
+    }
+
+}
+
+@code{
+
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+    string unread_msgs = "";
+
+    string key_recepient = "";
+
+    List<string> email_inbox_idaux = new List<string>();
+    List<string> email_inbox_messageID = new List<string>();
+    List<string> email_inbox_unread = new List<string>();
+
+ 
+    //email_inbox_messageID = await Program.mysqlc.getListUsersEmailAsync(key_recepient);
+    //email_inbox_unread = await Program.mysqlc.getListUsersEmailAsync(key_recepient);
+    ////List<string> email_inbox_recepient = new List<string>();
+
+
+    //Current single mail
+
+    
+
+}

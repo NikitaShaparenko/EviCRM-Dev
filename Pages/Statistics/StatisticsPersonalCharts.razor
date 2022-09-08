@@ -1,0 +1,226 @@
+﻿@using Blazorise.Charts
+@using EviCRM.Server.Pages.Charts.ChartListInterop
+
+
+<AuthorizeView>
+    <Authorized>
+
+        <p></p>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Мои оценки</h5>
+
+                        <p>
+                            <div class="input-group">
+                                <div class="p-2">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">Даты оценок</span>
+                                    </div>
+                                    с <input type="date" placeholder="Начало выполнения" value=@(dt_start.ToString("dd-MM-yyyy")) name="event_start" @onchange="@((ChangeEventArgs e) => DateStartChangeHandler(e))" />
+                                    по <input type="date" placeholder="Планируемое окончание" value=@(dt_end.ToString("dd-MM-yyyy")) name="event_end" @onchange="@((ChangeEventArgs e) => DateEndChangeHandler(e))" />
+                                </div>
+
+                                <div class="p-2">
+                                    <select @bind="isPieString" class="me-2">
+                                        <option value="True">Круговой график</option>
+                                        <option value="False">Столбчатый график</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </p>
+
+
+                        <!--<p class="card-text">With supporting text below as a natural lead-in to additional content.</p>  -->
+                        <!--  <a href="#" class="btn btn-primary">Go somewhere</a> -->
+                        @if (isReady)
+                        {
+                            @foreach (var elem in svmp_main)
+                            {
+                                if (elem.user_arr_id.ToString() == current_user_id)
+                                {
+                                    @if (isPie)
+                                    {
+                                        <EviCRM.Server.Pages.Charts.ChartListInterop.PieChartListInteropModule @ref=_pclim co=chartOption pcd=elem.pieDatasetList lbls=elem.pieDatasetLabels />
+                                    }
+                                    else
+                                    {
+                                        <EviCRM.Server.Pages.Charts.ChartListInterop.BarChartListInteropModule @ref=_bclim co=chartOption pcd=elem.pieDatasetList bcd=elem.barDatasetList lbls=elem.barDatasetLabels />
+                                    }
+                                }
+                            }
+                        }
+
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Сравнение с коллективом</h5>
+
+                       @* <h6>Данные обо мне:</h6>*@
+                        <p></p>
+                        @if (!Double.IsNaN(avg_personal))
+                        {
+                            <p><i>Мой средний балл: </i> <b>@avg_personal.ToString("N3")</b> </p>
+                            <p>Место в <b>ТОПе</b>: <b>@personal_top_place</b></p>
+                            if (avg_personal > avg_company)
+                            {
+                                <p><i><font color="green">Это на @avg_diff(avg_personal, avg_company).ToString("N3")% выше среднего по коллективу </font> </i></p>
+                            }
+                            else
+                            {
+                                <p><i><font color="red">Это на @avg_diff(avg_personal, avg_company).ToString("N3")% ниже среднего по коллективу </font> </i></p>
+                            }
+
+                            @if (!Double.IsNaN(avg_company))
+
+                            {
+                                <p><i>Общий cредний балл по коллективу: </i> <b>@avg_company.ToString("N3")</b></p>
+                            }
+                            else
+                            {
+                                <p><i>Общий cредний балл по коллективу: </i> <b>Невозможно посчитать</b></p>
+                            }
+
+                           
+
+                        }
+
+
+                        @*
+                            @if (!Double.IsNaN(academic_perfomace_personal))
+                            {
+                            <p><i>"Успеваемость коллектива": </i> <b>@academic_perfomace_personal.ToString("N3")</b><br>
+                            <sub>Формула = ( все 5 + 4 + 3 ) / кол-во работников</sub></p>
+                            }
+                            else
+                            {
+                            <p><i>"Успеваемость коллектива": </i> <b>Невозможно посчитать</b></p>
+
+                            }
+
+                            @if (!Double.IsNaN(quality_of_work_personal))
+                            {
+                            <p><i>"Качество работы": </i> <b>@quality_of_work_personal.ToString("N3")</b><br>
+                            <sub>Формула = ( все 5 + 4 ) / кол-во работников</sub></p>
+                            }
+                            else
+                            {
+                            <p><i>"Качество работы": </i> <b>Невозможно посчитать</b></p>
+                            }
+
+                            @if (!Double.IsNaN(perfomance_personal))
+                            {
+                            <p><i>"Эффективность": </i><b>@perfomance_personal.ToString("N3")</b><br>
+                            <sub>Формула = ( все 5 + все 4 * 0,64 + все 3 * 0,36 + все 2 * 0,16 + все 1 * 0,08 )</sub></p>
+                            }
+                            else
+                            {
+                            <p><i>"Эффективность":</i><b>Невозможно посчитать</b></p>
+                            }*@
+
+                        <p></p>
+                         <p></p>
+
+                      @*  <h6>Данные по коллективу:</h6>
+                        <p></p>
+                        @if (!Double.IsNaN(avg_company))
+
+                        {
+                            <p><i>Общий cредний балл по коллективу: </i> <b>@avg_company.ToString("N3")</b></p>
+                        }
+                        else
+                        {
+                            <p><i>Общий cредний балл по коллективу: </i> <b>Невозможно посчитать</b></p>
+                        }
+*@
+                        @* @if (!Double.IsNaN(academic_perfomace_company))
+                            {
+                            <p><i>"Успеваемость коллектива": </i> <b>@academic_perfomace_company.ToString("N3")</b><br>
+                            <sub>Формула = ( все 5 + 4 + 3 ) / кол-во работников</sub></p>
+                            }
+                            else
+                            {
+                            <p><i>"Успеваемость коллектива": </i> <b>Невозможно посчитать</b></p>
+
+                            }
+
+                            @if (!Double.IsNaN(quality_of_work_company))
+                            {
+                            <p><i>"Качество работы": </i> <b>@quality_of_work_company.ToString("N3")</b><br>
+                            <sub>Формула = ( все 5 + 4 ) / кол-во работников</sub></p>
+                            }
+                            else
+                            {
+                            <p><i>"Качество работы": </i> <b>Невозможно посчитать</b></p>
+                            }
+
+                            @if (!Double.IsNaN(perfomance_company))
+                            {
+                            <p><i>"Эффективность": </i><b>@perfomance_company.ToString("N3")</b><br>
+                            <sub>Формула = ( все 5 + все 4 * 0,64 + все 3 * 0,36 + все 2 * 0,16 + все 1 * 0,08 )</sub></p>
+                            }
+                            else
+                            {
+                            <p><i>"Эффективность":</i><b>Невозможно посчитать</b></p>
+                            }
+                        *@
+                        <p></p>
+
+                        @* <EviCRM.Server.Pages.Statistics.Statistics_RadarInterop />*@
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Тренды развития</h5>
+
+                        <div class="p-2">
+                            <select value="@InterpolationCatsString" @onchange=InterpolationCatsStringHandler class="me-2">
+                                <option value="@InterpolationCats.disabled">Без интерполяции</option>
+                                <option value="@InterpolationCats.enabled">Линейная интерполяция</option>
+                                <option value="@InterpolationCats.stepbefore">Пошаговая интерполяция Step Before</option>
+                                <option value="@InterpolationCats.stepafter">Пошаговая интерполяция Step After</option>
+                                <option value="@InterpolationCats.stepmiddle">Пошаговая интерполяция Step Middle</option>
+                            </select>
+                        </div>
+
+                        <div style="position: relative; margin-left: auto; margin-right: auto;">
+
+                            @if (isReady)
+                            {
+                                @foreach (var elem in svmp_main)
+                                {
+                                    if (elem.user_arr_id.ToString() == current_user_id)
+                                    {
+
+                                        <EviCRM.Server.Pages.Charts.ChartListInterop.LineChartListInteropModule @ref=_lclim lcd=@elem._lineDatasetList2 isInterpolation=@InterpolationCatsString />
+
+                                    }
+                                }
+                            }
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+

@@ -1,0 +1,197 @@
+﻿@using System.Net.Sockets
+@using System.Globalization
+
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Завершение задачи</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row mb-4">
+                    <label for="ttm_question_title">Вы собираетесь завершить задачу</label>
+
+                    @if (isInTime)
+                    {
+                        <div class="col-lg-10">
+                            <p style="color:green"><b>Задача выполнена в срок!</b></p>
+                            <p>Осталось @ts.Days дней @ts.Hours часов @ts.Minutes минут</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-lg-10">
+                            <p style="color:red"><b>Задача выполнена c опозданием!</b></p>
+                            <p>Осталось @ts.Days дней @ts.Hours часов @ts.Minutes минут</p>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary waves-effect" @onclick="@ModalCancel">Закрыть</button>
+
+                @if (!isInTime)
+                {
+                    <button type="button" @onclick='(() => SendTOScriptCmd("COMPLETEDELAY"))' class="btn btn-danger waves-effect waves-light">Завершить задачу (с задержкой)</button>
+                }
+                @if (isInTime)
+                {
+                    if (@ts.Days > 1)
+                    {
+                        <button type="button" @onclick='(() => SendTOScriptCmd("COMPLETEBEFOREHAND"))' class="btn btn-success waves-effect waves-light">Завершить задачу (заранее)</button>
+                    }
+                    else
+                    {
+                        <button type="button" @onclick='(() => SendTOScriptCmd("COMPLETE"))' class="btn btn-primary waves-effect waves-light">Завершить задачу (в срок)</button>
+                    }
+                }
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    TOScript to_script = new TOScript();
+
+    [Parameter]
+    public string task_id { get; set;}
+
+    [Parameter]
+    public string task_author { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public ModalDialogType DialogType { get; set; }
+
+    [Parameter]
+    public List<string> personal_status { get; set;}
+
+    [Parameter]
+    public List<string> personal_status_arg1 { get; set; }
+
+    [Parameter]
+    public List<string> personal_status_arg2 { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    public async Task SendTOScriptCmd(string cmd)
+    {
+        EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+        EviCRM.Server.ViewModels.TaskTrackingModelCommon ttmc = new EviCRM.Server.ViewModels.TaskTrackingModelCommon();
+
+        ttmc.task_author = task_author;
+        ttmc.task_id = task_id;
+
+        switch (cmd)
+        {
+            case "COMPLETEDELAY":
+                await to_script.COMPLETEDELAY(ttmc);
+                break;
+            case "COMPLETEBEFOREHAND":
+                await to_script.COMPLETEBEFOREHAND(ttmc);
+                break;
+            case "COMPLETE":
+                await to_script.COMPLETE(ttmc);
+                break;
+
+            default:
+                await to_script.COMPLETE(ttmc);
+                break;
+        }
+             await OnClose.InvokeAsync(true);
+
+ 
+    }
+       public int getPersonalStatusArrayIDByUsername(string username)
+        {
+            for (int i = 0; i < personal_status_arg1.Count; i++)
+            {
+                if (personal_status_arg1[i] == username)
+                {
+                    return i;
+                }
+            }
+            return 0;
+        }
+
+     string personal_status_updater_packer(int p,string value)
+        {
+
+            string str = "";
+
+            for (int i = 0; i < personal_status.Count; i++)
+            {
+                if (p != i)
+                {
+                    str += personal_status[i] + "$$$";
+                }
+                else
+                {
+                    str += personal_status_arg1[i] + "$===$" + value;
+                }
+            }
+
+              personal_status_arg2[p] = value;
+
+            return str ;
+        }
+
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+        DeleteCancel
+    }
+
+    bool isInTime { get; set; }
+
+    DateTime localDateTime { get; set; }
+
+    DateTime dt_datetime_end { get; set; }
+
+    TimeSpan ts { get; set; }
+
+    [Parameter]
+    public string datetime_end { get; set; }
+
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        isInTime = false;
+        localDateTime = DateTime.Now;
+
+        ts = new TimeSpan();
+
+        if (DateTime.TryParse(datetime_end, out DateTime dt))
+        {
+            dt_datetime_end = DateTime.Parse(datetime_end);
+        }
+
+        if (dt_datetime_end > localDateTime)
+        {
+            isInTime = true;
+            ts = (dt_datetime_end - localDateTime).Duration();
+        }
+        else
+        {
+            isInTime = false;
+            ts = (localDateTime - dt_datetime_end).Duration();
+        }
+    }
+}

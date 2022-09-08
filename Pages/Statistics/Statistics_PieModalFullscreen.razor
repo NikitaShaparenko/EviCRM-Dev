@@ -1,0 +1,211 @@
+﻿@using Blazored.Modal.Services
+
+@using Blazorise.Charts
+
+<style>
+.container {
+    border: 1px solid #000000;
+    height: 300px;
+}
+
+.container textarea{
+    border: 1px solid red;
+    height: 100%;
+}
+</style>
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Просмотр графика распределения оценок</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>График пользователя @modal_user</h4>
+
+                <select class="form-select-lg" id="chart_type" @bind="visibleChartType">
+                
+                    @if (isPieChart)
+                    {
+                        <option selected="selected" value="pie">Круговая диаграмма</option>
+                        <option value="bar">Столбчатая диаграмма</option>
+                    }
+                    else
+                    {
+                        <option value="pie">Круговая диаграмма</option>
+                        <option selected="selected" value="bar">Столбчатая диаграмма</option>
+                    }
+
+                </select>
+
+                @if (isPieChart)
+                {
+                    
+                        <PieChart @ref="fullscreen_pieChart" TItem="double" Options=@pieChartFullScreenOptions></PieChart>
+                    <!--<Chart @ref="barChart" Type="ChartType.Bar" TItem="double" Clicked="@OnClicked" />-->
+                }
+                else
+                {
+                    <BarChart @ref="fullscreen_barChart" TItem="double" Options=@barChartFullScreenOptions></BarChart>
+                }
+
+            </div>
+             
+            <div class="modal-footer">
+                <button type="button" class="btn" @onclick="@ModalCancel">Закрыть</button>
+            </div>
+               </div>
+        </div>
+    </div>
+
+@code {
+    bool chart_isPie { get; set; }
+
+    string visibleChartType
+    {
+        get
+        {
+            if (chart_isPie)
+            {
+                return "pie";
+            }
+            else
+            {
+                return "bar";
+            }
+        }
+        set
+        {
+            if (value == "pie")
+            {
+                chart_isPie = true;
+            }
+            else
+            {
+                chart_isPie = false;
+            }
+            StateHasChanged();
+        }
+    }
+
+    [CascadingParameter] public IModalService Modal { get; set; } = default!;
+
+    PieChartOptions pieChartFullScreenOptions;
+    BarChartOptions barChartFullScreenOptions;
+
+    PieChart<double> fullscreen_pieChart;
+    BarChart<double> fullscreen_barChart;
+
+    [Parameter]
+    public List<PieChartDataset<double>> pieChartDataset { get; set; }
+
+    [Parameter]
+    public List<BarChartDataset<double>> barChartDataset { get; set; }
+
+    [Parameter]
+    public bool isPieChart { get; set; }
+
+    string modal_title { get; set; }
+    string modal_calendar_type { get; set; } //Тип календаря
+    string modal_type_of_work { get; set; } 
+    string modal_event_description { get; set; }
+    string modal_event_title { get; set; }
+
+    bool modal_remind { get; set; }
+
+    DateTime modal_event_startdate { get; set; }
+    DateTime modal_event_enddate { get; set; }
+
+    public async Task LoadGraphics()
+    {
+         pieChartFullScreenOptions = new PieChartOptions
+            {
+                Responsive = true,
+                Plugins = new ChartPlugins
+                {
+                    Legend = new ChartLegend
+                    {
+                        Display = false,
+                    },
+                    Title = new ChartTitle
+                    {
+                        Display = false,
+                        Text = "",
+                    },
+                },
+            };
+
+
+        if (barChartDataset != null)
+        {
+        foreach (var elem in barChartDataset)
+        {
+            await fullscreen_barChart.AddDataSet(elem);
+        }
+         await fullscreen_barChart.Update();
+        }
+     
+         barChartFullScreenOptions = new BarChartOptions
+            {
+                Responsive = true,
+                Plugins = new ChartPlugins
+                {
+                    Legend = new ChartLegend
+                    {
+                        Display = false,
+                    },
+                    Title = new ChartTitle
+                    {
+                        Display = false,
+                        Text = "",
+                    },
+                },
+            };
+
+
+        if (barChartDataset != null)
+        {
+        foreach (var elem in barChartDataset)
+        {
+            await fullscreen_barChart.AddDataSet(elem);
+        }
+         await fullscreen_barChart.Update();
+        }
+
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadGraphics();
+
+        StateHasChanged();
+    }
+
+    [Parameter]
+    public int modal_id { get; set; }
+
+   
+
+    [Parameter]
+    public List<string> labels { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public string modal_user{ get; set; }
+
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    
+}

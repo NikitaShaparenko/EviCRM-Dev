@@ -1,0 +1,63 @@
+﻿<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Изменить пароль пользователя @username</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+               <p>Введите новый пароль:</p>
+                <input type="text" class="form-control" name="link" @bind="@password" />
+            </div>
+            <div class="modal-footer">
+                
+                        
+                        <button type="button" class="btn btn-primary" @onclick=@ModalOk>Сохранить изменения</button>
+                        <button type="button" class="btn btn-danger" @onclick="@ModalCancel">Отмена</button>
+                      
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    string password { get; set; }
+
+    EviCRM.Server.Core.BackendController bc = new EviCRM.Server.Core.BackendController();
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+    [Parameter]
+    public string username { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+     [Parameter]
+    public EventCallback<string> OnChangingPassword { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+      public async Task ResetPassword(string id, string link)
+        {
+            //await Program.admin_vars.KillLink(link);
+            await mysqlc.MySql_ContextAsyncGeneral(mysqlc.updateUserPasswordByID(id, bc.SHA512_Encode("toor")));
+             await InvokeAsync(StateHasChanged);
+        }
+
+    private Task ModalOk()
+    {
+        return OnChangingPassword.InvokeAsync(bc.SHA512_Encode(password));
+        
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+        DeleteCancel
+    }
+}

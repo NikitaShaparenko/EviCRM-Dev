@@ -1,0 +1,158 @@
+﻿@page "/register"
+@using EviCRM.Server.Core
+@using System.Diagnostics
+@using Majorsoft.Blazor.Components.Notifications
+@using Microsoft.AspNetCore.Identity
+
+@inject NavigationManager UriHelper
+@inject SignInManager<IdentityUser> signInManager
+@inject UserManager<IdentityUser> userManager
+
+<div class="account-pages my-5 pt-sm-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6 col-xl-5">
+                <div class="card overflow-hidden">
+                    <div class="bg-primary bg-soft">
+                        <div class="row">
+                            <div class="col-7">
+                                <div class="text-primary p-4">
+                                    <h5 class="text-primary">Регистрация в CRM</h5>
+                                    <p>Создайте аккаунт, заполнив поля ниже:</p>
+                                </div>
+                            </div>
+                            <div class="col-5 align-self-end">
+                                <img src="/assets/images/profile-img.png" alt="" class="img-fluid">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div>
+                            <a href="/">
+                                <div class="avatar-md profile-user-wid mb-4">
+                                    <span class="avatar-title rounded-circle bg-light">
+                                        <img src="/assets/images/logo.svg" alt="" class="rounded-circle" height="34">
+                                    </span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="p-2">
+                                
+                                <div class="mb-3">
+                                    <p><b>Требования к паролю:</b></p>
+                                    <ul>
+                                        <li> Минимум 6 символов</li>
+                                        <li> Как минимум 1 строчная буква</li>
+                                        <li> Как минимум 1 заглавная буква</li>
+                                        <li> Как минимум 1 цифра</li>
+                                        <li> Как минимум 1 символ (не из алфавита)</li>
+                                    </ul>
+                                </div>
+                         <!--   <form class="needs-validation" asp-action="Register" asp-controller="Account" asp-anti-forgery="true" novalidate action=@Url.Action("Index", "index")> -->
+                                <div class="mb-3">
+                                    <label for="useremail" class="form-label">Электронная почта</label>
+                                    <input type="email" @bind=@register_email class="form-control" id="useremail" placeholder="Введите электронную почту" required>
+                                    <div class="invalid-feedback">
+                                        Пожалуйста, введите электронную почту
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Пользователь</label>
+                                    <input type="text" @bind=@register_login class="form-control" id="username" placeholder="Введите имя пользователя" required>
+                                    <div class="invalid-feedback">
+                                        Пожалуйства, введите пользователя
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="userpassword" class="form-label">Пароль</label>
+                                    <input type="password" @bind=@register_password class="form-control" id="userpassword" placeholder="Введите пароль" required>
+                                    <div class="invalid-feedback">
+                                        Пожалуйста, введите пароль
+                                    </div>
+                                </div>
+
+                                 @if (@login_status == "failed")
+                                {
+                                    <font color="red">
+                                        <div class="mt-4 text-center">
+                                            @login_message
+                                        </div>
+                                    </font>
+                                }
+                                else if (@login_status == "success")
+                                {
+                                    <font color="green">
+                                        <div class="mt-4 text-center">
+                                           @login_message
+                                        </div>
+                                    </font>
+                                }
+
+                                <div class="mt-4 d-grid">
+                                    <button class="btn btn-primary waves-effect waves-light" type="button" @onclick="()=>(Register(register_password))">Зарегистрироваться</button>
+                                </div>
+
+                                <div class="mt-4 text-center">
+                                    <h5 class="font-size-14 mb-3">Зарегистрироваться с помощью:</h5>
+
+                                    <ul class="list-inline">
+                                        <li class="list-inline-item">
+                                            <a href="javascript::void()" class="social-list-item bg-danger text-white border-danger">
+                                                <i class="mdi mdi-telegram"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div class="mt-4 text-center">
+                                    <p class="mb-0">Регистрируясь, вы соглашаетесь со всеми нашими правилами: <a href="#" class="text-primary">Правила использования</a></p>
+                                </div>
+                            
+                        </div>
+
+                    </div>
+                </div>
+                <div class="mt-5 text-center">
+
+                    <div>
+                        <p>Уже есть аккаунт ? <a href="/login" class="fw-medium text-primary"> Войти</a> </p>
+                        <p>
+                            ©
+                            2022 EviCRM. Сделано с <i class="mdi mdi-heart text-danger"></i>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@inject IToastService _toastService
+
+@code {
+    string login_status = "";
+    string login_message = "";
+
+    string? register_login { get; set; }
+    string? register_password { get; set; }
+    string? register_email { get; set; }
+}
+
+@functions{
+private string _toastText = $@"<strong>Toast:</strong> This is a(n) {NotificationTypes.Primary} notification";
+	private bool _toastShowIcon = true;
+	private bool _toastShowCloseButton = true;
+	private bool _toastShowCountdownProgress = true;
+	private uint _toastAutoCloseInSec = 5;
+	private uint _toastShadowEffect = 5;
+	private NotificationStyles _toastStyle;
+	private NotificationTypes _toastTypeLevel;
+
+	private ElementReference log1;
+	private string _toastLog = "";
+
+
+}

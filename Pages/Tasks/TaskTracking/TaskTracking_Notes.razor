@@ -1,0 +1,134 @@
+﻿<style>
+    body {
+        margin: 0; /* Reset default margin */
+    }
+
+    iframe2 {
+        display: block; /* iframes are inline by default */
+        background: #fff;
+        border: none; /* Reset default border */
+        height: 100vh; /* Viewport-relative units */
+        width: 100vw;
+    }
+
+    iframe{
+  resize: both;
+  overflow: auto;
+    }
+</style>
+
+@inject AuthenticationStateProvider authStateProvider
+
+<div class="col-lg-4">
+    <div class="card bg-info text-white-50">
+        <div class="card-body">
+            <h5 class="mb-4 text-white"><i class="mdi mdi-alert-circle-outline me-3"></i>Заметки</h5>
+            <p class="card-text text-white">Используйте заметки, чтобы оставлять себе или коллегам краткие напоминания</p>
+
+            <div class="row">
+                <div class="col">
+                    <button type="button" class="btn btn-outline-success form-control" @onclick="SwitchToPublicNotes">Общие</button>
+                </div>
+                 <div class="col">
+                     <button type="button" class="btn btn-outline-danger form-control" @onclick="SwitchToPersonalNotes">Свои</button>
+                </div>
+                  <div class="col">
+                     <button type="button" class="btn btn-outline-dark form-control" @onclick="SwitchToFullscreen">Фулскрин</button>
+                </div>
+            </div>
+
+            <p></p>
+
+            @if (ready)
+            {
+                @if (isPublic)
+                {
+                    @if (isFullscreen)
+                    {
+                      <TaskTracking_Notes_Fullscreen url=@generatePublicLink() OnClose=@OnClosing_Fullscreen />
+                    }
+                    @*<div class="resizable" style="height:360px">*@
+                    <div class="embed-responsive embed-responsive-16by9" style="height:360px">
+                    <iframe src="@generatePublicLink()" style="position: absolute; height:100%; border: none" align="left">
+                        Ваш браузер не поддерживает фреймы! Где вы его вообще откопали?
+                    </iframe>
+                    </div>
+                    @*</div>*@
+                }
+                else
+                {
+                     @if (isFullscreen)
+                    {
+                     <TaskTracking_Notes_Fullscreen url=@generatePersonalLink() OnClose=@OnClosing_Fullscreen/>
+                    }
+                    @*<div class="resizable" style="height:360px">*@
+                     <div class="embed-responsive embed-responsive-16by9" style="height:360px">
+                    <iframe src="@generatePersonalLink()" style="position: absolute; height:100%; border: none" align="left">
+                        Ваш браузер не поддерживает фреймы! Где вы его вообще откопали?
+                    </iframe>
+                    </div>
+                   @* </div>*@
+                 }
+            }
+
+        </div>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public string task_id { get; set; }
+
+    bool isFullscreen = false;
+
+    Sentinel sentinel = new Sentinel();
+
+    bool ready = false;
+    string user_ = "";
+
+    public bool isPublic = false;
+
+    public void SwitchToPublicNotes()
+    {
+        isPublic = true;
+        StateHasChanged();
+    }
+
+    public void SwitchToPersonalNotes()
+    {
+        isPublic = false;
+        StateHasChanged();
+    }
+
+    public void SwitchToFullscreen()
+    {
+        isFullscreen = true;
+        StateHasChanged();
+    }
+
+    public void OnClosing_Fullscreen()
+    {
+        isFullscreen = false;
+        StateHasChanged();
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        user_ = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        ready = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public string generatePublicLink()
+    {
+        return "https://evicrm.site/pad/p/" + sentinel.CRC(sentinel.TripleDesEncrypt("taskid-" + task_id));
+    }
+
+    public string generatePersonalLink()
+    {
+        return "https://evicrm.site/pad/p/" + sentinel.CRC(sentinel.TripleDesEncrypt("taskid-" + task_id + "-userid-" + user_));
+    }
+
+}

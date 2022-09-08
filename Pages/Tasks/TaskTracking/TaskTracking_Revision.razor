@@ -1,0 +1,175 @@
+﻿@using Blazorise
+@using Blazorise.RichTextEdit
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Отправить задачу на доработку</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row mb-4">
+
+                    <label>Вы собираетесь вернуть задачу на доработку</label>
+
+                    <label for="ttm_cmd_revision_body"><b>Что нужно исправить?</b></label>
+                    
+                          <RichTextEdit @ref="rtfRevision"
+                                                      Theme="RichTextEditTheme.Snow"
+                                                      ContentChanged="@OnContentChanged_rtfRevision"
+                                                      PlaceHolder="Введите текст изменений"
+                                                      ReadOnly=false
+                                                      SubmitOnEnter="true"
+                                                      EnterPressed="@OnSave_rtfRevision"
+                                                      ToolbarPosition="Placement.Top">
+                                                <Editor></Editor>
+                                                <Toolbar>
+                                                    <RichTextEditToolbarGroup>
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Bold" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Italic" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Blockquote" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Header" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Strike" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Underline" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+
+                                                        <RichTextEditToolbarSelect Action="RichTextEditAction.Size">
+                                                            <RichTextEditToolbarSelectItem Value="small" />
+                                                            <RichTextEditToolbarSelectItem Selected />
+                                                            <RichTextEditToolbarSelectItem Value="large" />
+                                                            <RichTextEditToolbarSelectItem Value="huge">Very Big</RichTextEditToolbarSelectItem>
+                                                        </RichTextEditToolbarSelect>
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="ordered" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="bullet" />
+                                                    </RichTextEditToolbarGroup>
+                                                    <!-- Custom toolbar content -->
+                                                <RichTextEditToolbarGroup Float="Float.End">
+                                                        <!-- <Button onClick="window.open('https://www.quilljs.com/','quilljs')"><Icon Name="IconName.InfoCircle" /></Button> -->
+                                                    <Button Clicked="@OnSave_rtfRevision"><Icon Name="IconName.Save" /></Button>
+                                                    </RichTextEditToolbarGroup>
+                                                </Toolbar>
+                                            </RichTextEdit>
+                    </div>
+               
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-info" @onclick=@ModalOk>Вернуть на доработку</button>
+                <button type="button" class="btn" @onclick="@ModalCancel">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    RichTextEdit rtfRevision;
+
+    protected string contentAsHtml_rtfRevision;
+    protected string contentAsDeltaJson_rtfRevision;
+    protected string contentAsText_rtfRevision;
+    protected string savedContent_rtfRevision;
+
+    public async Task OnContentChanged_rtfRevision()
+    {
+        contentAsHtml_rtfRevision = await rtfRevision.GetHtmlAsync();
+        contentAsDeltaJson_rtfRevision = await rtfRevision.GetDeltaAsync();
+        contentAsText_rtfRevision= await rtfRevision.GetTextAsync();
+    }
+
+    public async Task OnSave_rtfRevision()
+    {
+        savedContent_rtfRevision = await rtfRevision.GetHtmlAsync();
+        await rtfRevision.ClearAsync();
+    }
+
+    TOScript to_script = new TOScript();
+
+    [Parameter]
+    public EventCallback<string> OnUpdate{ get; set; }
+
+    [Parameter]
+    public List<string> divisions_ids { get; set; }
+
+    [Parameter]
+    public List<string> divisions_name { get; set; }
+
+    [Parameter]
+    public string task_id { get; set; }
+
+    [Parameter]
+    public string task_author { get; set; }
+
+    [Parameter]
+    public string ttm_cmd_revision_body { get; set; }
+
+    [Parameter]
+    public List<string> fullname_dt { get; set; }
+
+    [Parameter]
+    public List<string> users_dt { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public DateTime task_started { get; set;}
+
+    [Parameter]
+    public DateTime task_ended { get; set; }
+
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private async Task ModalOk()
+    {
+        await SendTOScriptCmd();
+        await OnClose.InvokeAsync(true);
+    }
+
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+    public async Task SendTOScriptCmd()
+    {
+        EviCRM.Server.ViewModels.TaskTrackingModelRevision ttmr = new EviCRM.Server.ViewModels.TaskTrackingModelRevision();
+
+        ttmr.task_author = task_author;
+        ttmr.task_id = task_id;
+        ttmr.ttm_cmd_revision_body = contentAsHtml_rtfRevision;
+
+        await to_script.REVISION(ttmr);
+
+        if (task_started < DateTime.Now && DateTime.Now < task_ended)
+        {
+            await mysqlc.MySql_ContextAsyncGeneral(mysqlc.updateTaskStatus(task_id, "pending"));
+              await OnUpdate.InvokeAsync("pending");
+        }
+        else if (task_started>DateTime.Now)
+        {
+            await mysqlc.MySql_ContextAsyncGeneral(mysqlc.updateTaskStatus(task_id, "approved"));
+             await OnUpdate.InvokeAsync("approved");
+        }
+        else
+        {
+            await mysqlc.MySql_ContextAsyncGeneral(mysqlc.updateTaskStatus(task_id, "delayed"));
+             await OnUpdate.InvokeAsync("delayed");
+        }
+        
+        await OnClose.InvokeAsync(false);
+    }
+
+    protected override void OnInitialized()
+    {
+        //QuillHtml.Placeholder = "Введите текст...";
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+        DeleteCancel
+    }
+}

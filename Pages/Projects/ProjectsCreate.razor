@@ -1,0 +1,286 @@
+﻿@page "/proj_create"
+@*@using Blazor.Cropper*@
+@using Blazorise
+@using EviCRM.Server.Core
+@using EviCRM.Server.Core.Cropper
+@using MySqlConnector
+@using System.Diagnostics
+@using Blazorise.RichTextEdit
+
+@using SixLabors.ImageSharp
+@using SixLabors.ImageSharp.Processing
+@using System.IO
+@using SixLabors.ImageSharp.Formats.Png
+
+@using EviCRM.Server.Cropper;
+
+@using EviCRM.Server.Models;
+@using EviCRM.Server.ViewModels;
+@using EviCRM.Server.Core;
+
+@using Majorsoft.Blazor.Components.Notifications
+
+@inject IToastService _toastService
+
+@inject IJSRuntime js;
+@inject IHostEnvironment _env;
+@inject NavigationManager UriHelper
+
+<h5>Проекты \ Создание</h5>
+
+@*<style>
+    import url("https://fastly.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css");
+</style>*@
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Создать новый проект</h4>
+                   
+                    <div class="row mb-4">
+                        <label for="proj_name" class="col-form-label col-lg-2">Название проекта</label>
+                        <div class="col-lg-10">
+                            <input id="proj_name" required @bind="pcm.proj_name" name="proj_name" type="text" class="form-control" placeholder="Введите имя проекта">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <label for="proj_short_desc" class="col-form-label col-lg-2">Краткое описание проекта в меню</label>
+                        <div class="col-lg-10">
+                            <input id="proj_short_desc" required @bind="pcm.proj_short_desc" name="proj_short_desc" type="text" class="form-control" placeholder="Введите краткое описание проекта">
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <label for="proj_desc" class="col-form-label col-lg-2">Описание проекта</label>
+                        <div class="col-lg-10">
+                            <RichTextEdit @ref="proj_description"
+                                                      Theme="RichTextEditTheme.Snow"
+                                                      ContentChanged="@OnContentChanged_taskDescription"
+                                                      PlaceHolder="Введите текст изменений"
+                                                      ReadOnly="false"
+                                                      SubmitOnEnter="true"
+                                                      EnterPressed="@OnSave_taskDescription"
+                                                      ToolbarPosition="Placement.Top">
+                                                <Editor></Editor>
+                                                <Toolbar>
+                                                    <RichTextEditToolbarGroup>
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Bold" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Italic" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Blockquote" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Header" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Strike" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Underline" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+
+                                                        <RichTextEditToolbarSelect Action="RichTextEditAction.Size">
+                                                            <RichTextEditToolbarSelectItem Value="small" />
+                                                            <RichTextEditToolbarSelectItem Selected />
+                                                            <RichTextEditToolbarSelectItem Value="large" />
+                                                            <RichTextEditToolbarSelectItem Value="huge">Very Big</RichTextEditToolbarSelectItem>
+                                                        </RichTextEditToolbarSelect>
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="ordered" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="bullet" />
+                                                    </RichTextEditToolbarGroup>
+                                                    <!-- Custom toolbar content -->
+                                                <RichTextEditToolbarGroup Float="Float.End">
+                                                        <!-- <Button onClick="window.open('https://www.quilljs.com/','quilljs')"><Icon Name="IconName.InfoCircle" /></Button> -->
+                                                    <Button Clicked="@OnSave_taskDescription"><Icon Name="IconName.Save" /></Button>
+                                                    </RichTextEditToolbarGroup>
+                                                </Toolbar>
+                                            </RichTextEdit>
+                                            </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <label class="col-form-label col-lg-2">Срок реализации</label>
+                        <div class="col-lg-10">
+                            <div class="input-daterange input-group" id="project-date-inputgroup" data-date-format="dd/mm/yyyy" data-date-autoclose="true">
+                                <input type="date" required @bind="pcm.proj_start" class="form-control" placeholder="Начало работы" name="proj_start" />
+                                <input type="date" required @bind="pcm.proj_end" class="form-control" placeholder="Планируемое окончание" name="proj_end" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                         <label for="proj_members" class="col-form-label col-lg-2">Добавить уже существующие задачи</label>
+                                 <div class="col-lg-10">
+                                     <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect Label="Список свободных задач" TItem="@SelectData" TValue="string" Data="@select_data_free_tasks" @bind-Value="@SelectedValues_free_tasks" TextSelector="@((p) => p.Name)" ValueSelector="@((p) => p.Id)" EmptyText="Выберите одно или несколько значений" NullDataText="Загружаются значения..." />
+                                </div>
+                    </div>
+
+                     <div class="row mb-4">
+                         <label for="proj_members" class="col-form-label col-lg-2">Добавить отделы</label>
+                                 <div class="col-lg-10">
+                                    <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect Label="Список отделов" TItem="@SelectData" TValue="string" Data="@select_data_divs" @bind-Value="@SelectedValues_divs" TextSelector="@((p) => p.Name)" ValueSelector="@((p) => p.Id)" EmptyText="Выберите одно или несколько значений" NullDataText="Загружаются значения..." />
+                               
+                                </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                         <label for="proj_members" class="col-form-label col-lg-2">Добавить исполнителей</label>
+                                 <div class="col-lg-10">
+                                    <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect Label="Список сотрудников" TItem="@SelectData" TValue="string" Data="@select_data_personal" @bind-Value="@SelectedValues_personal" TextSelector="@((p) => p.Name)" ValueSelector="@((p) => p.Id)" EmptyText="Выберите одно или несколько значений" NullDataText="Загружаются значения..." />
+                               
+                                </div>
+                    </div>
+                
+                    
+                <div class="row mb-4">
+                    <label class="col-form-label col-lg-2">Аватарка проекта</label>
+                    <div class="col-lg-10">
+                        <InputFile id="input1" class="form-control" OnChange="@LoadAvatar" accept=".png, .jpg, .bmp"></InputFile>
+                     </div>
+                </div>
+               
+                <div class="row justify-content-end">
+                    <div class="col-lg-10">
+                        <button type="button" class="btn btn-primary" @onclick="CreateProject">Создать проект</button>
+                    </div>
+                </div>
+           
+            </div>
+        </div>
+    </div>
+</div>
+
+@code{
+
+    public enum ProjectStatus
+    {
+        waiting,
+        in_progress,
+        delayed,
+        canceled,
+        completed,
+        archived,
+
+
+    }
+
+    protected string projHtml_taskDescription;
+    protected string projJson_taskDescription;
+    protected string projText_taskDescription;
+    protected string projContent_taskDescription;
+
+    private RichTextEdit proj_description;
+
+    public async Task OnContentChanged_taskDescription()
+    {
+        projHtml_taskDescription = await proj_description.GetHtmlAsync();
+        projJson_taskDescription = await proj_description.GetDeltaAsync();
+        projText_taskDescription = await proj_description.GetTextAsync();
+    }
+
+    public async Task OnSave_taskDescription()
+    {
+        projContent_taskDescription = await proj_description.GetHtmlAsync();
+        await proj_description.ClearAsync();
+    }
+
+    List<string> SelectedValues_divs { get; set; }
+    List<string> SelectedValues_personal { get; set; }
+    List<string> SelectedValues_free_tasks { get; set; }
+
+    public class SelectData
+    {
+        public string Id { get; set; }
+
+        public string Name { get; set; }
+    }
+
+    private IList<SelectData> select_data_free_tasks;
+    private IList<SelectData> select_data_divs;
+    private IList<SelectData> select_data_personal;
+
+
+}
+
+@functions{
+    private string _toastText = $@"<strong>Toast:</strong> This is a(n) {NotificationTypes.Primary} notification";
+    private bool _toastShowIcon = true;
+    private bool _toastShowCloseButton = true;
+    private bool _toastShowCountdownProgress = true;
+    private uint _toastAutoCloseInSec = 5;
+    private uint _toastShadowEffect = 5;
+    private NotificationStyles _toastStyle;
+    private NotificationTypes _toastTypeLevel;
+
+    private ElementReference log1;
+    private string _toastLog = "";
+
+
+    //Toasts
+    private async Task ToastsNotifications_ShowAllToast()
+    {
+        foreach (var item in Enum.GetValues<NotificationTypes>())
+        {
+            _toastService.ShowToast($@"<strong>Toast оповещения:</strong> Это оповещение типа {item}", item);
+        }
+    }
+
+    private Guid _lastToastId;
+
+    private async Task ToastsNotifications_ShowCustomToast_Primary(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Primary);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Secondary(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Secondary);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Info(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Info);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Success(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Success);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Warning(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Warning);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Danger(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Danger);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Light(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Light);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Dark(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Dark);
+    }
+
+	private async Task ToastsNotifications_ShowCustomToast(string toastText,NotificationStyles ns,NotificationTypes ntype)
+	{
+		_lastToastId = _toastService.ShowToast(new ToastSettings()
+		{
+			Content = builder => builder.AddMarkupContent(0, toastText),
+			NotificationStyle = ns,
+			Type = ntype,
+			AutoCloseInSec = _toastAutoCloseInSec,
+			ShadowEffect = _toastShadowEffect,
+			ShowCloseButton = _toastShowCloseButton,
+			ShowCloseCountdownProgress = _toastShowCountdownProgress,
+			ShowIcon = _toastShowIcon
+		});
+	}
+
+	private async Task RemoveAllToasts()
+	{
+		_toastService.ClearAll();
+	}
+	private async Task RemoveLastToasts()
+	{
+		if(_lastToastId != Guid.Empty)
+		{
+			_toastService.RemoveToast(_lastToastId);
+		}
+	}
+
+}

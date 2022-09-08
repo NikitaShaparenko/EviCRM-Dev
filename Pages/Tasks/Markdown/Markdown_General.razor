@@ -1,0 +1,435 @@
+﻿@if (ready)
+{
+    //Загрузка существующих досок
+    @if (markdown_desk_id != null)
+    {
+        List<int> desk_id_arrlist = getDeskID();
+        List<int> card_id_arrlist = getCardID();
+
+        for (int i = 0; i < markdown_desk_id.Count; i++)
+        {
+            //Количество досок
+
+            if (screen_actions_lst[i]==ScreenActions.Desk_Main)
+            {
+
+            if (markdown_desk_personalid[i] == user_id)
+            {
+                <div class="col-lg-4">
+                    <Markdown_Desks
+
+                    desk_title_name=@("Доска моих задач : " + @markdown_desk_name[i]) 
+                    
+                    markdown_card_backcolor=getMarkdownCardBackColorByDeskID(desk_id_arrlist)
+                    markdown_card_carddescription=getMarkdownCardDescriptionByDeskID(desk_id_arrlist)
+                    markdown_card_cardname=getMarkdownCardNameByDeskID(desk_id_arrlist)
+                    markdown_card_dateend=getMarkdownCardDateEndByDeskID(desk_id_arrlist)
+                    markdown_card_datestart=getMarkdownCardDateStartByDeskID(desk_id_arrlist)
+                    markdown_card_idmarkdown=getMarkdownCardIDMarkDownByDeskID(desk_id_arrlist)
+                    markdown_card_imgpath=getMarkdownCardImgPathByDeskID(desk_id_arrlist)
+                    task_id=tasks_id
+
+                    desk_num=i
+
+                    OnCopyingCard=ev_desk_CopyCard
+                    OnCreateCard=ev_desk_CreateCard
+                    OnKillMarkdown=ev_desk_KillMarkdown
+                    OnMarkdown=ev_desk_Markdown
+                    OnSorting=ev_desk_Sorting
+                    OnCreateDesk=ev_desk_CreateDesk
+                    OnMovingCard=ev_desk_MovingCard
+
+                    />
+                </div>
+            }
+            else if (markdown_desk_personalid[i] == null || markdown_desk_personalid[i] == "")
+            {
+                <div class="col-lg-4">
+                    <Markdown_Desks desk_title_name=@("Доска общих задач : " + @markdown_desk_name[i]) 
+                    
+                    task_id=tasks_id
+
+                    desk_num=i
+
+                    OnCopyingCard=ev_desk_CopyCard
+                    OnCreateCard=ev_desk_CreateCard
+                    OnKillMarkdown=ev_desk_KillMarkdown
+                    OnMarkdown=ev_desk_Markdown
+                    OnSorting=ev_desk_Sorting
+                    OnCreateDesk=ev_desk_CreateDesk
+                    OnMovingCard=ev_desk_MovingCard
+
+                    />
+                    </div>
+                }}
+            else if (screen_actions_lst[i]==ScreenActions.Desk_Create)
+            {
+                 <div class="col-lg-4">
+                 <Markdown_AddDesk
+                OnDeskCreated=DeskCreatedInterpeter
+                OnDeskErrorCreating=DeskErrorCreatingInterpreter
+                task_id=task_id
+                desk_num_id=i
+                />
+                </div>
+            }
+            else if (screen_actions_lst[i]==ScreenActions.Card_Create)
+            {
+                 <div class="col-lg-4">
+                <Markdown_AddCard 
+                markdown_card=CardCreatedInterpeter
+                desk_id=desk_id_num
+                />
+                </div>
+            }
+        }
+    }
+
+    //Если не была ещё создана персональная доска
+
+
+
+
+}
+
+@code {
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+
+    bool ready = false;
+
+    [Parameter]
+    public EventCallback<ToastNotification> OnToastHandler { get; set; }
+
+    [Parameter]
+    public string tasks_id { get; set; }
+
+    [Parameter]
+    public string user_id { get; set; }
+
+    #region Markdown_Desks
+
+    List<string> markdown_desk_id = new List<string>();
+    List<string> markdown_desk_name = new List<string>();
+    List<string> markdown_desk_personalid = new List<string>();
+
+    #endregion
+
+    #region Markdown_Cards
+
+    List<string> markdown_card_idmarkdown = new List<string>();
+    List<string> markdown_card_cardname = new List<string>();
+    List<string> markdown_card_carddescription = new List<string>();
+    List<string> markdown_card_datestart = new List<string>();
+    List<string> markdown_card_dateend = new List<string>();
+    List<string> markdown_card_imgpath = new List<string>();
+    List<string> markdown_card_backcolor = new List<string>();
+    List<string> markdown_card_deskid = new List<string>();
+
+    #endregion
+
+    #region Markdown_Todo
+
+    List<string> markdown_todo_checked = new List<string>();
+    List<string> markdown_todo_name = new List<string>();
+    List<string> markdown_todo_cardid = new List<string>();
+    List<string> markdown_todo_id = new List<string>();
+
+    #endregion
+
+    #region OnEventCallback Handlers
+
+    public void ev_desk_CopyCard(int desk_num)
+    {
+
+    }
+
+    public async Task ev_desk_CreateCard(int desk_num)
+    {
+        screen_actions_lst[desk_num] = ScreenActions.Card_Create;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void ev_desk_Sorting(int desk_num)
+    {
+
+    }
+
+    public async Task ev_desk_CreateDesk(int desk_num)
+    {
+        screen_actions_lst[desk_num] = ScreenActions.Desk_Create;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void ev_desk_MovingCard(int desk_num)
+    {
+
+    }
+
+    public void ev_desk_KillMarkdown(EviCRM.Server.ViewModels.Markdown_Desk_TwoIntBindings tib)
+    {
+
+    }
+
+    public void ev_desk_Markdown(EviCRM.Server.ViewModels.Markdown_Desk_TwoIntBindings tib)
+    {
+
+    }
+
+
+    #endregion
+
+    private async Task DeskErrorCreatingInterpreter(Markdown_Desk desk)
+    {
+        if (desk.markdown_desk_name == "" || desk.markdown_desk_name  == null)
+        {
+            ToastNotification toast = new ToastNotification("Необходимо ввести название доски", ToastNotification.ToastsTypes.Danger);
+            await OnToastHandler.InvokeAsync(toast);
+        };
+    }
+
+     private async Task DeskCreatedInterpeter(Markdown_Desk desk)
+    {
+        screen_actions_lst[desk.desk_num] = ScreenActions.Desk_Main;
+        await InvokeAsync(StateHasChanged);
+    }
+
+     private async Task CardCreatedInterpeter(ViewModels.Markdown_Card card)
+    {
+        screen_actions_lst[card.desk_num] = ScreenActions.Desk_Main;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    List<string> getMarkdownTodoCheckedByCardID(List<int> card_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (card_id_arr != null)
+        {
+            foreach(var elem in card_id_arr)
+            {
+                base_arr.Add(markdown_todo_checked[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<string> getMarkdownTodoNameByCardID(List<int> card_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (card_id_arr != null)
+        {
+            foreach(var elem in card_id_arr)
+            {
+                base_arr.Add(markdown_todo_name[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<string> getMarkdownTodoIDByCardID(List<int> card_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (card_id_arr != null)
+        {
+            foreach(var elem in card_id_arr)
+            {
+                base_arr.Add(markdown_todo_id[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+
+    List<string> getMarkdownCardIDMarkDownByDeskID(List<int> desk_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (desk_id_arr != null)
+        {
+            foreach(var elem in desk_id_arr)
+            {
+                base_arr.Add(markdown_card_idmarkdown[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<string> getMarkdownCardNameByDeskID(List<int> desk_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (desk_id_arr != null)
+        {
+            foreach(var elem in desk_id_arr)
+            {
+                base_arr.Add(markdown_card_cardname[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<string> getMarkdownCardDescriptionByDeskID(List<int> desk_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (desk_id_arr != null)
+        {
+            foreach(var elem in desk_id_arr)
+            {
+                base_arr.Add(markdown_card_cardname[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<string> getMarkdownCardDateStartByDeskID(List<int> desk_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (desk_id_arr != null)
+        {
+            foreach(var elem in desk_id_arr)
+            {
+                base_arr.Add(markdown_card_datestart[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<string> getMarkdownCardDateEndByDeskID(List<int> desk_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (desk_id_arr != null)
+        {
+            foreach(var elem in desk_id_arr)
+            {
+                base_arr.Add(markdown_card_dateend[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<string> getMarkdownCardImgPathByDeskID(List<int> desk_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (desk_id_arr != null)
+        {
+            foreach(var elem in desk_id_arr)
+            {
+                base_arr.Add(markdown_card_imgpath[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<string> getMarkdownCardBackColorByDeskID(List<int> desk_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (desk_id_arr != null)
+        {
+            foreach(var elem in desk_id_arr)
+            {
+                base_arr.Add(markdown_card_backcolor[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<string> getMarkdownCardDeskIDByDeskID(List<int> desk_id_arr)
+    {
+        List<string> base_arr = new List<string>();
+
+        if (desk_id_arr != null)
+        {
+            foreach(var elem in desk_id_arr)
+            {
+                base_arr.Add(markdown_card_deskid[elem]);        
+            }
+        }
+        return base_arr;
+    }
+
+    List<int> getCardID()
+    {
+        List<int> arr_num = new List<int>();
+
+        if (markdown_todo_cardid != null)
+        {
+            for (int i = 0; i< markdown_todo_cardid.Count; i++)
+            {
+                arr_num.Add(i);
+            }
+        }
+        return arr_num;
+    }
+
+    List<int> getDeskID()
+    {
+        List<int> arr_num = new List<int>();
+
+        if (markdown_card_deskid != null)
+        {
+            for (int i = 0; i< markdown_card_deskid.Count; i++)
+            {
+                arr_num.Add(i);
+            }
+        }
+        return arr_num;
+    }
+
+    List<ScreenActions> screen_actions_lst = new List<ScreenActions>();
+
+    enum ScreenActions
+    {
+        Desk_Main,
+        Desk_Create,
+        Card_Create,
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Markdown Card Initializator
+
+        markdown_card_idmarkdown = await mysqlc.getListMarkdownIdmarkdownAsyncByTaskID(tasks_id);
+        markdown_card_cardname = await mysqlc.getListMarkdownCardNameAsyncByTaskID(tasks_id);
+        markdown_card_carddescription = await mysqlc.getListMarkdownCardDescriptionAsyncByTaskID(tasks_id);
+        markdown_card_datestart = await mysqlc.getListMarkdownCardDateStartAsyncByTaskID(tasks_id);
+        markdown_card_dateend = await mysqlc.getListMarkdownCardDateEndAsyncByTaskID(tasks_id);
+        markdown_card_imgpath = await mysqlc.getListMarkdownImgPathAsyncByTaskID(tasks_id);
+        markdown_card_backcolor = await mysqlc.getListMarkdownCardBackColorAsyncByTaskID(tasks_id);
+        markdown_card_deskid = await mysqlc.getListMarkdownCardDeskIDAsyncByTaskID(tasks_id);
+
+        //Markdown ToDo Initializator
+
+        markdown_todo_checked = await mysqlc.getListMarkdownTodoCheckedAsyncByTaskID(tasks_id);
+        markdown_todo_name = await mysqlc.getListMarkdownTodoNameAsyncByTaskID(tasks_id);
+        markdown_todo_cardid = await mysqlc.getListMarkdownTodoCardIDAsyncByTaskID(tasks_id);
+        markdown_todo_id = await mysqlc.getListMarkdownTodoIDAsyncByTaskID(tasks_id);
+
+        //Markdown Desk Initializator
+
+        markdown_desk_id = await mysqlc.getListMarkdownDeskIDAsyncByTaskID(tasks_id);
+        markdown_desk_name = await mysqlc.getListMarkdownDeskNameAsyncByTaskID(tasks_id);
+        markdown_desk_personalid = await mysqlc.getListMarkdownDeskPersonalIDAsyncByTaskID(tasks_id);
+
+        if (markdown_desk_id != null)
+        {
+            for (int i = 0; i<markdown_desk_id.Count;i++)
+            {
+                screen_actions_lst.Add(ScreenActions.Desk_Main);
+            }
+        }
+
+        ready = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+
+}

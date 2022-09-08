@@ -1,0 +1,565 @@
+﻿@page "/chat"
+
+<PageTitle>Чат</PageTitle>
+<h5>Чат</h5>
+
+@inject AuthenticationStateProvider authStateProvider
+@inject IWebHostEnvironment _env
+
+
+<div class="d-lg-flex">
+    <div class="chat-leftsidebar me-lg-4">
+        <div class="">
+            <div class="py-4 border-bottom">
+                <div class="d-flex">
+                    <div class="flex-shrink-0 align-self-center me-3">
+                        <img src="/assets/images/users/avatar-1.jpg" class="avatar-xs rounded-circle" alt="">
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="font-size-15 mb-1">@chat_username</h5>
+                        @switch (chat_user_status)
+                        {
+                            case user_status.active:
+                                <p class="text-muted mb-0"><i class="mdi mdi-circle text-success align-middle me-1"></i> В сети </p>
+                                break;
+
+                            case user_status.away:
+                                <p class="text-muted mb-0"><i class="mdi mdi-circle text-warning align-middle me-1"></i> Отошёл </p>
+                                break;
+
+                            case user_status.connecting:
+                                <p class="text-muted mb-0"><i class="mdi mdi-circle text-primary align-middle me-1"></i> Соединение... </p>
+                                break;
+
+                            case user_status.offline:
+                                <p class="text-muted mb-0"><i class="mdi mdi-circle text-danger align-middle me-1"></i> Оффлайн </p>
+                                break;
+
+                        }
+
+                    </div>
+
+                    <div>
+                        <div class="dropdown chat-noti-dropdown active">
+                            <button class="btn" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="bx bx-bell bx-tada"></i>
+                            </button>
+                            @*<div class="dropdown-menu dropdown-menu-end">
+
+                               
+                                    Меню колокольчика
+
+                                    <a class="dropdown-item" href="#">Action</a>
+                                    <a class="dropdown-item" href="#">Another action</a>
+                                    <a class="dropdown-item" href="#">Something else here</a>
+                            </div>*@
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="search-box chat-search-box py-4">
+                <div class="position-relative">
+                    <input type="text" class="form-control" placeholder="Найти...">
+                    <i class="bx bx-search-alt search-icon"></i>
+                </div>
+            </div>
+
+            <div class="chat-leftsidebar-nav">
+                <ul class="nav nav-pills nav-justified">
+                    <li class="nav-item">
+                        <a href="#chat" data-bs-toggle="tab" aria-expanded="true" class="nav-link active">
+                            <i class="bx bx-chat font-size-20 d-sm-none"></i>
+                            <span class="d-none d-sm-block">Диалоги</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#groups" data-bs-toggle="tab" aria-expanded="false" class="nav-link">
+                            <i class="bx bx-group font-size-20 d-sm-none"></i>
+                            <span class="d-none d-sm-block">Беседы</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#contacts" data-bs-toggle="tab" aria-expanded="false" class="nav-link">
+                            <i class="bx bx-book-content font-size-20 d-sm-none"></i>
+                            <span class="d-none d-sm-block">Контакты</span>
+                        </a>
+                    </li>
+                </ul>
+                <div class="tab-content py-4">
+                    <div class="tab-pane show active" id="chat">
+                        <div>
+                            <h5 class="font-size-14 mb-3">Недавние диалоги</h5>
+
+                            <ul class="list-unstyled chat-list" data-simplebar style="max-height: 410px;">
+
+                                @foreach (ChatDialog chatDialog in dialog_list)
+                                {
+                                    @if (!chatDialog.isGroup)
+                                    {
+                                        <li>
+                                            <a href="javascript: void(0);">
+                                                <div class="d-flex">
+                                                    <div class="flex-shrink-0 align-self-center me-3">
+                                                        <i class="mdi mdi-circle text-success font-size-10"></i>
+                                                    </div>
+
+                                                    if (File.Exists(Path.Combine(_env.WebRootPath,"uploads","users","avatars",users_avatars_lst[@getUserArrCntByLogin(chatDialog.penfriend)])))
+                                                    {
+                                                    <div class="flex-shrink-0 align-self-center me-3">
+                                                        <a href="javascript: void(0);" class="d-inline-block">
+                                                            <div class="avatar-xs">
+                                                                <img src="/uploads/users/avatars/@users_avatars_lst[getUserArrCntByLogin(chatDialog.penfriend)]" alt="" class="rounded-circle avatar-xs" />
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                    }
+                                                    else
+                                                    {
+                                                    <div class="avatar-group-item">
+                                                        <a href="javascript: void(0);" class="d-inline-block">
+                                                            <div class="avatar-xs">
+                                                                <img src="/uploads/users/avatars/default.png" alt="" class="rounded-circle avatar-xs" />
+                                                            </div>
+                                                        </a>
+                                                    </div>
+
+
+                                                    <div class="flex-grow-1 overflow-hidden">
+                                                        <h5 class="text-truncate font-size-14 mb-1">@chatDialog.chat_name</h5>
+                                                        <p class="text-truncate mb-0">@chatDialog.last_message</p>
+                                                    </div>
+                                                    <div class="font-size-11">@getShortDateTimeDifference(chatDialog.last_updated)</div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    }
+                                }
+
+                                @*  <li class="active"> *@
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="groups">
+                        <h5 class="font-size-14 mb-3">Групповые беседы</h5>
+
+                        <ul class="list-unstyled chat-list" data-simplebar style="max-height: 410px;">
+
+                            @foreach (ChatDialog chatDialog in dialog_list)
+                            {
+                                @if (chatDialog.isGroup)
+                                {
+                                    <li>
+                                        <a href="javascript: void(0);">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0 align-self-center me-3">
+                                                    <i class="mdi mdi-circle text-success font-size-10"></i>
+                                                </div>
+
+                                                @if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", chatDialog.avatar_url)))
+                                                {
+                                                    <div class="flex-shrink-0 align-self-center me-3">
+                                                        <a href="javascript: void(0);" class="d-inline-block">
+                                                            <div class="avatar-xs">
+                                                                <img src="/uploads/users/avatars/@chatDialog.avatar_url" alt="" class="rounded-circle avatar-xs" />
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="avatar-group-item">
+                                                        <a href="javascript: void(0);" class="d-inline-block">
+                                                            <div class="avatar-xs">
+                                                                <img src="/uploads/users/avatars/default.png" alt="" class="rounded-circle avatar-xs" />
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                }
+
+                                                <div class="flex-grow-1 overflow-hidden">
+                                                    <h5 class="text-truncate font-size-14 mb-1">@chatDialog.chat_name</h5>
+                                                    <p class="text-truncate mb-0">@chatDialog.last_message</p>
+                                                </div>
+                                                <div class="font-size-11">@getShortDateTimeDifference(chatDialog.last_updated)</div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                }
+                            }
+                        </ul>
+                    </div>
+
+                    <div class="tab-pane" id="contacts">
+                        <h5 class="font-size-14 mb-3">Контакты</h5>
+
+
+                        <div data-simplebar style="max-height: 410px;">
+                            <div class="mt-4">
+
+                                @for (int i = 0; i < 33; i++)
+                                {
+                                    if (UsersListLetterContains(russian_capital_alphabet[i]))
+                                    {
+                                        <div class="avatar-xs mb-3">
+                                            <span class="avatar-title rounded-circle bg-primary bg-soft text-primary">
+                                                @russian_capital_alphabet[i]
+                                            </span>
+                                        </div>
+
+                                        <ul class="list-unstyled chat-list">
+                                            <li>
+
+                                                @foreach (string elem in users_list_sorted)
+                                                {
+                                                    if (Char.ToUpper(elem[0]) == russian_capital_alphabet[i])
+                                                    {
+                                                        <a href="javascript:void(0);" onclick="@ChatUserlistOpen(elem)">
+                                                            <h5 class="font-size-14 mb-0">@elem</h5>
+                                                        </a>
+                                                    }
+
+                                                }
+                                            </li>
+                                        </ul>
+
+                                    }
+                                }
+
+                            </div>
+
+
+
+
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="w-100 user-chat" style="height=100%;">
+        <div class="card" style="height=100%;">
+            <div class="p-4 border-bottom ">
+                <div class="row">
+                    <div class="col-md-4 col-9">
+                        <h5 class="font-size-15 mb-1">@chat_penfriend_username</h5>
+
+                        @switch (chat_penfriend_status)
+                        {
+                            case user_status.active:
+                                <p class="text-muted mb-0"><i class="mdi mdi-circle text-success align-middle me-1"></i> В сети</p>
+                                break;
+
+                            case user_status.away:
+                                <p class="text-muted mb-0"><i class="mdi mdi-circle text-warning align-middle me-1"></i> Отошёл </p>
+                                break;
+
+                            case user_status.connecting:
+                                <p class="text-muted mb-0"><i class="mdi mdi-circle text-primary align-middle me-1"></i> Соединение... </p>
+                                break;
+
+                            case user_status.offline:
+                                <p class="text-muted mb-0"><i class="mdi mdi-circle text-danger align-middle me-1"></i> Оффлайн </p>
+                                break;
+
+                        }
+
+                    </div>
+                    <div class="col-md-8 col-3">
+                        <ul class="list-inline user-chat-nav text-end mb-0">
+                            <li class="list-inline-item d-none d-sm-inline-block">
+                                <div class="dropdown">
+                                    <button class="btn nav-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="bx bx-search-alt-2"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end dropdown-menu-md">
+                                        <form class="p-3">
+                                            <div class="form-group m-0">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" placeholder="Найти ..." aria-label="Recipient's username">
+
+                                                    <button class="btn btn-primary" type="submit"><i class="mdi mdi-magnify"></i></button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="list-inline-item  d-none d-sm-inline-block">
+                                <div class="dropdown">
+                                    <button class="btn nav-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="bx bx-cog"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end">
+                                        <a class="dropdown-item" href="#">Посмотреть профиль</a>
+                                        <a class="dropdown-item" href="#">Очистить чат</a>
+                                        <a class="dropdown-item" href="#">Отключить оповещения</a>
+                                        <a class="dropdown-item" href="#">Удалить</a>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-inline-item">
+                                <div class="dropdown">
+                                    <button class="btn nav-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="bx bx-dots-horizontal-rounded"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end">
+                                        @*
+
+                                            <a class="dropdown-item" href="#">Action</a>
+                                            <a class="dropdown-item" href="#">Another action</a>
+                                            <a class="dropdown-item" href="#">Something else</a>*@
+                                    </div>
+                                </div>
+                            </li>
+
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+
+            <div style="height: 100%">
+                <div class="chat-conversation p-3">
+                    <ul class="list-unstyled mb-0" data-simplebar style="max-height: 486px;">
+                        <li>
+                            <div class="chat-day-title">
+                                <span class="title">Сегодня</span>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="conversation-list">
+                                <div class="dropdown">
+
+                                    <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                    </a>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="#">Копировать</a>
+                                        <a class="dropdown-item" href="#">Сохранить</a>
+                                        <a class="dropdown-item" href="#">Переслать</a>
+                                        <a class="dropdown-item" href="#">Удалить</a>
+                                    </div>
+                                </div>
+                                <div class="ctext-wrap">
+                                    <div class="conversation-name">Ваш собеседник</div>
+                                    <p>
+                                        Сообщение вашего собеседника
+                                    </p>
+                                    <p class="chat-time mb-0"><i class="bx bx-time-five align-middle me-1"></i> 10:00</p>
+                                </div>
+
+                            </div>
+                        </li>
+
+                        <li class="right">
+                            <div class="conversation-list">
+                                <div class="dropdown">
+
+                                    <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                    </a>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="#">Копировать</a>
+                                        <a class="dropdown-item" href="#">Сохранить</a>
+                                        <a class="dropdown-item" href="#">Переслать</a>
+                                        <a class="dropdown-item" href="#">Удалить</a>
+                                    </div>
+                                </div>
+                                <div class="ctext-wrap">
+                                    <div class="conversation-name">Вы</div>
+                                    <p>
+                                        Ваше сообщение
+                                    </p>
+
+                                    <p class="chat-time mb-0"><i class="bx bx-time-five align-middle me-1"></i> 10:02</p>
+                                </div>
+                            </div>
+                        </li>
+
+                        @*<li>
+                            <div class="conversation-list">
+                            <div class="dropdown">
+
+                            <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="bx bx-dots-vertical-rounded"></i>
+                            </a>
+                            <div class="dropdown-menu">
+                            <a class="dropdown-item" href="#">Copy</a>
+                            <a class="dropdown-item" href="#">Save</a>
+                            <a class="dropdown-item" href="#">Forward</a>
+                            <a class="dropdown-item" href="#">Delete</a>
+                            </div>
+                            </div>
+                            <div class="ctext-wrap">
+                            <div class="conversation-name">Steven Franklin</div>
+                            <p>
+                            Yeah everything is fine
+                            </p>
+
+                            <p class="chat-time mb-0"><i class="bx bx-time-five align-middle me-1"></i> 10:06</p>
+                            </div>
+
+                            </div>
+                            </li>*@
+
+
+
+
+                    </ul>
+                </div>
+
+            </div>
+            <div class="p-3 chat-input-section">
+                <div class="row">
+                    <div class="col">
+                        <div class="position-relative">
+                            <input type="text" class="form-control chat-input" placeholder="Введите сообщение...">
+                            <div class="chat-input-links" id="tooltip-container">
+                                <ul class="list-inline mb-0">
+                                    <li class="list-inline-item"><a href="javascript: void(0);" title="Эмодзи"><i class="mdi mdi-emoticon-happy-outline"></i></a></li>
+                                    <li class="list-inline-item"><a href="javascript: void(0);" title="Изображения"><i class="mdi mdi-file-image-outline"></i></a></li>
+                                    <li class="list-inline-item"><a href="javascript: void(0);" title="Добавить файлы"><i class="mdi mdi-file-document-outline"></i></a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-rounded chat-send w-md waves-effect waves-light"><span class="d-none d-sm-inline-block me-2">Отправить</span> <i class="mdi mdi-send"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@code {
+
+    string chat_username { get; set; }
+    string chat_penfriend_username { get; set; }
+
+    user_status chat_user_status { get; set; }
+    user_status chat_penfriend_status { get; set; }
+
+    enum user_status
+    {
+        connecting, //text-primary
+        active, //text-success
+        away, // text-warning
+        offline //text-danger
+    }
+}
+
+@functions {
+
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+    EviCRM.Server.Core.Redis redis = new EviCRM.Server.Core.Redis();
+    EviCRM.Server.Core.BackendController bc = new EviCRM.Server.Core.BackendController();
+
+    public int getUserArrCntByLogin(string inp)
+    {
+        for(int i = 0; i<users_dt.Count;i++)
+        {
+            if (users_dt[i] == inp)
+            {
+                return i;
+            }
+        }
+        return int.MinValue;
+    }
+
+    public string getShortDateTimeDifference(DateTime dt)
+    {
+        string remaining_str = "";
+        DateTime now = DateTime.Now;
+
+        var datediff = now - dt;
+
+        if (datediff.TotalDays > 31)
+        {
+            // *м
+
+            return Math.Ceiling(datediff.TotalDays / 31).ToString() + "м";
+        }
+        else if (datediff.TotalDays > 7 && datediff.TotalDays <= 31)
+        {
+            // *н
+
+            return Math.Ceiling(datediff.TotalDays / 7).ToString() + "н";
+        }
+        else if (datediff.TotalDays >= 1)
+        {
+            return datediff.TotalDays + "д";
+        }
+        else
+        {
+            // *ч
+            if (datediff.TotalHours > 0)
+            {
+                return Math.Ceiling(datediff.TotalHours / 24).ToString() + "ч";
+            }
+            else
+            {
+                // *мин
+
+                if (datediff.TotalMinutes > 0)
+                {
+                    return Math.Ceiling(datediff.TotalMinutes / 60).ToString() + "мин";
+                }
+                else
+                {
+
+                    // *c
+
+                    if (datediff.TotalSeconds > 0)
+                    {
+                        return Math.Ceiling(datediff.TotalSeconds / 60).ToString() + "c";
+                    }
+                }
+
+            }
+
+
+        }
+
+        return datediff.TotalMilliseconds + "мсек";
+
+
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        chat_username = "";
+        chat_penfriend_username = "";
+
+        user_ = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+
+        chat_user_status = user_status.connecting;
+        chat_penfriend_status = user_status.connecting;
+
+        users_fullname_dt = await mysqlc.getListUsersFullnameAsync();
+        users_list_sorted = SortByIncreaseNameValue(users_fullname_dt);
+        users_dt = await mysqlc.getListUsersLoginAsync();
+        users_avatars_lst = await mysqlc.getListUsersAvatarAsync();
+
+        LoadRecentChats();
+
+        await Preload_LoadChats();
+        await Preload_LoadDialogs();
+
+        //await Preload_AnalyzeDialogs();
+
+        await InvokeAsync(StateHasChanged);
+
+    }
+
+}

@@ -1,0 +1,266 @@
+﻿@inject AuthenticationStateProvider authStateProvider
+
+
+ <div class="table-responsive">
+                    <table class="table table-nowrap align-middle mb-0">
+                        @if (tasks_all == 0)
+                                {
+                                    <h5 class="text-truncate font-size-14 m-0"><a href="javascript: void(0);" class="text-dark">Нет задач в текущем представлении</a></h5>
+                                }
+                                else
+                                {
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" style="width: 70px;">#</th>
+                                <th scope="col">Название задачи</th>
+                                @*<th scope="col">Личный статус</th>*@
+                                <th scope="col">Командный статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                
+                                @for (int i = 0; i<tasks_name_dt.Count; i++)
+                                {
+                                  <tr>
+
+                                      <td>@(i+1)</td>
+                                      <td>@tasks_name_dt[i]</td>
+                                      <td>
+                                          
+                                          @switch(tasks_status_dt[i])
+                                          {
+                                case "waiting":
+                                {
+                                    <span class="badge rounded-pill badge-soft-secondary font-size-11">Ожидает подтверждения</span>
+                                    break;
+                                }
+                                 case "approved":
+                                {
+                                     <span class="badge rounded-pill badge-soft-info font-size-11">Подтверждено</span>
+                                     break;
+                                }
+                                 case "pending":
+                                {
+                                    <span class="badge rounded-pill badge-soft-success font-size-11">Выполняется</span>
+                                    break;
+                                }
+                                 case "delayed":
+                                {
+                                     <span class="badge rounded-pill badge-soft-danger font-size-11">Отложена</span>
+                                     break;
+                                }
+                                 case "completed":
+                                {
+                                    <span class="badge rounded-pill bg-success font-size-11">Выполнена</span>
+                                    break;
+                                }
+                                 case "canceled":
+                                {
+                                    <span class="badge rounded-pill bg-danger  font-size-11">Отменена</span>
+                                    break;
+                                }
+                                 case "failed":
+                                {
+                                    <span class="badge rounded-pill bg-danger  font-size-11">Провалена</span>
+                                    break;
+                                }
+                                 
+
+
+                                          }
+
+
+                                      </td>
+
+                                      <td>
+                                       @*   @if (personal_status_arg1.Contains(session_cookie_data))
+                    {
+                        int z = getPersonalStatusArrayIDByUsername(session_cookie_data);
+                                switch (personal_status_arg2[z])
+                                {
+
+                                    case "waiting":
+                                        <span class="badge rounded-pill badge-soft-secondary font-size-11">Ожидает подтверждения</span>
+                                        break;
+
+                                    case "approved":
+                                        <span class="badge rounded-pill badge-soft-info font-size-11">Подтверждено</span>
+                                        break;
+
+                                    case "pending":
+                                        <span class="badge rounded-pill badge-soft-success font-size-11">Выполняется</span>
+                                        break;
+
+                                    case "delayed":
+                                        <span class="badge rounded-pill badge-soft-danger font-size-11">Отложена</span>
+                                        break;
+
+                                    case "completed":
+                                        <span class="badge rounded-pill bg-success font-size-11">Выполнена</span>
+                                        break;
+
+                                    case "canceled":
+                                        <span class="badge rounded-pill bg-danger  font-size-11">Отменена</span>
+                                        break;
+
+                                    case "failed":
+                                        <span class="badge rounded-pill bg-danger  font-size-11">Провалена</span>
+                                        break;
+
+
+                                }
+                            }  *@
+                        </td>
+                      
+                                  </tr>
+                                }
+                         </tbody>
+                                
+                            }
+                    </table>
+                </div>
+
+@code{
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+    EviCRM.Server.Core.BackendController bc = new EviCRM.Server.Core.BackendController();
+
+    [Parameter]
+    public List<string> tasks_id_dt { get; set; }
+
+    [Parameter]
+    public List<string> tasks_name_dt  {get;set;}
+
+    [Parameter]
+    public List<string> tasks_members_dt  {get;set;}
+
+    [Parameter]
+    public List<string> tasks_status_dt  {get;set;}
+
+    [Parameter]
+    public List<string> tasks_personal_status_dt  {get;set;}
+
+        [Parameter]
+    public List<string> tasks_authors_dt  {get;set;}
+
+
+    [Parameter]
+    public List<string> username_is_incast  {get;set;}
+
+    [Parameter]
+    public List<string> username_is_inauthors {get;set;}
+
+    [Parameter]
+    public List<string> users_dt  {get;set;}
+
+    [Parameter]
+    public List<string> users_avatars_dt  {get;set;}
+
+    [Parameter]
+    public string session_cookie_data {get;set;}
+    
+    [Parameter]
+    public string session_role { get; set; }
+
+    int tasks_all = 0;
+
+       [Parameter] public string task_personal_status { get; set; } //перечень пользователей и статус их задач
+
+    List<string> personal_status = new List<string>();
+    List<string> personal_status_arg1 = new List<string>();
+    List<string> personal_status_arg2 = new List<string>();
+
+}
+
+@functions{
+
+     public int getPersonalStatusArrayIDByUsername(string username)
+    {
+        for (int i = 0; i<personal_status_arg1.Count;i++)
+        {
+            if (personal_status_arg1[i] == username)
+            {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        tasks_id_dt = await mysqlc.getListTaskIDAsync();
+        tasks_name_dt = await mysqlc.getListTaskNameAsync();
+        //tasks_budgets_dt  = await mysqlc.getListTaskBudgetAsync();
+        tasks_members_dt = await mysqlc.getListTaskMembersAsync();
+        tasks_status_dt = await mysqlc.getListTaskStatusAsync();
+        //tasks_startdate_dt = await mysqlc.getListTaskStartDateAsync();
+        //tasks_enddate_dt = await mysqlc.getListTaskEndDateAsync();
+        //tasks_authors_dt  = await mysqlc.getListTasksAuthorAsync();
+        tasks_personal_status_dt = await mysqlc.getListTaskPersonalStatusAsync();
+
+        //string session_role = Context.Request.Cookies["session-role"];
+        //string session_cookie_data = Context.Request.Cookies["session-user"];
+
+        session_cookie_data = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        session_role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(session_cookie_data));
+
+        username_is_incast = isInCast(session_cookie_data);
+        username_is_inauthors = isInAuthors(session_cookie_data);
+
+        users_avatars_dt = mysqlc.getAvatarPaths(users_dt);
+
+        tasks_all = tasks_id_dt.Count;
+
+         personal_status = bc.getMultipleStringDecodingString(task_personal_status); //разбились на пары
+        personal_status_arg1 = bc.getMultArgs_DeCombine_Args1(personal_status); //шапки пар
+        personal_status_arg2 =  bc.getMultArgs_DeCombine_Args2(personal_status); // значения пар
+
+        foreach(string task_st in tasks_status_dt)
+        {
+            if (task_st == "waiting" || task_st == "approved")
+            {
+               
+            }
+             if (task_st == "pending" || task_st == "delayed")
+            {
+              
+            }
+             if (task_st == "completed" || task_st == "canceled" || task_st == "failed")
+            {
+               
+            }
+        }
+
+    }
+    List<string> isInCast(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo= 0; zo < tasks_members_dt.Count;zo++)
+        {
+            buffer_decoder = bc.getMultipleStringDecodingString(tasks_members_dt[zo]);
+            foreach (string bd in buffer_decoder)
+            {
+                if (bd == username)
+                {
+                    lstr.Add(tasks_id_dt[zo]);
+                }
+            }
+        }
+        return lstr;
+    }
+    List<string> isInAuthors(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo= 0; zo < tasks_authors_dt.Count;zo++)
+        {
+           
+                if (tasks_authors_dt[zo] == username)
+                {
+                    lstr.Add(tasks_id_dt[zo]);
+                }
+        }
+        return lstr;
+    }
+}

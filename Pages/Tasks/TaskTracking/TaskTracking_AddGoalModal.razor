@@ -1,0 +1,81 @@
+﻿
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Добавить цель</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row mb-4">
+
+
+                    <label style="color:black">Вы собираетесь добавить цель</label>
+
+                    <label style="color:black" for="ttm_cmd_revision_body">Что нужно сделать?</label>
+                    @*<div class="col-lg-10">*@
+                     <input type="text" name="ttm_cmd_goals_body" @bind="ttm_goals_add_body" />
+                   @* </div>*@
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" @onclick=@ModalOk>Добавить</button>
+                <button type="button" class="btn" @onclick="@ModalCancel">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    TOScript to_script = new TOScript();
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+    string ttm_goals_add_body { get; set; }
+
+    [Parameter]
+    public string task_id { get; set; }
+
+    [Parameter]
+    public string task_author { get; set; }
+
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<string> RefreshPage { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private async Task ModalOk()
+    {
+        await SendTOScriptCmd();
+        await OnClose.InvokeAsync(true);
+    }
+
+    public async Task SendTOScriptCmd()
+    {
+        EviCRM.Server.ViewModels.TaskTrackingModelCardMarksdownActions ttm_cma = new EviCRM.Server.ViewModels.TaskTrackingModelCardMarksdownActions();
+
+        ttm_cma.task_author = task_author;
+        ttm_cma.task_id = task_id;
+        ttm_cma.task_cardmark = ttm_goals_add_body;
+
+        await to_script.ADDGOALS(ttm_cma);
+        await mysqlc.MySql_ContextAsyncL(mysqlc.AddCardMark(task_id, ttm_goals_add_body, "unchecked", "unchecked", task_author, DateTime.Now.ToString()));
+
+        await RefreshPage.InvokeAsync(ttm_goals_add_body);
+        //await OnClose.InvokeAsync(false);
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+        DeleteCancel
+    }
+}

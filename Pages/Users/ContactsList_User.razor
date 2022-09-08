@@ -1,0 +1,139 @@
+﻿@using EviCRM.Server.ViewModels;
+@using EviCRM.Server.Core;
+
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+
+@inject NavigationManager uriHelper;
+
+<tr>
+    @if (System.IO.File.Exists(cum.avatarpath) == false)
+    {
+        <td>
+            <div class="avatar-xs">
+                <span class="avatar-title rounded-circle">
+                    @{
+                        string str = sentinel.TripleDesDecrypt(cum.users).ToUpper();
+                        char b_str = '?';
+                        if (str.Length > 0)
+                        {
+                            b_str = str[0];
+                        }
+                        @b_str
+                    }
+                </span>
+            </div>
+        </td>
+    }
+    else
+    {
+        <div>
+            <img class="rounded-circle avatar-xs" src=@cum.avatarpath alt="Ава">
+        </div>
+    }
+
+    <td>
+        <h5 class="font-size-14 mb-1"><a href="javascript: void(0);" class="text-dark">@cum.fullname</a></h5>
+        <p class="text-muted mb-0">@cum.position</p>
+    </td>
+    <td>@sentinel.TripleDesDecrypt(cum.email)</td>
+    <td>
+        <div>
+            @{
+
+                foreach (string skill in skills_str)
+                {
+                    <p><a href="javascript: void(0);" class="badge badge-primary font-size-11 m-1">@skill</a></p>
+                }
+            }
+        </div>
+    </td>
+   @* <td>@cum.projects_val</td>*@
+    <td>
+        <ul class="list-inline font-size-20 contact-links mb-0">
+
+             <li class="list-inline-item px-2">
+                    <button type="button" class="bx bx-support btn-link" value="Статистика" @onclick="(()=>CallTo(cum.users))" />
+             </li>
+            
+            <li class="list-inline-item px-2">
+                <button type="button" class="bx bx-user-circle btn-link" value="Профиль" @onclick="(()=>ShowProfile(cum.users))" />
+            </li>
+
+            <li class="list-inline-item px-2">
+                <button type="button" class="bx bx-message-square-dots btn-link" value="Написать" @onclick="(()=>ChatTo(cum.users))" />
+            </li>
+            
+        </ul>
+    </td>
+</tr>
+
+
+@code {
+    private Sentinel sentinel = new Sentinel();
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+    public static BackendController bc = new BackendController();
+
+    [Parameter] public ContactsUserModel cum { get; set; }
+
+    [Parameter] public int num { get; set; }
+
+    List<string> skills_str = new List<string>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        skills_str = bc.getMultipleStringDecodingString(cum.skills);
+    }
+ public async Task ShowProfile(string login)
+    {
+        await InsertLocalStorageItems("profile_direct", login);
+        uriHelper.NavigateTo("/profile",true);
+    }
+
+    public async Task ChatTo(string login)
+    {
+        await InsertLocalStorageItems("chat_direct", login);
+        uriHelper.NavigateTo("/chat",true);
+    }
+
+    public async Task CallTo(string login)
+    {
+        await InsertLocalStorageItems("call_direct", login);
+        uriHelper.NavigateTo("/call",true);
+    }
+
+     #region Local Storage
+
+    private int _localStorageCount;
+    private IList<KeyValuePair<string, string>> _localStorageItems;
+
+    private async Task InsertLocalStorageItems(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key, val);
+    }
+    private async Task<string> GetLocalStorageItems(string key)
+    {
+        return await _localStorageService.GetItemAsStringAsync(key);
+    }
+    private async Task RefreshLocalStorageItems()
+    {
+        _localStorageItems = new List<KeyValuePair<string, string>>();
+        await foreach (var key in _localStorageService.GetAllKeysAsync())
+        {
+            if (key is null)
+                continue;
+
+            _localStorageItems.Add(new KeyValuePair<string, string>(key, await _localStorageService.GetItemAsStringAsync(key)));
+        }
+    }
+    private async Task SaveCustomLocalStorageItem(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key, val);
+        await RefreshLocalStorageItems();
+    }
+
+    #endregion
+
+
+
+}

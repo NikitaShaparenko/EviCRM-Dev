@@ -1,0 +1,592 @@
+﻿@page "/tasks_kanban"
+
+@using EviCRM.Server.Core
+@using System.Collections.Generic;
+@using System.Net
+@using EviCRM.Server.ViewModels
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+@using Microsoft.AspNetCore.Identity
+@using MySqlConnector
+@inject NavigationManager UriHelper
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject AuthenticationStateProvider authStateProvider
+
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+@inject ILocalStorageService localstorage
+
+@inject IWebHostEnvironment _env;
+
+<h5>Задачи \ Доска канбан</h5>
+<PageTitle>Доска канбан</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+
+
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Запланированные</h4>
+
+                        <div id="task-1">
+                            <div id="upcoming-task" class="pb-1 task-list">
+
+                                @for (int i = 0; i < tasks_name_dt.Count; i++)
+                                {
+                                    @if (username_is_incast.Contains(tasks_id_dt[i]) || (username_is_inauthors.Contains(tasks_id_dt[i])) || session_role == "admin" || session_role == "owner")
+                                    {
+                                        @if (tasks_status_dt[i] == "waiting" || tasks_status_dt[i] == "approved")
+                                        {
+                                            tasks_b1++;
+                                            int temp = i;
+                                            <div class="card task-box" id="uptask-1">
+                                                <div class="card-body">
+                                                    <div class="dropdown float-end">
+                                                        @* <a href="#" class="dropdown-toggle arrow-none" data-bs-toggle="dropdown" aria-expanded="false">
+                                                            <i class="mdi mdi-dots-vertical m-0 text-muted h5"></i>
+                                                            </a>*@
+                                                        @*<div class="dropdown-menu dropdown-menu-end">
+                                                            <a class="dropdown-item edittask-details" href="#" id="taskedit" data-id="#uptask-1" data-bs-toggle="modal" data-bs-target=".bs-example-modal-lg">Редактировать</a>
+                                                            <a class="dropdown-item deletetask" href="#" data-id="#uptask-1">Удалить</a>
+                                                            </div>*@
+                                                    </div> <!-- end dropdown -->
+
+                                        <div class="float-end ms-2">
+
+                                                        @if (tasks_status_dt[i] == "waiting")
+                                                        {
+                                                            <span class="badge rounded-pill badge-secondary font-size-12" id="task-status">Ожидает подтверждения</span>
+                                                        }
+                                                        @if (tasks_status_dt[i] == "approved")
+                                                        {
+                                                            <span class="badge rounded-pill badge-secondary font-size-12" id="task-status">Подтверждено</span>
+                                                        }
+
+
+                                                    </div>
+                                                    <div>
+
+                                                        <h5 class="font-size-15"><button type="button" @onclick="() => TaskShow(tasks_id_dt[temp])" class="btn btn-link">@tasks_name_dt[i]</button></h5>
+
+                                                        <p class="text-muted mb-4"><i class="mdi mdi-calendar-clock">@tasks_startdate_dt[i]</i> ----> <i class="mdi mdi-calendar-end">@tasks_enddate_dt[i]</i></p>
+
+                                                        <div data-countdown=@tasks_enddate_dt[i] class="counter-number"></div>
+
+
+                                                    </div>
+
+                                                    <div class="avatar-group float-start task-assigne">
+
+
+                                                        @{
+                                                            List<string> cast = bc.getMultipleStringDecodingString(tasks_members_dt[i]);
+                                                            List<string> users_avatars_lst = new List<string>();
+
+                                                            foreach (string elem in cast)
+                                                            {
+                                                                int p = getUserArrIDByLogin(elem);
+                                                                users_avatars_lst.Add(users_avatars_dt[p]);
+                                                            }
+
+                                                            for (int av = 0; av < cast.Count; av++)
+                                                            {
+                                                                if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                                                {
+                                                                    string str = cast[av].ToUpper();
+                                                                    char b_str = '?';
+
+                                                                    if (str.Length > 0)
+                                                                    {
+                                                                        b_str = str[0];
+                                                                    }
+
+                                                                    <div class="avatar-group-item">
+                                                                        <a href="javascript: void(0);" class="d-inline-block">
+                                                                            <div class="avatar-xs">
+                                                                                <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                                    @b_str
+
+                                                                                </span>
+                                                                            </div>
+                                                                        </a>
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                <div class="avatar-xs">
+                                                                                    <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                                                </div>
+                                                                            </a>
+                                                                        </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                <div class="avatar-xs">
+                                                                                    <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                                                </div>
+                                                                            </a>
+                                                                        </div>
+                                                                    }
+                                                                }
+                                                            }
+
+                                                        }
+
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        }
+                                    }
+                                }
+                            </div>
+                            @if (tasks_b1 == 0)
+                            {
+                                <div class="text-end">
+                                    <h5 class="font-size-15 mb-1" id="task-budget">Не существует задач в данном представлении</h5>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- end col -->
+            <!-- In progress Column --- Start -->
+
+            <div class="col-lg-4">
+
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">В процессе</h4>
+
+                        <div id="task-1">
+                            <div id="upcoming-task" class="pb-1 task-list">
+
+                                @for (int i = 0; i < tasks_name_dt.Count; i++)
+                                {
+                                    @if (username_is_incast.Contains(tasks_id_dt[i]) || (username_is_inauthors.Contains(tasks_id_dt[i])) || session_role == "admin" || session_role == "owner")
+                                    {
+                                        @if (tasks_status_dt[i] == "pending" || tasks_status_dt[i] == "delayed")
+                                        {
+                                            tasks_b2++;
+                                            int temp = i;
+                                            <div class="card task-box" id="uptask-1">
+                                                <div class="card-body">
+
+
+                                                    <div class="float-end ms-2">
+
+                                                        @if (tasks_status_dt[i] == "pending")
+                                                        {
+                                                            <span class="badge rounded-pill badge-success font-size-12" id="task-status">Выполняется</span>
+                                                        }
+                                                        @if (tasks_status_dt[i] == "delayed")
+                                                        {
+                                                            <span class="badge rounded-pill badge-danger font-size-12" id="task-status">Просрочена</span>
+                                                        }
+
+
+                                                    </div>
+                                                    <div>
+
+                                                        <h5 class="font-size-15"><button type="button" @onclick="() => TaskShow(tasks_id_dt[temp])" class="btn btn-link">@tasks_name_dt[i]</button></h5>
+
+                                                        <p class="text-muted mb-4"><i class="mdi mdi-calendar-clock">@tasks_startdate_dt[i]</i> ----> <i class="mdi mdi-calendar-end">@tasks_enddate_dt[i]</i></p>
+
+                                                        <div data-countdown=@tasks_enddate_dt[i] class="counter-number"></div>
+
+
+                                                    </div>
+
+                                                    <div class="avatar-group float-start task-assigne">
+
+
+                                                        @{
+                                                            List<string> cast = bc.getMultipleStringDecodingString(tasks_members_dt[i]);
+                                                            List<string> users_avatars_lst = new List<string>();
+
+                                                            foreach (string elem in cast)
+                                                            {
+                                                                int p = getUserArrIDByLogin(elem);
+                                                                users_avatars_lst.Add(users_avatars_dt[p]);
+                                                            }
+
+                                                            for (int av = 0; av < cast.Count; av++)
+                                                            {
+                                                                if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                                                {
+                                                                    string str = cast[av].ToUpper();
+                                                                    char b_str = '?';
+
+                                                                    if (str.Length > 0)
+                                                                    {
+                                                                        b_str = str[0];
+                                                                    }
+
+                                                                    <div class="avatar-group-item">
+                                                                        <a href="javascript: void(0);" class="d-inline-block">
+                                                                            <div class="avatar-xs">
+                                                                                <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                                    @b_str
+
+                                                                                </span>
+                                                                            </div>
+                                                                        </a>
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                <div class="avatar-xs">
+                                                                                    <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                                                </div>
+                                                                            </a>
+                                                                        </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                <div class="avatar-xs">
+                                                                                    <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                                                </div>
+                                                                            </a>
+                                                                        </div>
+                                                                    }
+                                                                }
+                                                            }
+
+                                                        }
+
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        }
+                                    }
+                                }
+                            </div>
+                            @if (tasks_b2 == 0)
+                            {
+                                <div class="text-end">
+                                    <h5 class="font-size-15 mb-1" id="task-budget">Не существует задач в данном представлении</h5>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- end col -->
+            <!-- Completed Column --- Start -->
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Выполнены</h4>
+
+                        <div id="task-1">
+                            <div id="upcoming-task" class="pb-1 task-list">
+
+                                @for (int i = 0; i < tasks_name_dt.Count; i++)
+                                {
+                                    @if (username_is_incast.Contains(tasks_id_dt[i]) || (username_is_inauthors.Contains(tasks_id_dt[i])) || session_role == "admin" || session_role == "owner")
+                                    {
+                                        @if (tasks_status_dt[i] == "completed" || tasks_status_dt[i] == "canceled" || tasks_status_dt[i] == "failed")
+                                        {
+                                            tasks_b3++;
+                                            int temp = i;
+                                            <div class="card task-box" id="uptask-1">
+                                                <div class="card-body">
+
+
+                                                    <div class="float-end ms-2">
+
+                                                        @if (tasks_status_dt[i] == "completed")
+                                                        {
+                                                            <span class="badge rounded-pill badge-success font-size-12" id="task-status">Выполнена</span>
+                                                        }
+                                                        @if (tasks_status_dt[i] == "canceled")
+                                                        {
+                                                            <span class="badge rounded-pill badge-danger font-size-12" id="task-status">Отменена</span>
+                                                        }
+                                                        @if (tasks_status_dt[i] == "failed")
+                                                        {
+                                                            <span class="badge rounded-pill badge-danger font-size-12" id="task-status">Провалена</span>
+                                                        }
+
+
+                                                    </div>
+                                                    <div>
+
+                                                        <h5 class="font-size-15"><button type="button" @onclick="() => TaskShow(tasks_id_dt[temp])" class="btn btn-link">@tasks_name_dt[i]</button></h5>
+
+                                                        <p class="text-muted mb-4"><i class="mdi mdi-calendar-clock">@tasks_startdate_dt[i]</i> ----> <i class="mdi mdi-calendar-end">@tasks_enddate_dt[i]</i></p>
+
+                                                        <div data-countdown=@tasks_enddate_dt[i] class="counter-number"></div>
+
+
+                                                    </div>
+
+                                                    <div class="avatar-group float-start task-assigne">
+
+
+                                                        @{
+                                                            List<string> cast = bc.getMultipleStringDecodingString(tasks_members_dt[i]);
+                                                            List<string> users_avatars_lst = new List<string>();
+
+                                                            foreach (string elem in cast)
+                                                            {
+                                                                int p = getUserArrIDByLogin(elem);
+                                                                users_avatars_lst.Add(users_avatars_dt[p]);
+                                                            }
+
+                                                            for (int av = 0; av < cast.Count; av++)
+                                                            {
+                                                                if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                                                {
+                                                                    string str = cast[av].ToUpper();
+                                                                    char b_str = '?';
+
+                                                                    if (str.Length > 0)
+                                                                    {
+                                                                        b_str = str[0];
+                                                                    }
+
+                                                                    <div class="avatar-group-item">
+                                                                        <a href="javascript: void(0);" class="d-inline-block">
+                                                                            <div class="avatar-xs">
+                                                                                <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                                    @b_str
+
+                                                                                </span>
+                                                                            </div>
+                                                                        </a>
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                <div class="avatar-xs">
+                                                                                    <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                                                </div>
+                                                                            </a>
+                                                                        </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                <div class="avatar-xs">
+                                                                                    <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                                                </div>
+                                                                            </a>
+                                                                        </div>
+                                                                    }
+                                                                }
+                                                            }
+
+                                                        }
+
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        }
+                                    }
+                                }
+                            </div>
+                            @if (tasks_b3 == 0)
+                            {
+                                <div class="text-end">
+                                    <h5 class="font-size-15 mb-1" id="task-budget">Не существует задач в данном представлении</h5>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end col -->
+
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    private BackendController bc = new BackendController();
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+
+    List<string> tasks_id_dt = new List<string>();
+    List<string> tasks_name_dt = new List<string>();
+    List<string> tasks_budgets_dt = new List<string>();
+    List<string> tasks_members_dt = new List<string>();
+    List<string> tasks_status_dt = new List<string>();
+    List<string> tasks_personal_status_dt = new List<string>();
+    List<string> tasks_startdate_dt = new List<string>();
+    List<string> tasks_enddate_dt = new List<string>();
+    List<string> tasks_authors_dt = new List<string>();
+
+    List<string> username_is_incast = new List<string>();
+    List<string> username_is_inauthors = new List<string>();
+    List<string> users_avatars_dt = new List<string>();
+    List<string> users_dt = new List<string>();
+
+    private int _localStorageCount;
+    private IList<KeyValuePair<string, string>> _localStorageItems;
+
+    protected async override Task OnInitializedAsync()
+    {
+        tasks_id_dt = await mysqlc.getListTaskIDAsync();
+        tasks_name_dt = await mysqlc.getListTaskNameAsync();
+        tasks_budgets_dt = await mysqlc.getListTaskBudgetAsync();
+        tasks_members_dt = await mysqlc.getListTaskMembersAsync();
+        tasks_status_dt = await mysqlc.getListTaskStatusAsync();
+        tasks_startdate_dt = await mysqlc.getListTaskStartDateAsync();
+        tasks_enddate_dt = await mysqlc.getListTaskEndDateAsync();
+        tasks_authors_dt = await mysqlc.getListTasksAuthorAsync();
+        tasks_personal_status_dt = await mysqlc.getListTaskPersonalStatusAsync();
+        //string session_role = Context.Request.Cookies["session-role"];
+        //string session_cookie_data = Context.Request.Cookies["session-user"];
+
+        session_cookie_data = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        session_role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(session_cookie_data));
+
+        username_is_incast = isInCast(session_cookie_data);
+        username_is_inauthors = isInAuthors(session_cookie_data);
+
+        //users_avatars_dt = mysqlc.getAvatarPaths(users_dt);
+
+        users_dt = await mysqlc.getListUsersLoginAsync();
+        users_avatars_dt = await mysqlc.getListUsersAvatarAsync();
+
+        foreach (string task_st in tasks_status_dt)
+        {
+            if (task_st == "waiting" || task_st == "approved")
+            {
+                tasks_b1++;
+            }
+            if (task_st == "pending" || task_st == "delayed")
+            {
+                tasks_b2++;
+            }
+            if (task_st == "completed" || task_st == "canceled" || task_st == "failed")
+            {
+                tasks_b3++;
+            }
+        }
+    }
+
+    int tasks_b1 = 0;
+    int tasks_b2 = 0;
+    int tasks_b3 = 0;
+
+    string session_cookie_data { get; set; }
+    string session_role { get; set; }
+
+    public int getUserArrIDByLogin(string login)
+    {
+        for (int p = 0; p < users_dt.Count; p++)
+        {
+            if (users_dt[p] == login)
+            {
+                return p;
+            }
+        }
+        return 0;
+    }
+
+    List<string> isInCast(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo = 0; zo < tasks_members_dt.Count; zo++)
+        {
+            buffer_decoder = bc.getMultipleStringDecodingString(tasks_members_dt[zo]);
+            foreach (string bd in buffer_decoder)
+            {
+                if (bd == username)
+                {
+                    lstr.Add(tasks_id_dt[zo]);
+                }
+            }
+        }
+        return lstr;
+    }
+
+
+    List<string> isInAuthors(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo = 0; zo < tasks_authors_dt.Count; zo++)
+        {
+
+            if (tasks_authors_dt[zo] == username)
+            {
+                lstr.Add(tasks_id_dt[zo]);
+            }
+        }
+        return lstr;
+    }
+
+    public async Task ContactShow(int task_num, int cast_member_num)
+    {
+        string user_login = tasks_members_dt[task_num];
+        List<string> task_cast = bc.getMultipleStringDecodingString(user_login);
+        if (task_cast.Count >= cast_member_num)
+        {
+            user_login = task_cast[cast_member_num];
+        }
+        await SaveCustomLocalStorageItem("contactoverview", user_login);
+        UriHelper.NavigateTo("/user_overview");
+    }
+
+    public async Task TaskShow(string str_num)
+    {
+        await SaveCustomLocalStorageItem("task_tracking_id", str_num);
+        UriHelper.NavigateTo("/task_tracking");
+    }
+    private async Task SaveCustomLocalStorageItem(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key, val);
+        await RefreshLocalStorageItems();
+    }
+    private async Task RefreshLocalStorageItems()
+    {
+        _localStorageItems = new List<KeyValuePair<string, string>>();
+        await foreach (var key in _localStorageService.GetAllKeysAsync())
+        {
+            if (key is null)
+                continue;
+
+            _localStorageItems.Add(new KeyValuePair<string, string>(key, await _localStorageService.GetItemAsStringAsync(key)));
+        }
+
+    }
+
+}

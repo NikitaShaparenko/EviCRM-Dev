@@ -1,0 +1,137 @@
+﻿@page "/video"
+
+@using EviCRM.Server.Core;
+@using System.Text
+@using System.Security.Cryptography;
+@using Microsoft.AspNetCore.Identity
+
+@inject IJSRuntime js
+@inject SignInManager<IdentityUser> SignInManager
+@inject AuthenticationStateProvider authStateProvider
+
+<style>
+    body {
+    margin: 0; 
+}
+iframe {
+    display: block; 
+    background: #000;
+    border: none;
+    height: 100vh;
+    width: 100vw;
+}
+</style>
+
+<PageTitle>Видеоконференции</PageTitle>
+
+@if(ready)
+{
+    <iframe src=@videoconference_link frameborder="0" allowusermedia allow="accelerometer; autoplay; encrypted-media; microphone $URL; camera $URL; gyroscope; picture-in-picture; display-capture *; display-capture $URL" allowfullscreen></iframe>  
+}
+else
+{
+    <h5>Загружаю данные...Ожидайте!</h5>
+}
+@code{
+
+    string videoconference_link { get; set;}
+    const string base_url = "https://$URL/";
+
+    bool ready { get; set; }
+    bool isAdmin { get; set; }
+    string user_role { get; set; }
+    string user_name { get; set; }
+    string sha1_code { get; set; }
+
+    string user_ { get; set; }
+
+    MySQL_Controller mysqlc = new MySQL_Controller();
+
+    List<string> users_dt = new List<string>();
+    List<string> fullname_dt = new List<string>();
+    List<string> users_login_dt = new List<string>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        //await js.InvokeVoidAsync("requestMediaAndShow");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ready = false;
+
+
+        user_ = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        string role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(user_));
+        //user is [ user | admin ]
+
+        //owner fix
+        if (role == "owner")
+        {
+            role = "admin";
+
+        }
+
+        users_dt = await mysqlc.getListUsersIDAsync();
+        fullname_dt = await mysqlc.getListUsersFullnameAsync();
+        users_login_dt = await mysqlc.getListUsersLoginAsync();
+
+        user_role = role;
+        user_name = format_fixer(getFullnameByLogin(user_));
+        sha1_code = sha512_encode(format_fixer(user_name));
+
+        char user_role_fix = 'u';
+
+        if (user_role=="admin")
+        {
+            user_role_fix = 'a';
+        }
+
+        videoconference_link = base_url + "?name=" + user_name + "&role=" + user_role_fix + "&hash=" + sha1_code;
+
+        ready = true;
+        StateHasChanged();
+    }
+
+
+    string format_fixer(string input)
+    {
+        string format_input = "";
+        for (int j = 0; j<input.Length;j++)
+        {
+            if (input[j] == ' ')
+            {
+                format_input += '_';
+            }
+            else
+            {
+                format_input += input[j];
+            }
+        }
+        return format_input;
+
+    }
+
+    static string sha512_encode(string input)
+    {
+            var hash = new SHA1Managed().ComputeHash(Encoding.UTF8.GetBytes(input));
+            return string.Concat(hash.Select(b => b.ToString("x2")));
+        }
+
+}
+
+@functions{
+
+    string getFullnameByLogin(string login)
+    {
+        for (int i = 0; i< users_dt.Count;i++)
+        {
+            if (users_login_dt[i] == login)
+            {
+                return fullname_dt[i];
+            }
+        }
+        return "";
+    }
+
+}

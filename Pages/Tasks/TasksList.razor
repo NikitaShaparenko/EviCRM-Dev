@@ -1,0 +1,347 @@
+﻿@page "/tasks_list"
+
+@using EviCRM.Server.Core
+@using System.Collections.Generic;
+@using System.Net
+@using EviCRM.Server.Pages.Tasks.Components
+@using EviCRM.Server.ViewModels
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+@using Microsoft.AspNetCore.Identity
+
+@inject NavigationManager UriHelper
+@inject IWebHostEnvironment _env
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject AuthenticationStateProvider authStateProvider
+
+<h5>Задачи \ Списком</h5>
+<PageTitle>Задачи \ Списком</PageTitle>
+
+<AuthorizeView>
+      <Authorized>
+<div class="row">
+    <!--<div class="col-lg-8">-->
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Запланированные</h4>
+                <div class="table-responsive">
+                    <table class="table table-nowrap align-middle mb-0">
+                        @if (tasks_b1 == 0)
+                                {
+                                    <h5 class="text-truncate font-size-14 m-0"><a href="javascript: void(0);" class="text-dark">Нет задач в текущем представлении</a></h5>
+                                }
+                                else
+                                {
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" style="width: 70px;">#</th>
+                                <th scope="col">Название задачи</th>
+                                <th scope="col">Состав</th>
+                                <th scope="col">Командный статус</th>
+                                <th scope="col">Личный статус</th>
+                                <th scope="col">Создатель задачи</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                
+                                @for (int i = 0; i<tasks_name_dt.Count; i++)
+                                {
+                                   <TaskList_Unit cat="planned"
+                                   session_role=@session_role
+                                   session_user=@session_cookie_data
+                                   username_is_incast=@username_is_incast
+                                   username_is_inauthors=@username_is_inauthors
+                                   task_status=@tasks_status_dt[i]
+                                   task_personal_status=@tasks_personal_status_dt[i]
+                                   task_id=@tasks_id_dt[i]
+                                   task_members=@tasks_members_dt[i]
+                                   task_name=@tasks_name_dt[i]
+                                   users_list=@users_dt
+                                   users_avatars=@users_avatars_dt />
+                                }
+                         </tbody>
+                                
+                            }
+                    </table>
+                </div>
+            </div>
+        </div>
+
+       @*-----*@
+
+       <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">В процессе выполнения</h4>
+                <div class="table-responsive">
+                    <table class="table table-nowrap align-middle mb-0">
+                          @if (tasks_b2 == 0)
+                                {
+                                    <h5 class="text-truncate font-size-14 m-0"><a href="javascript: void(0);" class="text-dark">Нет задач в текущем представлении</a></h5>
+                                }
+                                else
+                                {
+                         <thead class="table-light">
+                            <tr>
+                                <th scope="col" style="width: 70px;">#</th>
+                                <th scope="col">Название задачи</th>
+                                <th scope="col">Состав</th>
+                                <th scope="col">Командный статус</th>
+                                <th scope="col">Личный статус</th>
+                                <th scope="col">Создатель задачи</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                
+                                @for (int i = 0; i<tasks_name_dt.Count; i++)
+                                {
+                                   
+                                     <TaskList_Unit
+                                     cat="in_progress"
+                                     session_role=@session_role
+                                     session_user=@session_cookie_data
+                                     username_is_incast=@username_is_incast
+                                     username_is_inauthors=@username_is_inauthors
+                                     task_status=@tasks_status_dt[i]
+                                     task_personal_status=@tasks_personal_status_dt[i]
+                                     task_id=@tasks_id_dt[i]
+                                     task_members=@tasks_members_dt[i]
+                                     task_name=@tasks_name_dt[i]
+                                     users_list=@users_dt 
+                                     users_avatars=@users_avatars_dt />
+                                 }
+                         </tbody>
+                              
+                            }
+                             
+                       
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @* ---- *@
+
+         <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Выполнены</h4>
+                <div class="table-responsive">
+                    <table class="table table-nowrap align-middle mb-0">
+                         @if (tasks_b3 == 0)
+                                {
+                                    <h5 class="text-truncate font-size-14 m-0"><a href="javascript: void(0);" class="text-dark">Нет задач в текущем представлении</a></h5>
+                                }
+                                else
+                                {
+                         <thead class="table-light">
+                            <tr>
+                                <th scope="col" style="width: 70px;">#</th>
+                                <th scope="col">Название задачи</th>
+                                <th scope="col">Состав</th>
+                                <th scope="col">Командный статус</th>
+                                <th scope="col">Личный статус</th>
+                                <th scope="col">Создатель задачи</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                
+                                @for (int i = 0; i<tasks_name_dt.Count; i++)
+                                {
+                                     <TaskList_Unit 
+                                     cat="completed" 
+                                     session_role=@session_role 
+                                     session_user=@session_cookie_data 
+                                     username_is_incast=@username_is_incast 
+                                     username_is_inauthors=@username_is_inauthors
+                                     task_status=@tasks_status_dt[i]
+                                     task_personal_status=@tasks_personal_status_dt[i]
+                                     task_id=@tasks_id_dt[i]
+                                     task_members=@tasks_members_dt[i]
+                                     task_name=@tasks_name_dt[i]
+                                     users_list=@users_dt
+                                     users_avatars=@users_avatars_dt />
+                               
+                                }
+                         </tbody>
+                              }
+                            
+                             
+                       
+                    </table>
+                </div>
+            </div>
+        </div>
+      
+</div>
+ </Authorized>
+<NotAuthorized>
+    <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! "/>
+</NotAuthorized>
+</AuthorizeView>  
+
+@functions
+{
+    //LocalStorage
+    private int _localStorageCount;
+    private IList<KeyValuePair<string, string>> _localStorageItems;
+
+    private async Task InsertLocalStorageItems(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key,val);
+    }
+    private async Task RefreshLocalStorageItems()
+    {
+        _localStorageItems = new List<KeyValuePair<string, string>>();
+        await foreach (var key in _localStorageService.GetAllKeysAsync())
+        {
+            if (key is null)
+                continue;
+
+            _localStorageItems.Add(new KeyValuePair<string, string>(key, await _localStorageService.GetItemAsStringAsync(key)));
+        }
+
+    }
+    private async Task SaveCustomLocalStorageItem(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key,val);
+        await RefreshLocalStorageItems();
+    }
+
+
+    public async Task ContactShow(int task_num, int cast_member_num)
+    {
+        string user_login = tasks_members_dt[task_num];
+        List<string> task_cast = bc.getMultipleStringDecodingString(user_login);
+        if (task_cast.Count >= cast_member_num)
+        {
+            user_login = task_cast[cast_member_num];
+        }
+        await SaveCustomLocalStorageItem("contactoverview", user_login);
+        UriHelper.NavigateTo("/user_overview");
+    }
+
+    public async Task TaskShow(string str_num)
+    {
+        await SaveCustomLocalStorageItem("task_tracking_id", str_num);
+        UriHelper.NavigateTo("/task_tracking");
+    }
+
+    
+    private async Task<string> GetLocalStorageItems(string key)
+	{
+		return await _localStorageService.GetItemAsStringAsync(key);
+	}
+
+
+}
+
+ @code {
+
+    int tasks_b1 = 0;
+    int tasks_b2 = 0;
+    int tasks_b3 = 0;
+
+    string session_role { get; set; }
+    string session_cookie_data { get; set; }
+
+    private BackendController bc = new BackendController();
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+
+    List<string> tasks_id_dt = new List<string>();
+    List<string> tasks_name_dt = new List<string>();
+    List<string> tasks_budgets_dt = new List<string>();
+    List<string> tasks_members_dt = new List<string>();
+    List<string> tasks_status_dt = new List<string>();
+    List<string> tasks_personal_status_dt = new List<string>();
+    List<string> tasks_startdate_dt = new List<string>();
+    List<string> tasks_enddate_dt = new List<string>();
+    List<string> tasks_authors_dt = new List<string>();
+
+    List<string> username_is_incast = new List<string>();
+    List<string> username_is_inauthors = new List<string>();
+    List<string> users_avatars_dt = new List<string>();
+    List<string> users_dt = new List<string>();
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        tasks_id_dt = await mysqlc.getListTaskIDAsync();
+        tasks_name_dt = await mysqlc.getListTaskNameAsync();
+        tasks_budgets_dt  = await mysqlc.getListTaskBudgetAsync();
+        tasks_members_dt = await mysqlc.getListTaskMembersAsync();
+        tasks_status_dt = await mysqlc.getListTaskStatusAsync();
+        tasks_startdate_dt = await mysqlc.getListTaskStartDateAsync();
+        tasks_enddate_dt = await mysqlc.getListTaskEndDateAsync();
+        tasks_authors_dt  = await mysqlc.getListTasksAuthorAsync();
+        tasks_personal_status_dt = await mysqlc.getListTaskPersonalStatusAsync();
+
+        users_dt = await mysqlc.getListUsersLoginAsync();
+        users_avatars_dt = await mysqlc.getListUsersAvatarAsync();
+        //string session_role = Context.Request.Cookies["session-role"];
+        //string session_cookie_data = Context.Request.Cookies["session-user"];
+
+        session_cookie_data = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        session_role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(session_cookie_data));
+
+        username_is_incast = isInCast(session_cookie_data);
+        username_is_inauthors = isInAuthors(session_cookie_data);
+
+        //users_avatars_dt = mysqlc.getAvatarPaths(users_dt);
+
+        foreach(string task_st in tasks_status_dt)
+        {
+            if (task_st == "waiting" || task_st == "approved")
+            {
+                tasks_b1++;
+            }
+             if (task_st == "pending" || task_st == "delayed")
+            {
+                tasks_b2++;
+            }
+             if (task_st == "completed" || task_st == "canceled" || task_st == "failed")
+            {
+                tasks_b3++;
+            }
+        }
+
+    }
+}
+
+@functions{
+     List<string> isInCast(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo= 0; zo < tasks_members_dt.Count;zo++)
+        {
+            buffer_decoder = bc.getMultipleStringDecodingString(tasks_members_dt[zo]);
+            foreach (string bd in buffer_decoder)
+            {
+                if (bd == username)
+                {
+                    lstr.Add(tasks_id_dt[zo]);
+                }
+            }
+        }
+        return lstr;
+    }
+    List<string> isInAuthors(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo= 0; zo < tasks_authors_dt.Count;zo++)
+        {
+           
+                if (tasks_authors_dt[zo] == username)
+                {
+                    lstr.Add(tasks_id_dt[zo]);
+                }
+        }
+        return lstr;
+    }
+}

@@ -1,0 +1,597 @@
+﻿@page "/stats_wdtable"
+@using EviCRM.Server.Core
+@using System.Collections.Generic;
+@using System.Net
+@using EviCRM.Server.Models.MarksChart
+@using EviCRM.Server.Pages.Tasks.Components
+@using EviCRM.Server.ViewModels
+@using System.IO
+@using EviCRM.Server.Pages.Modals;
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+@using Humanizer.Bytes
+@using Majorsoft.Blazor.Components.Modal
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+
+@using Microsoft.AspNetCore.Identity
+@using Radzen.Blazor
+@using System.Globalization
+@using System.Security.AccessControl
+@using Blazorise.Charts
+
+@inject NavigationManager UriHelper
+@inject IWebHostEnvironment _env
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject AuthenticationStateProvider authStateProvider
+
+@*@inject IHttpContextAccessor _httpContextAccessor;*@
+<style>
+    select {
+        width: 150px; /* Ширина списка в пикселах */
+    }
+</style>
+
+<h5>Табель рабочих дней</h5>
+
+<AuthorizeView>
+    <Authorized>
+
+        <style>
+            .button_transparent {
+                background-color: Transparent;
+                background-repeat: no-repeat;
+                border: none;
+                cursor: pointer;
+                overflow: hidden;
+                outline: none;
+            }
+        </style>
+
+        <div class="input-daterange input-group">
+
+            <select class="form-select-lg" id="ddm_month" @bind="global_month">
+                <option value="1">Январь</option>
+                <option value="2">Февраль</option>
+                <option value="3">Март</option>
+                <option value="4">Апрель</option>
+                <option value="5">Май</option>
+                <option value="6">Июнь</option>
+                <option value="7">Июль</option>
+                <option value="8">Август</option>
+                <option value="9">Сентябрь</option>
+                <option value="10">Октябрь</option>
+                <option value="11">Ноябрь</option>
+                <option value="12">Декабрь</option>
+            </select>
+            <p></p>
+            <select name="ddm_year" class="form-select-lg" id="ddm_year" @bind="global_year">
+                <!--Supplement an id here instead of using 'name'-->
+                <option value="2022">2022</option>
+                <option value="2023">2023</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+                <option value="2029">2029</option>
+                <option value="2030">2030</option>
+            </select>
+        </div>
+
+        @if (ready)
+        {
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title mb-4">Табель учёта рабочего времени</h4>
+
+                    <div class="table-responsive">
+                        <table class="table table-nowrap align-middle mb-0">
+
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" style="width: 70px;">#</th>
+                                    <th scope="col">Имя сотрудника</th>
+
+                                    @foreach (int days in days_num)
+                                    {
+                                        <th scope="col">@(days+1) (@WhatIsTheDayToday(days+1))</th>
+                                    }
+
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    int i = -1;
+                                }
+                                @foreach (string user in users_dt)
+                                {
+                                    i++;
+                                    var temp = i;
+
+                                    if (isAdmin || (!isAdmin && user == user_id))
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (isAdmin || (!isAdmin && user == user_id))
+                                                {
+                                                    @(i+1)
+                                                }
+                                                else
+                                                {
+                                                    <h5>1</h5>
+                                                }
+                                            </td>
+                                            <td>@fullname_dt[i]</td>
+                                            @foreach (int days in days_num)
+                                            {
+                                                debug_var = getUserDataByIDAndDay(i, days + 1);
+                                                if (getUserDataByIDAndDay(i, days + 1) == "")
+                                                {
+                                                    <td><button @onclick="(async() => ShowInfo(temp,days+1,true))" class="button_transparent" style="color:white"><b><i>0 / 0</i></b></button></td>
+                                                }
+                                                else
+                                                {
+                                                    <td><button @onclick="(async() => ShowInfo(temp,days+1,false))" class="button_transparent" style="color:black"><b><i>@((MarkupString)getUserDataByIDAndDay(temp,days+1))</i></b></button></td>
+                                                }
+                                            }
+
+
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                            @if (users_dt.Count == 0)
+                            {
+                                <h5 class="text-truncate font-size-14 m-0"><a href="javascript: void(0);" class="text-dark">Нет пользователей</a></h5>
+                            }
+
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        }
+        else
+        {
+            <h5>Загружаю табель рабочих дней...</h5>
+        }
+
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    Sentinel sentinel = new Sentinel();
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+    public static BackendController bc = new BackendController();
+    MipkoIntegrator mi = new MipkoIntegrator();
+    MipkoIntegratorCore mic = new MipkoIntegratorCore();
+
+    List<string> users_dt = new List<string>();
+    List<string> email_dt = new List<string>();
+    List<string> passwords_dt = new List<string>();
+    List<string> id_dt = new List<string>();
+    List<string> fullname_dt = new List<string>();
+    List<string> thinclient_dt = new List<string>();
+
+    List<string> idaux_workingdays_idaux_dt = new List<string>();
+    List<string> idaux_workingdays_users_id_dt = new List<string>();
+    List<string> idaux_workingdays_date_dt = new List<string>();
+    List<string> idaux_workingdays_daystart_dt = new List<string>();
+    List<string> idaux_workingdays_dayend_dt = new List<string>();
+
+    List<TerminalServer_LogsData> tsld = new List<TerminalServer_LogsData>();
+
+    string user_id { get; set; }
+
+
+    public int num { get; set; }
+    int day_num { get; set; } //Сколько дней в месяце
+
+    bool ready = false;
+
+    public string genPathToThinClientStatsByUserID(int user_array_id, DateTime dt_n)
+    {
+        string str = "";
+
+        if (Directory.Exists(Path.Combine(_env.WebRootPath, "thinclient")))
+        {
+
+        }
+        else
+        {
+            Directory.CreateDirectory(Path.Combine(_env.WebRootPath, "thinclient"));
+        }
+
+        string thinc = thinclient_dt[user_array_id];
+
+        bool isFirstServer = true;
+
+        if (thinc.Contains("rendev_"))
+        {
+            isFirstServer = true;
+            thinc = thinc.Replace("rendev_", "");
+        }
+        else
+        {
+            isFirstServer = false;
+            thinc = thinc.Replace("renovationdev_", "");
+        }
+
+        string path_base = Path.Combine(_env.WebRootPath, "thinclient");
+        string full_path = path_base;
+
+        if (thinc != "")
+        {
+
+            if (isFirstServer)
+            {
+                string day_str = dt_n.Day.ToString();
+                string month_str = dt_n.Month.ToString();
+                string year_str = dt_n.Year.ToString();
+
+                if (day_str.Length < 2)
+                {
+                    day_str = "0" + dt_n.Day;
+                }
+
+                if (month_str.Length < 2)
+                {
+                    month_str = "0" + dt_n.Month;
+                }
+
+                if (year_str.Length < 2)
+                {
+                    year_str = "0" + dt_n.Year;
+                }
+
+
+
+                full_path = Path.Combine(_env.WebRootPath, "thinclient", "RENDEV", thinc, (day_str + "-" + month_str + "-" + year_str) + ".csv");
+
+            }
+            else
+            {
+
+                string day_str = dt_n.Day.ToString();
+                string month_str = dt_n.Month.ToString();
+                string year_str = dt_n.Year.ToString();
+
+                if (day_str.Length < 2)
+                {
+                    day_str = "0" + dt_n.Day;
+                }
+
+                if (month_str.Length < 2)
+                {
+                    month_str = "0" + dt_n.Month;
+                }
+
+                if (year_str.Length < 2)
+                {
+                    year_str = "0" + dt_n.Year;
+                }
+
+                full_path = Path.Combine(_env.WebRootPath, "thinclient", "RENOVATIONDEV", thinc, (day_str + "-" + month_str + "-" + year_str) + ".csv");
+            }
+
+            if (File.Exists(full_path))
+            {
+                str = full_path;
+            }
+        }
+        return str;
+    }
+
+    public string getUserDataByIDAndDay(int i, int days)
+    {
+        string a_str = "";
+
+        //i - user array id
+        //days - number of days in month
+
+        DateTime dt_ud = new DateTime(_global_year.Year, _global_month.Month, days);
+
+        string log_path = genPathToThinClientStatsByUserID(i, dt_ud);
+
+        if ((log_path) != "")
+        {
+            TerminalServer_AnalyzeMethodActivityModel tsamam = mi.AnalyzeMethodActivityByDate(log_path, dt_ud);
+
+            if (tsamam.tsamaam_start.Year != 1)
+            {
+
+                string str_h = tsamam.tsamaam_time.ToString(@"hh");
+                string str_m = tsamam.tsamaam_time.ToString(@"mm");
+                //string str_s = tsamam.tsamaam_time.ToString(@"ss\:fff");
+
+                a_str += tsamam.tsamaam_start.ToShortTimeString() + " / ";
+                a_str += tsamam.tsamaam_end.ToShortTimeString();
+                a_str += "<br> (" + str_h + " ч " + str_m + " мин)";
+            }
+        }
+
+
+
+        return a_str;
+    }
+
+    public string ConvertDT_ID_to_Fullname(string ID)
+    {
+        for (int i = 0; i < fullname_dt.Count; i++)
+        {
+            if (id_dt[i] == ID)
+            {
+                return fullname_dt[i];
+            }
+        }
+        return "";
+    }
+
+    public async Task CreareInterpreter(Marks mcm)
+    {
+
+
+        StateHasChanged();
+
+    }
+
+
+
+    public async Task DeleteInterpreter(string idmark)
+    {
+
+
+        StateHasChanged();
+    }
+
+    List<int> days_num = new List<int>();
+
+
+    public DateTime _global_month { get; set; }
+
+    public string global_month
+    {
+        get => _global_month.Month.ToString();
+        set
+        {
+            _global_month = CreateCustomMonth(_global_month, int.Parse(value));
+            day_num = DateTime.DaysInMonth(_global_year.Year, _global_month.Month);
+            DayCounter();
+        }
+    }
+
+    public DateTime _global_year { get; set; }
+
+    public string global_year
+    {
+        get => _global_year.Year.ToString();
+        set
+        {
+            _global_year = CreateCustomYear(_global_year, int.Parse(value));
+            day_num = DateTime.DaysInMonth(_global_year.Year, _global_month.Month);
+            DayCounter();
+        }
+    }
+
+
+
+    public static DateTime CreateCustomMonth(DateTime time, int month)
+    {
+        return new DateTime(time.Year, month, 1, time.Hour, time.Minute, 0);
+    }
+    public static DateTime CreateCustomYear(DateTime time, int year)
+    {
+        return new DateTime(year, time.Month, 1, time.Hour, time.Minute, 0);
+    }
+
+
+
+    List<string> month = new List<string>(new string[] { "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь" });
+    List<string> years = new List<string>(new string[] { "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030", "2031", "2032", "2033" });
+
+    string debug_var { get; set; }
+    string user_ { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        if (firstRender)
+        {
+            //user_ = _httpContextAccessor.HttpContext.User.Identity?.Name!;
+
+            user_id = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+
+            string role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(user_id));
+
+            if (role == "admin" || role == "owner")
+            {
+                isAdmin = true;
+            }
+            else
+            {
+                isAdmin = false;
+            }
+
+            StateHasChanged();
+
+            users_dt = await mysqlc.getListUsersLoginAsync();
+            email_dt = await mysqlc.getListUsersEmailAsync();
+            passwords_dt = await mysqlc.getListUsersPasswordAsync();
+            id_dt = await mysqlc.getListUsersIDAsync();
+            fullname_dt = await mysqlc.getListUsersFullnameAsync();
+            thinclient_dt = await mysqlc.getListUsersThinClientAsync();
+
+            idaux_workingdays_idaux_dt = await mysqlc.getListAuxWorkingDaysIDAUXAsync();
+            idaux_workingdays_users_id_dt = await mysqlc.getListAuxWorkingDaysUserIDAsync();
+            idaux_workingdays_date_dt = await mysqlc.getListAuxWorkingDaysDateAsync();
+            idaux_workingdays_daystart_dt = await mysqlc.getListAuxWorkingDaysDayStartAsync();
+            idaux_workingdays_dayend_dt = await mysqlc.getListAuxWorkingDaysDayEndAsync();
+
+
+            int p = 0;
+            if (users_dt != null)
+            {
+                p = users_dt.Count;
+            }
+
+            ready = true;
+            firstRender = false;
+        }
+
+    }
+
+    string current_month { get; set; }
+    string current_year { get; set; }
+
+    bool isAdmin { get; set; }
+    bool firstRender = true;
+
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+
+    }
+
+    protected override void OnInitialized()
+    {
+        _global_year = DateTime.Now;
+        _global_month = DateTime.Now;
+
+        isAdmin = false;
+        day_num = DateTime.DaysInMonth(_global_year.Year, _global_month.Month);
+        DayCounter();
+
+
+        StateHasChanged();
+    }
+
+
+}
+
+   @functions {
+
+    public async Task ShowInfo(int i, int day, bool isPatched)
+    {
+        if (!isPatched)
+        {
+        DateTime dt = new DateTime(_global_year.Year, _global_month.Month, day);
+
+        await SavePresetDate(dt.ToShortDateString(), i.ToString());
+        }
+    }
+
+    private async Task<string> GetLocalStorageItems(string key)
+    {
+        return await _localStorageService.GetItemAsStringAsync(key);
+    }
+
+    private async Task InsertLocalStorageItems(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key,val);
+    }
+
+    async Task SavePresetDate(string date, string user)
+    {
+        if (await GetLocalStorageItems("working_date") != null && await GetLocalStorageItems("working_date") != "")
+        {
+            await _localStorageService.RemoveItemAsync("working_date");
+
+        }
+        if (await GetLocalStorageItems("working_date_user") != null && await GetLocalStorageItems("working_date_user") != "")
+        {
+            await _localStorageService.RemoveItemAsync("working_date_user");
+        }
+
+        await _localStorageService.SetItemAsync("working_date", date);
+        await _localStorageService.SetItemAsync("working_date_user", user);
+        UriHelper.NavigateTo("/stats_wdchart", true);
+    }
+
+    public void ModalLoadUserInfo(int i, int day, bool isPatched)
+    {
+
+
+    }
+
+
+    string WhatIsTheDayToday(int current_day)
+    {
+        DateTime dt = new DateTime(_global_year.Year, _global_month.Month, current_day);
+        switch (dt.DayOfWeek)
+        {
+            case DayOfWeek.Monday:
+                {
+                    return "Пн";
+                }
+            case DayOfWeek.Tuesday:
+                {
+                    return "Вт";
+                }
+            case DayOfWeek.Wednesday:
+                {
+                    return "Ср";
+                }
+            case DayOfWeek.Thursday:
+                {
+                    return "Чт";
+                }
+            case DayOfWeek.Friday:
+                {
+                    return "Пт";
+                }
+            case DayOfWeek.Saturday:
+                {
+                    return "Сб";
+                }
+            case DayOfWeek.Sunday:
+                {
+                    return "Вс";
+                }
+        }
+        return "??";
+    }
+
+
+
+    void DayCounter()
+    {
+        days_num.Clear();
+        for (int i = 0; i < day_num; i++)
+        {
+            days_num.Add(i);
+            StateHasChanged();
+        }
+
+
+
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            new Timer(DateTimeCallback, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
+    }
+    private void DateTimeCallback(object state)
+    {
+        InvokeAsync(() => StateHasChanged());
+    }
+
+    public class TerminalServer_LogsData
+    {
+        public int log_user_array_id { get; set; }
+        public string log_path { get; set; }
+        public DateTime log_dt_start { get; set; }
+        public DateTime log_dt_end { get; set; }
+    }
+}

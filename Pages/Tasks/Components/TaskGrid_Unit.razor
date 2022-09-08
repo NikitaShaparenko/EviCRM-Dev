@@ -1,0 +1,661 @@
+﻿@using Majorsoft.Blazor.Components.Modal
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+@using Microsoft.AspNetCore.Components
+
+@using EviCRM.Server.Core
+
+@inject IWebHostEnvironment _env
+@inject NavigationManager UriHelper
+
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+@inject ILocalStorageService localstorage
+
+
+@if (ready_tr)
+{
+    @if (cat == "planned")
+    {
+        @if (username_is_incast.Contains(task_id) || (username_is_inauthors.Contains(task_id)) || session_role == "admin" || session_role == "owner")
+        {
+            @if (task_status == "waiting" || task_status == "approved")
+            {
+
+                <div class="card task-box" id="uptask-1">
+                    <div class="card-body">
+
+                        @data_countdown
+
+                        <div class="float-end ms-2">
+
+                            @if (task_status == "waiting")
+                            {
+                                <span class="badge rounded-pill badge-secondary font-size-12" id="task-status">Ожидает подтверждения</span>
+                            }
+                            @if (task_status == "approved")
+                            {
+                                <span class="badge rounded-pill badge-secondary font-size-12" id="task-status">Подтверждено</span>
+                            }
+                            <h5 class="font-size-15"><button type="button" @onclick="() => TaskShow(task_id)" class="btn btn-link">@task_name</button></h5>
+                        </div>
+
+                        <div class="float-end ms-2">
+
+                            @if (personal_status_arg1.Contains(session_user))
+                            {
+                                int z = getPersonalStatusArrayIDByUsername(session_user);
+                                switch (personal_status_arg2[z])
+                                {
+                                    case "waiting":
+                                        <span class="badge rounded-pill badge-secondary font-size-11">Ожидает подтверждения</span>
+                                        break;
+
+                                    case "approved":
+                                        <span class="badge rounded-pill badge-info font-size-11">Подтверждено</span>
+                                        break;
+
+                                    case "pending":
+                                        <span class="badge rounded-pill badge-success font-size-11">Выполняется</span>
+                                        break;
+
+                                    case "delayed":
+                                        <span class="badge rounded-pill badge-danger font-size-11">Просрочена</span>
+                                        break;
+
+                                    case "completed":
+                                        <span class="badge rounded-pill bg-success font-size-11">Выполнена</span>
+                                        break;
+
+                                    case "canceled":
+                                        <span class="badge rounded-pill bg-danger  font-size-11">Отменена</span>
+                                        break;
+
+                                    case "failed":
+                                        <span class="badge rounded-pill bg-danger  font-size-11">Провалена</span>
+                                        break;
+                                }
+                            }
+                        </div>
+
+                        <div class="float-end ms-2">
+                            <div class="text-center">
+                                @if (username_is_inauthors.Contains(task_id))
+                                {
+                                    <span class="badge rounded-pill badge-primary font-size-11">Создатель задачи</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div>
+
+
+                            <p class="text-muted mb-4"><i class="mdi mdi-calendar-clock">@task_startdate</i> ----> <i class="mdi mdi-calendar-end">@task_enddate</i></p>
+
+
+
+
+                        </div>
+
+                        <div class="avatar-group float-start task-assigne">
+
+                            @{
+                                List<string> cast = bc.getMultipleStringDecodingString(task_members);
+                                List<string> users_avatars_lst = new List<string>();
+
+                                foreach (string elem in cast)
+                                {
+                                    int p = getUserArrIDByLogin(elem);
+                                    users_avatars_lst.Add(users_avatars[p]);
+                                }
+
+                                for (int av = 0; av < cast.Count; av++)
+                                {
+                                    if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                    {
+                                        string str = cast[av].ToUpper();
+                                        char b_str = '?';
+
+                                        if (str.Length > 0)
+                                        {
+                                            b_str = str[0];
+                                        }
+
+                                        <div class="avatar-group-item">
+                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                <div class="avatar-xs">
+                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                        @b_str
+
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                        {
+                                            <div class="avatar-group-item">
+                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                    <div class="avatar-xs">
+                                                        <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="avatar-group-item">
+                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                    <div class="avatar-xs">
+                                                        <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        }
+                                    }
+                                }
+
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    }
+
+
+    // In progress
+
+    @if (cat == "in_progress")
+    {
+        @if (username_is_incast.Contains(task_id) || (username_is_inauthors.Contains(task_id)) || session_role == "admin" || session_role == "owner")
+        {
+            @if (task_status == "pending" || task_status == "delayed")
+            {
+
+                <div class="card task-box" id="uptask-1">
+                    <div class="card-body">
+
+                        @data_countdown
+
+                        <div class="float-end ms-2">
+
+                            @if (task_status == "pending")
+                            {
+                                <span class="badge rounded-pill badge-success font-size-12" id="task-status">Выполняется</span>
+                            }
+                            @if (task_status == "delayed")
+                            {
+                                <span class="badge rounded-pill badge-danger font-size-12" id="task-status">Просрочена</span>
+                            }
+                            <h5 class="font-size-15"><button type="button" @onclick="() => TaskShow(task_id)" class="btn btn-link">@task_name</button></h5>
+                        </div>
+
+                        <div class="float-end ms-2">
+
+                            @if (personal_status_arg1.Contains(session_user))
+                            {
+                                int z = getPersonalStatusArrayIDByUsername(session_user);
+                                switch (personal_status_arg2[z])
+                                {
+                                    case "waiting":
+                                        <span class="badge rounded-pill badge-secondary font-size-11">Ожидает подтверждения</span>
+                                        break;
+
+                                    case "approved":
+                                        <span class="badge rounded-pill badge-info font-size-11">Подтверждено</span>
+                                        break;
+
+                                    case "pending":
+                                        <span class="badge rounded-pill badge-success font-size-11">Выполняется</span>
+                                        break;
+
+                                    case "delayed":
+                                        <span class="badge rounded-pill badge-danger font-size-11">Просрочена</span>
+                                        break;
+
+                                    case "completed":
+                                        <span class="badge rounded-pill bg-success font-size-11">Выполнена</span>
+                                        break;
+
+                                    case "canceled":
+                                        <span class="badge rounded-pill bg-danger  font-size-11">Отменена</span>
+                                        break;
+
+                                    case "failed":
+                                        <span class="badge rounded-pill bg-danger  font-size-11">Провалена</span>
+                                        break;
+                                }
+                            }
+                        </div>
+
+                        <div class="float-end ms-2">
+                            <div class="text-center">
+                                @if (username_is_inauthors.Contains(task_id))
+                                {
+                                    <span class="badge rounded-pill badge-primary font-size-11">Создатель задачи</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div>
+
+
+                            <p class="text-muted mb-4"><i class="mdi mdi-calendar-clock">@task_startdate</i> ----> <i class="mdi mdi-calendar-end">@task_enddate</i></p>
+
+
+
+
+                        </div>
+
+                        <div class="avatar-group float-start task-assigne">
+
+                            @{
+                                List<string> cast = bc.getMultipleStringDecodingString(task_members);
+                                List<string> users_avatars_lst = new List<string>();
+
+                                foreach (string elem in cast)
+                                {
+                                    int p = getUserArrIDByLogin(elem);
+                                    users_avatars_lst.Add(users_avatars[p]);
+                                }
+
+                                for (int av = 0; av < cast.Count; av++)
+                                {
+                                    if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                    {
+                                        string str = cast[av].ToUpper();
+                                        char b_str = '?';
+
+                                        if (str.Length > 0)
+                                        {
+                                            b_str = str[0];
+                                        }
+
+                                        <div class="avatar-group-item">
+                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                <div class="avatar-xs">
+                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                        @b_str
+
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                        {
+                                            <div class="avatar-group-item">
+                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                    <div class="avatar-xs">
+                                                        <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="avatar-group-item">
+                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                    <div class="avatar-xs">
+                                                        <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        }
+                                    }
+                                }
+
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    }
+
+    //Completed
+
+    @if (cat == "completed")
+    {
+        @if (username_is_incast.Contains(task_id) || (username_is_inauthors.Contains(task_id)) || session_role == "admin" || session_role == "owner")
+        {
+            @if (task_status == "completed" || task_status == "canceled" || task_status == "failed")
+            {
+
+                <div class="card task-box" id="uptask-1">
+                    <div class="card-body">
+
+                        @data_countdown
+
+                        <div class="float-end ms-2">
+
+                            @if (task_status == "pending")
+                            {
+                                <span class="badge rounded-pill badge-success font-size-12" id="task-status">Выполнена</span>
+                            }
+                            @if (task_status == "canceled")
+                            {
+                                <span class="badge rounded-pill badge-danger font-size-12" id="task-status">Отменена</span>
+                            }
+                            @if (task_status == "failed")
+                            {
+                                <span class="badge rounded-pill badge-danger font-size-12" id="task-status">Провалена</span>
+                            }
+                            <h5 class="font-size-15"><button type="button" @onclick="() => TaskShow(task_id)" class="btn btn-link">@task_name</button></h5>
+                        </div>
+
+                        <div class="float-end ms-2">
+
+                            @if (personal_status_arg1.Contains(session_user))
+                            {
+                                int z = getPersonalStatusArrayIDByUsername(session_user);
+                                switch (personal_status_arg2[z])
+                                {
+                                    case "waiting":
+                                        <span class="badge rounded-pill badge-secondary font-size-11">Ожидает подтверждения</span>
+                                        break;
+
+                                    case "approved":
+                                        <span class="badge rounded-pill badge-info font-size-11">Подтверждено</span>
+                                        break;
+
+                                    case "pending":
+                                        <span class="badge rounded-pill badge-success font-size-11">Выполняется</span>
+                                        break;
+
+                                    case "delayed":
+                                        <span class="badge rounded-pill badge-danger font-size-11">Просрочена</span>
+                                        break;
+
+                                    case "completed":
+                                        <span class="badge rounded-pill bg-success font-size-11">Выполнена</span>
+                                        break;
+
+                                    case "canceled":
+                                        <span class="badge rounded-pill bg-danger  font-size-11">Отменена</span>
+                                        break;
+
+                                    case "failed":
+                                        <span class="badge rounded-pill bg-danger  font-size-11">Провалена</span>
+                                        break;
+                                }
+                            }
+                        </div>
+
+                        <div class="float-end ms-2">
+                            <div class="text-center">
+                                @if (username_is_inauthors.Contains(task_id))
+                                {
+                                    <span class="badge rounded-pill badge-primary font-size-11">Создатель задачи</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div>
+
+
+                            <p class="text-muted mb-4"><i class="mdi mdi-calendar-clock">@task_startdate</i> ----> <i class="mdi mdi-calendar-end">@task_enddate</i></p>
+
+
+
+
+                        </div>
+
+                        <div class="avatar-group float-start task-assigne">
+
+                            @{
+                                List<string> cast = bc.getMultipleStringDecodingString(task_members);
+                                List<string> users_avatars_lst = new List<string>();
+
+                                foreach (string elem in cast)
+                                {
+                                    int p = getUserArrIDByLogin(elem);
+                                    users_avatars_lst.Add(users_avatars[p]);
+                                }
+
+                                for (int av = 0; av < cast.Count; av++)
+                                {
+                                    if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                    {
+                                        string str = cast[av].ToUpper();
+                                        char b_str = '?';
+
+                                        if (str.Length > 0)
+                                        {
+                                            b_str = str[0];
+                                        }
+
+                                        <div class="avatar-group-item">
+                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                <div class="avatar-xs">
+                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                        @b_str
+
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                        {
+                                            <div class="avatar-group-item">
+                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                    <div class="avatar-xs">
+                                                        <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="avatar-group-item">
+                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                    <div class="avatar-xs">
+                                                        <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        }
+                                    }
+                                }
+
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    }
+
+}
+
+@functions {
+
+    async Task TaskShow(string tasks_id)
+    {
+        await SaveCustomLocalStorageItem("task_tracking_id", tasks_id);
+        UriHelper.NavigateTo("/task_tracking");
+    }
+
+    public int getUserArrIDByLogin(string login)
+    {
+        for (int p = 0; p < users_list.Count; p++)
+        {
+            if (users_list[p] == login)
+            {
+                return p;
+            }
+        }
+        return 0;
+    }
+    public int getPersonalStatusArrayIDByUsername(string username)
+    {
+        for (int i = 0; i < personal_status_arg1.Count; i++)
+        {
+            if (personal_status_arg1[i] == username)
+            {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            //new Timer(DateTimeCallback, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+            // ready_tr = true;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        data_countdown = getCountdown(DateTime.Parse(task_enddate), DateTime.Now);
+
+        // await InvokeAsync(StateHasChanged);
+    }
+
+    private void DateTimeCallback(object state)
+    {
+        Thread.Sleep(10);
+        data_countdown = getCountdown(DateTime.Parse(task_enddate), DateTime.Now);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public string getCountdown(DateTime dt_end, DateTime current)
+    {
+        string countdown = "";
+
+        var diff_dt = dt_end - current;
+
+        if (diff_dt.TotalSeconds < 0)
+        {
+            if (diff_dt.Days < 0)
+            {
+                if (diff_dt.Hours < 0)
+                {
+                    if (diff_dt.Minutes < 0)
+                    {
+                        countdown = "Просрочена на " + diff_dt.Seconds + " секунд";
+                    }
+                    else
+                    {
+                        countdown = "Просрочена на " + diff_dt.Minutes + " минут " + diff_dt.Seconds + " секунд";
+
+                    }
+                }
+                else
+                {
+                    countdown = "Просрочена на " + diff_dt.Hours + " часов " + diff_dt.Minutes + " минут " + diff_dt.Seconds + " секунд";
+                }
+            }
+            else
+            {
+                countdown = "Просрочена на " + diff_dt.Days + " дней " + diff_dt.Hours + " часов " + diff_dt.Minutes + " минут " + diff_dt.Seconds + " секунд";
+            }
+
+        }
+        else
+        {
+            if (diff_dt.Days > 0)
+            {
+                if (diff_dt.Hours < 0)
+                {
+                    if (diff_dt.Minutes < 0)
+                    {
+                        countdown = "Осталось " + diff_dt.Seconds + " секунд";
+                    }
+                    else
+                    {
+                        countdown = "Осталось " + diff_dt.Minutes + " минут " + diff_dt.Seconds + " секунд";
+
+                    }
+                }
+                else
+                {
+                    countdown = "Осталось " + diff_dt.Hours + " часов " + diff_dt.Minutes + " минут " + diff_dt.Seconds + " секунд";
+                }
+            }
+            else
+            {
+                countdown = "Осталось " + diff_dt.Days + " дней " + diff_dt.Hours + " часов " + diff_dt.Minutes + " минут " + diff_dt.Seconds + " секунд";
+            }
+        }
+        return countdown;
+    }
+
+    private async Task SaveCustomLocalStorageItem(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key, val);
+        await RefreshLocalStorageItems();
+    }
+    private async Task RefreshLocalStorageItems()
+    {
+        _localStorageItems = new List<KeyValuePair<string, string>>();
+        await foreach (var key in _localStorageService.GetAllKeysAsync())
+        {
+            if (key is null)
+                continue;
+
+            _localStorageItems.Add(new KeyValuePair<string, string>(key, await _localStorageService.GetItemAsStringAsync(key)));
+        }
+
+    }
+
+}
+
+@code {
+    private BackendController bc = new BackendController();
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+
+    private int _localStorageCount;
+    private IList<KeyValuePair<string, string>> _localStorageItems;
+
+    bool ready_tr = false;
+
+    string data_countdown = "";
+
+    string modal_division_name { get; set; }
+    string modal_division_avatar_path { get; set; }
+    List<string> modal_users_id_list = new List<string>();
+    List<string> modal_users_fullnames_list = new List<string>();
+    List<string> modal_users_avatarpath_list = new List<string>();
+
+    [Parameter] public string cat { get; set; }
+    [Parameter] public string session_role { get; set; }
+    [Parameter] public string session_user { get; set; }
+
+    [Parameter] public string task_personal_status { get; set; } //перечень пользователей и статус их задач
+
+    List<string> personal_status = new List<string>();
+    List<string> personal_status_arg1 = new List<string>();
+    List<string> personal_status_arg2 = new List<string>();
+
+    [Parameter] public List<string> username_is_incast { get; set; }
+    [Parameter] public List<string> username_is_inauthors { get; set; }
+
+    [Parameter] public string task_status { get; set; }
+    [Parameter] public string task_id { get; set; }
+    [Parameter] public string task_members { get; set; }
+    [Parameter] public string task_name { get; set; }
+
+    [Parameter] public string task_startdate { get; set; }
+    [Parameter] public string task_enddate { get; set; }
+
+    [Parameter] public List<string> users_avatars { get; set; }
+    [Parameter] public List<string> users_list { get; set; }
+
+}

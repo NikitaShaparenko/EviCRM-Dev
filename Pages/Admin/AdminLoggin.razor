@@ -1,0 +1,237 @@
+﻿@page "/admin_loggin"
+
+@using CsvHelper
+@using CsvHelper.Configuration
+@using EviCRM.Server.Core;
+@using SyslogLogging;
+@using System.Globalization
+@using System.Text
+
+<h5>Админ меню \ Журнал</h5>
+<PageTitle>Админ меню \ Журнал</PageTitle>
+
+@inject AuthenticationStateProvider authStateProvider
+
+@inject IJSRuntime JsRuntime
+@inject IWebHostEnvironment iwebhost
+
+<AuthorizeView>
+    <Authorized>
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Журнал действий пользователей</h4>
+
+                        <div class="form-group row mb-4">
+                            <label for="input-date" class="col-form-label col-lg-2">Выберите дату для просмотра журнала</label>
+                            <div class="col-lg-10">
+                                <input id="input-date" type="date" class="me-2" value="@(DateTime.Today.ToString("yyyy-MM-dd"))" @onchange="@(e => OnChangeDate(e.Value.ToString()))" />
+                            </div>
+                        </div>
+
+                        <div class="form-group row mb-4">
+                            <label for="input-date" class="col-form-label col-lg-2">Выберите пользователя для просмотра журнала</label>
+                            <div class="col-lg-10">
+                                <select @bind="@selectedUser" class="me-2">
+                                    @for (int i = 0; i < users_dt.Count; i++)
+                                    {
+                                        if (selected_num != i)
+                                        {
+                                            <option value="@users_dt[i]">@fullname_dt[i]</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@users_dt[i]" selected>@fullname_dt[i]</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        @{
+                            if (!ready)
+                            {
+                               <b><i class="bx bx-buoy bx-spin text-primary display-3"></i> Загружаю данные...</b>
+                            }
+                            else
+                            {
+                                int p = 0;
+                                p = journal_dt.Count;
+                                if (p > 0)
+                                {
+                                    <table class="table table-striped mb-0">
+
+                                        <tr>
+                                            <th>№</th>
+                                            <th>Пользователь</th>
+                                            <th>Открытая страница</th>
+                                            <th>Событие</th>
+                                            <th>Категория события</th>
+                                        </tr>
+
+                                        @for (int i = 0; i < journal_dt.Count; i++)
+                                        {
+                                            int temp = i;
+
+                                            <tr>
+                                                <td>@(i+1)</td>
+                                                <td>@getUsernamebyLogin(journal_dt[temp].user)</td>
+                                                <td>@journal_dt[temp].page</td>
+                                                <td>@journal_dt[temp].body</td>
+                                                <td>
+
+                                                    <div class="text-center">
+                                                        @switch (journal_dt[temp].status)
+                                                        {
+                                                            case "alert":
+                                                                {
+                                                                    <span class="badge rounded-pill badge-danger font-size-11">Тревога</span>
+                                                                    break;
+                                                                }
+
+                                                            case "critical":
+                                                                {
+                                                                    <span class="badge rounded-pill badge-danger font-size-11">Критическая ошибка</span>
+                                                                    break;
+                                                                }
+
+                                                            case "debug":
+                                                                {
+                                                                    <span class="badge rounded-pill badge-dark font-size-11">Отладка</span>
+                                                                    break;
+                                                                }
+
+                                                            case "emergency":
+                                                                {
+                                                                    <span class="badge rounded-pill badge-primary font-size-11">Kernel Panic</span>
+                                                                    break;
+                                                                }
+
+                                                            case "error":
+                                                                {
+                                                                    <span class="badge rounded-pill badge-danger font-size-11">Ошибка</span>
+                                                                    break;
+                                                                }
+
+                                                            case "info":
+                                                                {
+                                                                    <span class="badge rounded-pill badge-info font-size-11">Информация</span>
+                                                                    break;
+                                                                }
+
+                                                            case "warn":
+                                                                {
+                                                                    <span class="badge rounded-pill badge-warning font-size-11">Предупреждение</span>
+                                                                    break;
+                                                                }
+                                                        }
+
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+
+                                    </table>
+                                }
+                            }
+                        }
+
+                        <p></p>
+                    </div>
+                </div>
+            </div>
+
+            <p>
+                <div class="form-group row mb-4">
+                    <label for="adminloggin_note" class="col-form-label col-lg-2">Добавить заметку к журналу:</label>
+                    <div class="col-lg-10">
+                        <input id="adminloggin_note" @bind=@txtnote name="adminloggin_note" type="text" class="form-control" placeholder="Заметка администратора">
+                    </div>
+
+                </div>
+                <button type="button" @onclick=@AddNote class="btn btn-primary">Добавить новую заметку</button>
+            </p>
+
+
+
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    bool ready { get; set; }
+
+    string _selectedUser = null;
+
+    string selectedUser
+    {
+        get { return _selectedUser; }
+        set
+        {
+            _selectedUser = value;
+            OnChangeDate(dt_global.ToString());
+        }
+    }
+
+
+    int selected_num { get; set; }
+
+    string txtnote { get; set; }
+
+    string user_ { get; set; }
+
+    DateTime dt_global { get; set; }
+
+    List<Core.SystemCore.SysLogStructure> journal_dt = new List<Core.SystemCore.SysLogStructure>();
+    List<string> users_dt = new List<string>();
+    List<string> fullname_dt = new List<string>();
+    Redis redis = new Redis();
+    MySQL_Controller mysqlc = new MySQL_Controller();
+
+}
+
+@functions {
+
+    void AddNote()
+    {
+        string current_user = sentinel.TripleDesDecrypt(user_);
+        string userid = selectedUser;
+        string inp = "{Запись сделал: " + sentinel.TripleDesDecrypt(user_) + "} " + txtnote;
+        systemcore.Syslog(iwebhost,userid, "Админ панель - Журналы", inp, SystemCore.LogLevels.Info,dt_global);
+
+        Core.SystemCore.SysLogStructure syslog_str = new Core.SystemCore.SysLogStructure();
+        syslog_str.body = inp;
+        syslog_str.dt_str = dt_global.ToShortDateString() + dt_global.ToShortTimeString() ;
+        syslog_str.page = "Админ панель - Журналы";
+        syslog_str.status = "info";
+        syslog_str.user = current_user;
+
+        txtnote = "";
+        journal_dt.Add(syslog_str);
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        users_dt = await mysqlc.getListUsersLoginAsync();
+        fullname_dt = await mysqlc.getListUsersFullnameAsync();
+
+        dt_global = DateTime.Now;
+        user_ = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        selectedUser = users_dt[0];
+        ready = false;
+       
+
+        ready = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+}

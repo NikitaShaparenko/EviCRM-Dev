@@ -1,0 +1,627 @@
+﻿@page "/"
+
+@using EviCRM.Server.Core
+@using EviCRM.Server.Models
+@using EviCRM.Server.Pages.Statistics
+@using Majorsoft.Blazor.Components.Notifications
+@using Microsoft.AspNetCore.SignalR.Client
+@using Append.Blazor.Notifications
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+@using Majorsoft.Blazor.Components.GdprConsent
+@using Majorsoft.Blazor.Components
+
+@inject NavigationManager NavigationManager
+@inject NavigationManager UriHelper
+
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+
+@inject IToastService _toastService
+@inject IJSRuntime JS
+
+@inject IWebHostEnvironment _env
+
+@inject AuthenticationStateProvider authStateProvider
+
+<PageTitle>Главная страница</PageTitle>
+<h1>Добро пожаловать в EviCRM!</h1>
+
+<style>
+    div.scroll {
+        margin: 4px, 4px;
+        padding: 4px;
+        overflow-x: auto;
+        overflow-y: auto;
+        text-align: justify;
+    }
+</style>
+
+<AuthorizeView>
+    <Authorized>
+
+        <div class="row">
+            <div class="col-xl-4">
+                <div class="card overflow-hidden">
+                    <div class="bg-primary bg-soft">
+                        <div class="row">
+                            <div class="col-7">
+                                 <div class="text-primary p-3">
+
+                                    @if (dt_now.Hour >= 0 && dt_now.Hour < 4)
+                                    {
+                                        <h5 class="text-primary">Доброй ночи!</h5>
+                                    }
+                                    else if (dt_now.Hour >= 4 && dt_now.Hour < 12)
+                                    {
+                                        <h5 class="text-primary">Доброе утро!</h5>
+                                    }
+                                    else if (dt_now.Hour >= 12 && dt_now.Hour < 17)
+                                    {
+                                        <h5 class="text-primary">Доброго дня!</h5>
+                                    }
+                                    else if (dt_now.Hour >= 17 && dt_now.Hour < 24)
+                                    {
+                                        <h5 class="text-primary">Доброго вечера!</h5>
+                                    }
+                                    else
+                                    {
+                                        <h5 class="text-primary">Доброго времени суток!</h5>
+                                    }
+
+
+                                    <h5 class="text-primary"><font color=@weekd_color>@current_date_time</font></h5>
+                                    <p></p>
+                                    </div>
+                                </div>
+                            
+
+                            <div class="col-5 align-self-end">
+                                <img src="/assets/images/profile-img.png" alt="" class="img-fluid">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="row">
+                            <div class="col-sm-5">
+                                <div class="avatar-md profile-user-wid mb-4">
+                                    <img src="/assets/images/users/avatar-1.jpg" alt="" class="img-thumbnail rounded-circle">
+                                </div>
+
+                                <h5 class="font-size-15 text-truncate">@cookie_data</h5>
+                                @if (cookie_role == "admin")
+                                {
+                                    <p class="text-muted mb-0 text-truncate">Администратор</p>
+                                }
+                                else if (cookie_role == "owner")
+                                {
+                                    <p class="text-muted mb-0 text-truncate">Владелец</p>
+                                }
+                                else if (cookie_role == "secretary")
+                                {
+                                    <p class="text-muted mb-0 text-truncate">Секретарь👑</p>
+                                }
+                                else
+                                {
+                                    <p class="text-muted mb-0 text-truncate">Пользователь</p>
+                                }
+
+                                <div class="mt-4">
+                                    <a href="/users_grid" class="btn btn-primary waves-effect waves-light btn-sm"><i class="mdi mdi-account ms-1"></i> Мой профиль</a>
+                                </div>
+
+                            </div>
+
+                            <div class="col-sm-7">
+                                <div class="pt-4">
+
+                                    <h5 class="font-size-14">@cookie_data</h5>
+                                    <div class="row">
+                                        <p></p>
+                                        <ul class="list-inline font-size-20 contact-links mb-0">
+                                         
+                                            @if (slider_tasks == 0)
+                                            {
+                                                <li><h6><i class="oi oi-task"></i> Задачи <span class="badge rounded-pill bg-light">@slider_tasks</span></h6></li>
+                                            }
+                                            else
+                                            {
+                                                 <li><h6><i class="oi oi-task"></i> Задачи <span class="badge rounded-pill bg-danger">@slider_tasks</span></h6></li>
+                                            }
+
+                                             @if (slider_projects == 0)
+                                            {
+                                                 <li><h6><i class="oi oi-folder"></i> Проекты <span class="badge rounded-pill bg-light">@slider_projects</span></h6></li>
+                                            }
+                                            else
+                                            {
+                                                 <li><h6><i class="oi oi-folder"></i> Проекты <span class="badge rounded-pill bg-danger">@slider_projects</span></h6></li>
+                                            }
+
+                                              @if (slider_calendar == 0)
+                                            {
+                                                <li><h6><i class="oi oi-calendar"></i> Календарь <span class="badge rounded-pill bg-light">@slider_calendar</span></h6></li>
+                                            }
+                                            else
+                                            {
+                                                 <li><h6><i class="oi oi-calendar"></i> Календарь <span class="badge rounded-pill bg-danger">@slider_calendar</span></h6></li>
+                                            }
+
+                                            @if (slider_markschart == 0)
+                                            {
+                                                 <li><h6><i class="oi oi oi-book"></i> Дневник <span class="badge rounded-pill bg-light">@slider_markschart</span></h6></li>
+                                            }
+                                                else
+                                            {
+                                                <li><h6><i class="oi oi oi-book"></i> Дневник <span class="badge rounded-pill bg-danger">@slider_markschart</span></h6></li>
+                                                }
+
+                                                 @if (slider_chat == 0)
+                                            {
+                                                 <li><h6><i class="oi oi-chat"></i> Чат <span class="badge rounded-pill bg-light">@slider_chat</span></h6></li>
+                                            }
+                                            else
+                                            {
+                                                <li><h6><i class="oi oi-chat"></i> Чат <span class="badge rounded-pill bg-danger">@slider_chat</span></h6></li>
+                                            }
+                                           
+                                              @if (slider_mail == 0)
+                                            {
+                                                <li><h6><i class="oi oi-envelope-closed"></i> Почта <span class="badge rounded-pill bg-light">@slider_mail</span></h6></li>
+                                            }
+                                            else
+                                            {
+                                                <li><h6><i class="oi oi-envelope-closed"></i> Почта <span class="badge rounded-pill bg-danger">@slider_mail</span></h6></li>
+                                            }
+
+                                             @if (slider_news == 0)
+                                            {
+                                                <li><h6><i class="oi oi-browser"></i> Новости <span class="badge rounded-pill bg-light">@slider_news</span></h6></li>
+                                            }
+                                            else
+                                            {
+                                                 <li><h6><i class="oi oi-browser"></i> Новости <span class="badge rounded-pill bg-danger">@slider_news</span></h6></li>
+                                            }
+                                        </ul>
+                                    </div>
+
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="card overflow-hidden">
+                    <div class="bg-primary bg-soft">
+
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Что нового?</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">Последние события</h6>
+
+                                <table class="table table-striped mb-0">
+                                    @if (ready)
+                                    {
+                                        <tr>
+                                            <th scope="col" style="width: 70px;">#</th>
+                                            <th scope="col">Событие</th>
+                                            <th scope="col" style="width: 150px;">Когда</th>
+                                        </tr>
+
+                                        int cint = 1;
+                                    }
+                                </table>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        @* Правая часть страницы*@
+
+                   <div class="col-xl-8">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card mini-stats-wid">
+                            <div class="card-body">
+                                <div class="d-flex">
+                                    <div class="flex-grow-1">
+                                        <p class="text-muted fw-medium">Текущие задачи</p>
+                                        <h4 class="mb-0">@tasks_current</h4>
+                                    </div>
+
+                                    <div class="flex-shrink-0 align-self-center">
+                                        <div class="mini-stat-icon avatar-sm rounded-circle bg-primary">
+                                            <span class="avatar-title">
+                                                <i class="bx bx-copy-alt font-size-24"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mini-stats-wid">
+                            <div class="card-body">
+                                <div class="d-flex">
+                                    <div class="flex-grow-1">
+                                        <p class="text-muted fw-medium"><font color="red">Просрочено задач</font></p>
+                                        <h4 class="mb-0">@tasks_delayed</h4>
+                                    </div>
+
+                                    <div class="flex-shrink-0 align-self-center ">
+                                        <div class="avatar-sm rounded-circle bg-primary mini-stat-icon">
+                                            <span class="avatar-title rounded-circle bg-primary">
+                                                <i class="bx bx-archive-in font-size-24"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mini-stats-wid">
+                            <div class="card-body">
+                                <div class="d-flex">
+                                    <div class="flex-grow-1">
+                                        <p class="text-muted fw-medium">События</p>
+                                        <h4 class="mb-0">@events</h4>
+                                    </div>
+
+                                    <div class="flex-shrink-0 align-self-center">
+                                        <div class="avatar-sm rounded-circle bg-primary mini-stat-icon">
+                                            <span class="avatar-title rounded-circle bg-primary">
+                                                <i class="bx bx-purchase-tag-alt font-size-24"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <!-- end row -->
+
+
+                <div class="col-xl-12">
+                    <div class="row">
+                        <p></p>
+                        <div class="card mini-stats-wid">
+                            <div class="card-body" @onclick="UrgentEventsHandlerModule">
+                                <div class="d-flex">
+                                    <div class="flex-grow-1">
+                                        <p class="text-muted fw-medium"><font color="red">События, требующие моментальной реации</font></p>
+                                        <h4 class="mb-0">0</h4>
+                                    </div>
+
+                                    @if (isUrgentEventsOpened)
+                                    {
+                                        <div class="flex-shrink-0 align-self-center" @onclick="CloseUrgentEventsHandlerModule">
+                                            <div class="avatar-sm rounded-circle bg-primary mini-stat-icon">
+                                                <span class="avatar-title rounded-circle bg-primary">
+                                                    <i class="bx bx-up-arrow font-size-24" @onclick="CloseUrgentEventsHandlerModule"></i>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex-shrink-0 align-self-center" @onclick="OpenUrgentEventsHandlerModule">
+                                            <div class="avatar-sm rounded-circle bg-primary mini-stat-icon">
+                                                <span class="avatar-title rounded-circle bg-primary">
+                                                    <i class="bx bx-down-arrow font-size-24" @onclick="OpenUrgentEventsHandlerModule"></i>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    }
+
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-sm-flex flex-wrap">
+                            <h4 class="card-title mb-4">Моя статистика</h4>
+                            <div class="ms-auto">
+                                <ul class="nav nav-pills">
+                                    <li class="nav-item">
+                                        @if (tableactivity_active_tab == table_activity_pages.tasks_board)
+                                        {
+                                            <a class="nav-link active" href="#" @onclick="(() =>tableactivity_settasks_board())">Доска задач</a>
+
+                                        }
+                                        else
+                                        {
+                                            <a class="nav-link" href="#" @onclick="(() =>tableactivity_settasks_board())">Доска задач</a>
+                                        }
+                                    </li>
+                                    <li class="nav-item">
+                                        @if (tableactivity_active_tab == table_activity_pages.tasks)
+                                        {
+                                            <a class="nav-link active" href="#" @onclick="(() =>tableactivity_settasks())">Задачи</a>
+
+                                        }
+                                        else
+                                        {
+                                            <a class="nav-link" href="#" @onclick="(() =>tableactivity_settasks())">Задачи</a>
+                                        }
+                                    </li>
+                                     <li class="nav-item">
+                                        @if (tableactivity_active_tab == table_activity_pages.marks)
+                                        {
+                                            <a class="nav-link active" href="#" @onclick="(() => tableactivity_setmark())">Оценки</a>
+                                        }
+                                        else
+                                        {
+                                            <a class="nav-link" href="#" @onclick="(() => tableactivity_setmark())">Оценки</a>
+                                        }
+
+                                    </li>
+                                    <li class="nav-item">
+                                        @if (tableactivity_active_tab == table_activity_pages.time_hours)
+                                        {
+                                            <a class="nav-link active" href="#" @onclick="(() =>tableactivity_sethours())">Рабочее время</a>
+                                        }
+                                        else
+                                        {
+                                            <a class="nav-link" href="#" @onclick="(() =>tableactivity_sethours())">Рабочее время</a>
+                                        }
+                                    </li>
+                                    <li class="nav-item">
+                                        @if (tableactivity_active_tab == table_activity_pages.time_heatmap)
+                                        {
+                                            <a class="nav-link active" href="#" @onclick="(() =>tableactivity_setheatmap())">Хитмап активности</a>
+                                        }
+                                        else
+                                        {
+                                            <a class="nav-link" href="#" @onclick="(() =>tableactivity_setheatmap())">Хитмап активности</a>
+                                        }
+
+                                    </li>
+                                    <li class="nav-item">
+                                        @if (tableactivity_active_tab == table_activity_pages.time_radar)
+                                        {
+                                            <a class="nav-link active" href="#" @onclick="(() =>tableactivity_setradar())">Радар активности</a>
+                                        }
+                                        else
+                                        {
+                                            <a class="nav-link" href="#" @onclick="(() =>tableactivity_setradar())">Радар активности</a>
+                                        }
+
+                                    </li>
+
+
+
+                                </ul>
+                            </div>
+                        </div>
+
+
+                        @if (ready)
+                        {
+                            @if (tableactivity_active_tab == table_activity_pages.marks)
+                            {
+                                <p></p>
+                                <EviCRM.Server.Pages.Statistics.StatisticsPersonalCharts
+                                lst_id_dt=@id_dt 
+                                lst_fullname_dt=@fullname_dt 
+                                lst_user_dt=@users_dt 
+                                lst_marks_date=@marks_date 
+                                lst_marks_first_mark=@marks_first_mark 
+                                lst_id_marks=@marks_idmarks 
+                                lst_marks_second_mark=@marks_second_mark 
+                                lst_marks_user_id=@marks_user_id 
+                                lst_marks_isTwoMarks=@marks_isTwoMarks 
+                                current_user_id=@current_user_id />
+                            }
+                            @if (tableactivity_active_tab == table_activity_pages.tasks_board)
+                            {
+                                <p></p>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-sm-flex flex-wrap">
+                                            <h4 class="card-title mb-4">Доска задач</h4>
+                                            <table class="table table-striped mb-0">
+                                                @if (ready)
+                                                {
+                                                    <tr>
+                                                        <th>№</th>
+                                                        <th>Временные рамки</th>
+                                                        <th>Название задачи</th>
+                                                        @* <th>Проект</th>*@
+
+                                                    </tr>
+
+                                                    int cint = 1;
+
+                                                    foreach (SortingModel sm in lst_sm_sorted)
+                                                    {
+                                                        <tr>
+                                                            <td>@(cint++)</td>
+                                                            <td>
+                                                                @{
+                                                                    var dd = sm.task_end - DateTime.Now;
+                                                                    var dd1 = dd;
+                                                                    if (dd.TotalMilliseconds < 0)
+                                                                    {
+                                                                        dd = dd.Negate();
+                                                                    }
+
+                                                                    string date_display = "";
+
+                                                                    if (dd.Days > 0)
+                                                                    {
+                                                                        date_display += dd.Days + " дней ";
+                                                                    }
+                                                                    if (dd.Hours > 0)
+                                                                    {
+                                                                        date_display += dd.Hours + " часов ";
+                                                                    }
+                                                                    if (dd.Minutes > 0)
+                                                                    {
+                                                                        date_display += dd.Minutes + " минут ";
+                                                                    }
+                                                                    if (dd.Seconds > 0)
+                                                                    {
+                                                                        date_display += dd.Seconds + " секунд ";
+                                                                    }
+
+
+                                                                }
+                                                                @if (dd1.TotalMilliseconds > 0)
+                                                                {
+                                                                    <font color="green">Осталось @date_display</font>
+                                                                }
+                                                                else
+                                                                {
+
+                                                                    <font color="red">Просрочено на @date_display</font>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @sm.task_body
+                                                            </td>
+
+                                                        </tr>
+
+
+                                                    }
+                                                }
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            }
+                            @*  @if (tableactivity_active_tab == table_activity_pages.time_heatmap)
+                                {
+                                <EviCRM.Server.Pages.Statistics.TimeAccounting.Statistics_HeatMap />
+                                }*@
+                            @if (tableactivity_active_tab == table_activity_pages.time_radar)
+                            {
+                                <p></p>
+                                @if (radar_visupdate)
+                                {
+                                    <EviCRM.Server.Pages.Statistics.TimeAccounting.Statistics_Radar 
+                                    radar_lbls=@radar_lbls 
+                                    radar_lst=@radar_lst />
+                                }
+                            }
+                            @if (tableactivity_active_tab == table_activity_pages.time_hours)
+                            {
+                                <p></p>
+                                <input type="date" class="me-2" value="@(DateTime.Now.AddDays(-1).ToString("dd-MM-yyyy"))" @onchange="@(e => ChangeActivityDate(e.Value.ToString()))" />
+                                <button class="btn btn-primary waves-effect waves-light btn-sm" @onclick="@ShowGraphActivityFull" id="acitivity_fullscreen" name="acitivity_fullscreen">Открыть график на полный экран</button>
+
+                                if (modalGraphOpened)
+                                {
+                                    <EviCRM.Server.Pages.Charts.LineChartViewModuleFullScreenrazor 
+                                    dt_review=@activity_date 
+                                    graphData=@graphData2 
+                                    @ref=lcvm_modal 
+                                    chartExternalOptions=@lineChartOptionsInterop 
+                                    OnClose=@OnCloseModalGraphFullScreenHander 
+                                    mi_commonlst=@mi_commonlst />
+                                }
+
+                                <p></p>
+                                
+                                <p><b>Рабочий день: </b>@table_activity_page_workdaily</p>
+                                <p><b>Продолжительность: </b>@table_activity_page_workdaily_duration</p>
+
+                                <EviCRM.Server.Pages.Charts.LineChartViewModule lst_data=@graphData @ref=lcvm />
+                            }
+                            @if (tableactivity_active_tab == table_activity_pages.tasks)
+                            {
+                                <p></p>
+                                <StatisticsPersonalTasks 
+                                        AverageMark=statistics_tasks_getAverage()
+                                        user_elem=personal_stat />
+                            }
+
+                        }
+
+                    </div>
+                </div>
+
+                <div class="col-xl-12">
+                    <div class="row">
+                        <p></p>
+                        <div class="card mini-stats-wid">
+                            <div class="card-body" @onclick="JobDescriptionHandlerModule" style="height:500px; width:100%;">
+                                    <div class="d-flex" style="height:500px; width:100%">
+                                        
+                                    <div class="flex-grow-1" style="height:425px; width:100%;">
+                                        <p class="text-muted fw-medium">Должностная инструкция</p>
+                                        <div id="placeholder" style="height:425px; width:100%;"></div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+
+        </div>
+        @*<button type="button" @onclick="DevInterpeter" id="dev_btn" name="dev_btn">Кнопка теста уведомлений</button>*@
+        <SurveyPrompt Title="Нажмите сюда если у вас появились какие-то вопросы " />
+
+    </Authorized>
+    <NotAuthorized>
+        <iframe src="https://evicrm.ru.com/Landing" 
+        onload='javascript:(function(o){o.style.height=o.contentWindow.document.body.scrollHeight+"px";}(this));' 
+        style="height:500px;width:100%;border:none;overflow:hidden;">
+        </iframe>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    List<StatisticsChartElement> statistics_arr = new List<StatisticsChartElement>();
+    StatisticsChartElement personal_stat = new StatisticsChartElement();
+
+    List<string> personal_status = new List<string>();
+    List<string> personal_status_arg1 = new List<string>();
+    List<string> personal_status_arg2 = new List<string>();
+
+    string current_user_num = "0";
+
+    int tasks_current = 0;
+    int tasks_delayed = 0;
+    int events = 0;
+
+    int projects_planned = 0;
+    int projects_delayed = 0;
+    int projects_failed = 0;
+
+    int tasks_planned = 0;
+    int tasks_failed = 0;
+
+    //New Design Layout
+}
+
+@code{
+    int slider_tasks = 0;
+    int slider_projects = 0;
+    int slider_calendar = 0;
+    int slider_markschart = 0;
+    int slider_chat = 0;
+    int slider_mail = 0;
+    int slider_news = 0;
+}

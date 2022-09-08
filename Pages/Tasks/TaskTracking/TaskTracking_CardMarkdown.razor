@@ -1,0 +1,352 @@
+﻿@using EviCRM.Server.Core;
+
+<div class="col-lg-4">
+    <div class="card bg-info text-white-50">
+        <div class="card-body">
+            <h5 class="mb-4 text-white"><i class="mdi mdi-alert-circle-outline me-3"></i>Карта целей команды</h5>
+            <p class="card-text text-white">Здесь отражены важные промежуточные точки задачи</p>
+            <p class="card-text text-white"><i>Отмечайте успехи по мере выполнения задачи</i></p>
+
+            @for (int i = 0; i < double_card_marksdown.Count; i++)
+            {
+                
+                @if (double_card_marksdown[i] == "checked")
+                {
+                    <div class="form-group row mb-4">
+                        <div class="col-lg-10">
+                            @{
+                                int temp = i;
+                             }
+                             <div class="p-2">
+                              @if(card_delegate[i] == "" || card_delegate[i] == null)
+                                    {
+                                        <input class="" checked="checked" disabled="disabled" readonly="readonly" type="checkbox" id="ttm_cardmark_selected_@i" name="ttm_cardmark_selected_@i" @onchange="eventArgs => { CheckboxClicked(temp, eventArgs.Value); }" />
+                                        <label class="card-text text-white" for="ttm_cardmark_selected_@i">@double_card_body[i]</label>
+                                    }
+                             @if (card_delegate[i] != "" && card_delegate[i] != null && card_delegate[i] != task_implementer)
+                                    {
+                                         <input class="" checked="checked" disabled="disabled" readonly="readonly" type="checkbox" id="ttm_cardmark_selected_@i" name="ttm_cardmark_selected_@i" @onchange="eventArgs => { CheckboxClicked(temp, eventArgs.Value); }" />
+                                          <label class="card-text text-white" for="ttm_cardmark_selected_@i">@double_card_body[i]</label>
+                                          <label class="card-text text-white">Для: @getUsernameByLogin(card_delegate[i])</label>
+                                    }
+                                    
+                             </div>
+
+                        @if (isAdmin)
+                        {
+                            <div class="p-2">
+                             <button type="button" @onclick='(() => DeleteGoal(temp))' class="btn btn-danger waves-effect waves-light">Удалить цель</button>
+                             </div>
+                        }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="form-group row mb-4">
+                         <div class="col-lg-10">
+                             @{
+                                int temp = i;
+                            }
+                                 <div class="p-2">
+                                @if (global_personal_status == "pending" || global_personal_status == "delayed" || isAdmin)
+                                {
+
+                                    @if(card_delegate[i] == "" || card_delegate[i] == null)
+                                    {
+                                        <input class="" checked="checked" disabled="disabled" readonly="readonly" type="checkbox" id="ttm_cardmark_selected_@i" name="ttm_cardmark_selected_@i" @onchange="eventArgs => { CheckboxClicked(temp, eventArgs.Value); }" />
+                                        <label class="card-text text-white" for="ttm_cardmark_selected_@i">@double_card_body[i]</label>
+                                    }
+                                    @if (card_delegate[i] != "" && card_delegate[i] != null && card_delegate[i] != task_implementer)
+                                    {
+                                         <input class="" checked="checked" disabled="disabled" readonly="readonly" type="checkbox" id="ttm_cardmark_selected_@i" name="ttm_cardmark_selected_@i" @onchange="eventArgs => { CheckboxClicked(temp, eventArgs.Value); }" />
+                                          <label class="card-text text-white" for="ttm_cardmark_selected_@i">@double_card_body[i]</label>
+                                          <label class="card-text text-white">Для: @getUsernameByLogin(card_delegate[i])</label>
+                                    }
+                                }
+                                else
+                                {
+                                     <input class="" type="checkbox" disabled="disabled" readonly="readonly" id="ttm_cardmark_selected_@i" name="ttm_cardmark_selected_@i" @onchange="eventArgs => { CheckboxClicked(temp, eventArgs.Value); }"/>
+                               
+                                }
+                                <label class="card-texts text-white" for="ttm_cardmark_selected_@i">@double_card_body[i]</label>
+                                </div>
+                      
+                        @if (isAdmin)
+                        {
+                            <div class="p-2">
+                             <button type="button" @onclick='(() => DeleteGoal(temp))' class="btn btn-danger waves-effect waves-light">Удалить цель</button>
+                            </div>
+                        }
+                        </div>
+                    </div>
+                    }
+            }
+
+            <p><button type="button" @onclick='(() => AddGoal())' class="btn btn-success waves-effect waves-light">Добавить цель</button></p>
+
+             @if (isAdmin)
+            {
+                @if (modal_AddGoalsOpened)
+                {
+                    <TaskTracking_AddGoalModal task_author=@task_implementer task_id=@task_id OnClose=@ModalChangeClose RefreshPage=@RefreshPageImplementer />
+                }
+            }
+        </div>
+    </div>
+
+
+    <div class="card border border-primary">
+
+        <div class="card-header bg-transparent border-primary">
+            <h5 class="my-0 text-primary"><i class="mdi mdi-bullseye-arrow me-3"></i>Делегированные мне задачи</h5>
+        </div>
+         
+        <p class="card-text text-white">Здесь отражены важные промежуточные точки задачи, выполнение которых зависит только от вас</p>
+        <p class="card-text text-white"><i>Отмечайте успехи по мере выполнения задачи, вы всегда можете вернуть задачу обратно команде</i></p>
+
+         @for (int i = 0; i < double_card_marksdown.Count; i++)
+         {
+                @if(card_delegate[i] !="" || card_delegate[i] != null)
+                {
+                    @if (card_delegate[i] == task_implementer)
+                    {
+                        @if (double_card_marksdown[i] == "checked")
+                        {
+                            <div class="form-group row mb-4">
+                                <div class="col-lg-10">
+                                
+                                    @{
+                                        int temp = i;
+                                    }    
+                                
+                                    <div class="p-2">
+                                        <input class="" checked="checked" disabled="disabled" readonly="readonly" type="checkbox" id="ttm_cardmark_selected_@i" name="ttm_cardmark_selected_@i" @onchange="eventArgs => { CheckboxClicked(temp, eventArgs.Value); }" />
+                                        <label class="card-text text-white" for="ttm_cardmark_selected_@i">@double_card_body[i]</label>
+                                    </div>
+
+                                    @if (isAdmin)
+                                    {
+                                        <div class="p-2">
+                                            <button type="button" @onclick='(() => DeleteGoal(temp))' class="btn btn-danger waves-effect waves-light">Удалить цель</button>
+                                        </div>
+                                    }
+                        
+                                </div>
+                             </div>
+                            }
+                            }
+                else
+                {
+                      @if(card_delegate[i] !="" || card_delegate[i] != null)
+                      {
+                        @if (card_delegate[i] == task_implementer)
+                        {
+                    
+                            <div class="form-group row mb-4">
+                                <div class="col-lg-10">
+                             
+                                    @{
+                                int temp = i;
+                                    }
+
+                                 <div class="p-2">
+                                @if (global_personal_status == "pending" || global_personal_status == "delayed" || isAdmin)
+                                {
+
+                                    <input class="" type="checkbox" id="ttm_cardmark_selected_@i" name="ttm_cardmark_selected_@i" @onchange="eventArgs => { CheckboxClicked(temp, eventArgs.Value); }"/>
+                                }
+                                else
+                                {
+                                     <input class="" type="checkbox" disabled="disabled" readonly="readonly" id="ttm_cardmark_selected_@i" name="ttm_cardmark_selected_@i" @onchange="eventArgs => { CheckboxClicked(temp, eventArgs.Value); }"/>
+                               
+                                }
+                                <label class="card-texts text-white" for="ttm_cardmark_selected_@i">@double_card_body[i]</label>
+                                </div>
+                      
+                        @if (isAdmin)
+                        {
+                            <div class="p-2">
+                             <button type="button" @onclick='(() => DeleteGoal(temp))' class="btn btn-danger waves-effect waves-light">Удалить цель</button>
+                            </div>
+                        }
+                         }
+                        </div>
+                    </div>
+                     }
+                 }
+              }
+           }
+          }
+
+    </div>
+
+</div>
+
+@code {
+    BackendController bc = new BackendController();
+    MySQL_Controller mysqlc = new MySQL_Controller();
+
+    public List<string> double_card_id { get; set; }
+    public List<string> double_card_marksdown { get; set; }
+    public List<string> double_card_body { get; set; }
+
+    [Parameter]
+    public List<string> users_dt{ get; set; }
+
+    [Parameter]
+    public List<string> fullname_dt { get; set; }
+
+    [Parameter]
+    public List<string> card_id { get; set; }
+
+    [Parameter]
+    public List<string> card_marksdown { get; set; }
+
+    [Parameter]
+    public List<string> card_body { get; set; }
+
+    [Parameter]
+    public List<string> card_delegate { get; set; }
+
+    [Parameter]
+    public string task_implementer { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnCarouselRefresh { get; set; }
+
+    [Parameter]
+    public bool isAdmin { get; set; }
+
+    [Parameter]
+    public string task_id { get; set; }
+
+    [Parameter]
+    public string global_personal_status { get; set; }
+
+    bool modal_AddGoalsOpened { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsUpdated { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> RefreshPage { get; set; }
+
+}
+
+@functions {
+
+    public string getUsernameByLogin(string login)
+    {
+        string username_full = "";
+
+        for(int z = 0; z< users_dt.Count; z++)
+        {
+            if (users_dt[z] == login)
+            {
+                return fullname_dt[z];
+            }
+        }
+
+        return username_full;
+    }
+
+    public void AddGoal()
+    {
+        ModalChangeOpen();
+    }
+
+    public async Task DeleteGoal(int i )
+    {
+        await mysqlc.MySql_ContextAsyncL(mysqlc.DeleteCardMarkDownCard(double_card_id[i]));
+
+        ViewModels.TaskTrackingModelCardMarksdownActions ttmcma = new ViewModels.TaskTrackingModelCardMarksdownActions();
+        ttmcma.task_author = task_implementer;
+        ttmcma.task_id = task_id;
+        ttmcma.task_cardmark = double_card_body[i];
+
+        await to_script.DELETEGOALS(ttmcma);
+        double_card_marksdown.RemoveAt(i);
+        double_card_body.RemoveAt(i);
+        double_card_id.RemoveAt(i);
+        card_delegate.RemoveAt(i);
+
+        await OnCarouselRefresh.InvokeAsync();
+        StateHasChanged();
+    }
+
+    private void ModalChangeOpen()
+    {
+        modal_AddGoalsOpened = true;
+        StateHasChanged();
+    }
+
+    private void ModalChangeClose(bool accepted)
+    {
+        modal_AddGoalsOpened = false;
+        StateHasChanged();
+
+    }
+
+    private async Task RefreshPageImplementer(string new_data)
+    {
+
+
+        double_card_marksdown = await mysqlc.getListTaskTrackingCardMarksDownAsync(task_id);
+        double_card_id = await mysqlc.getListTaskTrackingCardIDAsync(task_id);
+        double_card_body = await mysqlc.getListTaskTrackingCardBodyAsync(task_id);
+        card_delegate = await mysqlc.getListTaskTrackingCardDelegateAsync(task_id);
+        //await InvokeAsync(StateHasChanged);
+        StateHasChanged();
+    }
+
+
+    TOScript to_script = new TOScript();
+
+    void CheckboxClicked(int ID, object checkedValue)
+    {
+        if ((bool)checkedValue)
+        {
+            SaveCheckingCardmark(ID);
+        }
+    }
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            new Timer(DateTimeCallback, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
+    }
+    private void DateTimeCallback(object state)
+    {
+        InvokeAsync(() => StateHasChanged());
+    }
+
+    protected override void OnInitialized()
+    {
+        double_card_body = card_body;
+        double_card_id = card_id;
+        double_card_marksdown = card_marksdown;
+
+
+    }
+
+    public async void SaveCheckingCardmark(int ID)
+    {
+        await mysqlc.MySql_ContextAsyncL(mysqlc.setMarkdown(double_card_id[ID]));
+
+        ViewModels.TaskTrackingModelCardMarksdownActions ttmcma = new ViewModels.TaskTrackingModelCardMarksdownActions();
+        ttmcma.task_author = task_implementer;
+        ttmcma.task_id = task_id;
+        ttmcma.task_cardmark = double_card_body[ID];
+
+
+        await to_script.MARKGOALS(ttmcma);
+
+        await OnCarouselRefresh.InvokeAsync() ;
+        double_card_marksdown[ID] = "checked";
+        StateHasChanged();
+    }
+
+
+}

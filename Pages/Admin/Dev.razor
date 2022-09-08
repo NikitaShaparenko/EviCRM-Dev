@@ -1,0 +1,244 @@
+﻿@page "/dev"
+
+@using Blazorise
+@using Majorsoft.Blazor.Components.Notifications
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+@using Majorsoft.Blazor.Components.GdprConsent
+@using Majorsoft.Blazor.Components
+
+
+<p><h2>Просто страница, если вы сюда забрели, значит вы разработчик или что-то знаете лишнее</h2></p>
+<p><h3>По факту это просто испытательный полигон для нового кода</h3></p>
+
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+@inject INotificationService _notificationService
+
+@inject IGdprConsentService _gdprConsentService
+@inject IToastService _toastService
+
+@implements IDisposable
+
+@functions{
+ 
+}
+
+@code {
+	//GPDR Banner Functions
+
+	private GdprConsentData _gdprConsentData;
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			_gdprConsentService.ConsentNotificationService.GdprConsentStateChanged += OnConsentChanged; //Subscribe to change event
+
+			await OnConsentChanged(); //Initial check
+		}
+	}
+
+	private string _gdprControlType = "Banner";
+	private List<GdprConsentDetail> _gdprConsents;
+
+	protected override void OnInitialized()
+	{
+		_gdprConsents = new List<GdprConsentDetail>()
+		{
+			new GdprConsentDetail() { ConsentName = "Required", IsAccepted = true },
+			new GdprConsentDetail() { ConsentName = "Session", IsAccepted = true },
+			new GdprConsentDetail() { ConsentName = "Tracking", IsAccepted = true },
+		};
+		_toastService.OnToastShow += ToastShow;
+		_toastService.OnToastClosed += ToastClosed;
+		_toastService.OnToastCloseButtonClicked += ToastCloseButtonClicked;
+	}
+
+	//GDPR banner
+	private GdprBanner _gdprBanner;
+	private string _bannerColor = "lightblue";
+	private int _bannerConsentValidDays = 20;
+	private double _bannerOpacity = 90;
+
+	//GDPR popup
+	private GdprModal _gdprModal;
+	private string _overlayColor = "lightgray";
+	private double _overlayOpacity = 70;
+
+	private async Task OnConsentChanged()
+	{
+		_gdprConsentData = await _gdprConsentService.GetGdprConsentDataAsync();
+		StateHasChanged();
+	}
+
+	public void Dispose()
+	{
+		_gdprConsentService.ConsentNotificationService.GdprConsentStateChanged -= OnConsentChanged; //Unsubscribe from change event
+	}
+
+	//LocalStorage
+	private int _localStorageCount;
+	private IList<KeyValuePair<string, string>> _localStorageItems;
+
+	private async Task InsertLocalStorageItems(string key, string val)
+	{
+		await _localStorageService.SetItemAsync(key,val);
+	}
+	private async Task<string> GetLocalStorageItems(string key)
+	{
+		return await _localStorageService.GetItemAsStringAsync(key);
+	}
+	private async Task RefreshLocalStorageItems()
+	{
+		_localStorageItems = new List<KeyValuePair<string, string>>();
+		await foreach (var key in _localStorageService.GetAllKeysAsync())
+		{
+			if (key is null)
+				continue;
+
+			_localStorageItems.Add(new KeyValuePair<string, string>(key, await _localStorageService.GetItemAsStringAsync(key)));
+		}
+
+	}
+	private async Task SaveCustomLocalStorageItem(string key, string val)
+	{
+		await _localStorageService.SetItemAsync(key,val);
+		await RefreshLocalStorageItems();
+	}
+
+	//SessionStorage
+	private int _sessionStorageCount;
+	private IList<KeyValuePair<string, string>> _sessionStorageItems;
+
+	private async Task InsertSessionStorageItems(string key, string val)
+	{
+		await _sessionStorageService.SetItemAsync(key, val);
+	}
+	private async Task RefreshSessionStorageItems()
+	{
+		_sessionStorageItems = new List<KeyValuePair<string, string>>();
+		await foreach (var key in _sessionStorageService.GetAllKeysAsync())
+		{
+			if (key is null)
+				continue;
+
+			_sessionStorageItems.Add(new KeyValuePair<string, string>(key, await _sessionStorageService.GetItemAsStringAsync(key)));
+		}
+
+	}
+	private async Task SaveCustomSessionStorageItem(string key, string val)
+	{
+		await _sessionStorageService.SetItemAsync(key,val);
+		await RefreshSessionStorageItems();
+	}
+
+	//protected override void OnInitialized()
+	//{
+		
+	//}
+
+	private string _toastText = $@"<strong>Toast:</strong> This is a(n) {NotificationTypes.Primary} notification";
+	private bool _toastShowIcon = true;
+	private bool _toastShowCloseButton = true;
+	private bool _toastShowCountdownProgress = true;
+	private uint _toastAutoCloseInSec = 5;
+	private uint _toastShadowEffect = 5;
+	private NotificationStyles _toastStyle;
+	private NotificationTypes _toastTypeLevel;
+
+	private ElementReference log1;
+	private string _toastLog = "";
+
+
+	//Toasts
+	private async Task ToastsNotifications_ShowAllToast()
+	{
+		foreach (var item in Enum.GetValues<NotificationTypes>())
+		{
+			_toastService.ShowToast($@"<strong>Toast оповещения:</strong> Это оповещение типа {item}", item);
+		}
+	}
+
+	private Guid _lastToastId;
+
+	private async Task ToastsNotifications_ShowCustomToast_Primary(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Primary);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Secondary(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Secondary);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Info(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Info);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Success(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Success);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Warning(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Warning);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Danger(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Danger);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Light(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Light);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Dark(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Dark);
+	}
+
+
+	private async Task ToastsNotifications_ShowCustomToast(string toastText,NotificationStyles ns,NotificationTypes ntype)
+	{
+		_lastToastId = _toastService.ShowToast(new ToastSettings()
+		{
+			Content = builder => builder.AddMarkupContent(0, toastText),
+			NotificationStyle = ns,
+			Type = ntype,
+			AutoCloseInSec = _toastAutoCloseInSec,
+			ShadowEffect = _toastShadowEffect,
+			ShowCloseButton = _toastShowCloseButton,
+			ShowCloseCountdownProgress = _toastShowCountdownProgress,
+			ShowIcon = _toastShowIcon
+		});
+	}
+
+	private async Task RemoveAllToasts()
+	{
+		_toastService.ClearAll();
+	}
+	private async Task RemoveLastToasts()
+	{
+		if(_lastToastId != Guid.Empty)
+		{
+			_toastService.RemoveToast(_lastToastId);
+		}
+	}
+
+	private void ToastShow(Guid id)
+	{
+		//
+	}
+	private void ToastClosed(Guid id)
+	{
+		if(id == _lastToastId)
+		{
+			_lastToastId = Guid.Empty;
+		}
+
+		//_toastLog = WriteLog(_toastLog, $"Toast event OnClosed Id: '{id}'");
+	}
+	private void ToastCloseButtonClicked(Guid id)
+	{
+	}
+
+	
+
+	//=============================
+}

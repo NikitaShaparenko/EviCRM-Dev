@@ -1,0 +1,260 @@
+﻿@using EviCRM.Server.Core;
+@using EviCRM.Server.ViewModels;
+
+@page "/users_list"
+
+<PageTitle>Пользователи \ Списком</PageTitle>
+<h5>Пользователи \ Списком</h5>
+
+@inject NavigationManager uriHelper;
+@inject AuthenticationStateProvider authStateProvider
+
+<style>
+    /* Кнопки стиля */
+    .btn-link {
+        /*background-color: DodgerBlue;*/ /* Синий фон */
+        background-color: lightskyblue;
+        border: none; /* Удалить границы */
+        color: white; /* Белый текст */
+        padding: 12px 16px; /* Немного отступов */
+        font-size: 16px; /* Установите размер шрифта */
+        cursor: pointer; /* Указатель мыши при наведении */
+    }
+
+        /* Более темный фон при наведении курсора мыши */
+        .btn-link:hover {
+            background-color: RoyalBlue;
+        }
+</style>
+<AuthorizeView>
+    <Authorized>
+
+        @if (ready == false)
+        {
+            <p><i class="bx bx-buoy bx-spin text-primary display-3"></i><i> Нужно немного времени, чтобы загрузить эту страницу</i></p>
+            <p><i>Пожалуйста подождите...</i></p>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table align-middle table-wrap table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th scope="col" style="width: 70px;">#</th>
+                                            <th scope="col">Имя</th>
+                                            <th scope="col">Электронная почта</th>
+                                            <th scope="col">Навыки</th>
+                                            @* <th scope="col">Проекты</th>*@
+                                            <th scope="col">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+
+                                        @for (int i = 0; i < users_dt.Count; i++)
+                                        {
+                                            <ContactsList_User num=i+1 cum=cum_dt[i] />
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6>Контакты, которые передала Александра</h6>
+
+                    @if (alexandra_contacts_idalexandra_contacts != null)
+                    {
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="card">
+                                    <div class="card-body">
+
+                                        <div class="table-responsive">
+                                            <table class="table align-middle table-wrap table-hover">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th scope="col" style="width: 70px;">#</th>
+                                                        <th scope="col">Имя</th>
+                                                        <th scope="col">Телефонный номер</th>
+                                                        <th scope="col">Телеграм</th>
+                                                        <th scope="col">Удалить</th>
+                                                    </tr>
+                                                </thead>
+
+                                                <tbody>
+
+                                                    @for (int i = 0; i < alexandra_contacts_idalexandra_contacts.Count; i++)
+                                                    {
+                                                        <tr>
+
+                                                            <td>
+                                                                <div class="avatar-xs">
+                                                                    <span class="avatar-title rounded-circle">
+                                                                        @{
+                                                                            string str = alexandra_contacts_firstname[i].ToUpper();
+                                                                            char b_str = '?';
+                                                                            if (str.Length > 0)
+                                                                            {
+                                                                                b_str = str[0];
+                                                                            }
+                                                                            @b_str
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+
+                                                            <td>
+                                                                @(alexandra_contacts_firstname[i] + " " + alexandra_contacts_lastname[i])
+                                                            </td>
+
+                                                            <td>
+                                                                <a href="tel:@alexandra_contacts_phonenumber[i]">@alexandra_contacts_phonenumber[i]</a>
+                                                            </td>
+
+                                                            <td>
+
+                                                                @if (alexandra_contacts_userId[i] != null && alexandra_contacts_userId[i] != "")
+                                                                {
+                                                                    <a class="btn btn-primary btn-link" href="tg://user?id=@alexandra_contacts_userId[i]" role="button"><i class="fab fa-telegram-plane ms-1"></i></a>
+
+                                                                }
+                                                                else
+                                                                {
+                                                                    @("Нет в Телеграмме")
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @{
+                                                                    int p = i;
+                                                                }
+
+                                                                <button type="button" class="btn btn-danger" @onclick="async()=> await KillContact(p)"><i class="fas fa-times ms-1"></i></button>
+
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+    public static BackendController bc = new BackendController();
+
+    public ContactsUserModel cum = new ContactsUserModel();
+    public List<ContactsUserModel> cum_dt = new List<ContactsUserModel>();
+
+    public int num { get; set; }
+
+    string user_ { get; set; }
+    string session_role { get; set; }
+    bool isAdmin { get; set; }
+
+    bool ready = false;
+
+    List<string> users_dt = new List<string>();
+    List<string> email_dt = new List<string>();
+    List<string> passwords_dt = new List<string>();
+    List<string> id_dt = new List<string>();
+    List<string> fullname_dt = new List<string>();
+    List<string> position_dt = new List<string>();
+    List<string> skills_dt = new List<string>();
+    List<string> avatarpath_dt = new List<string>();
+    List<string> projects_val_dt = new List<string>();
+
+    List<string> alexandra_contacts_idalexandra_contacts = new List<string>();
+    List<string> alexandra_contacts_firstname = new List<string>();
+    List<string> alexandra_contacts_lastname = new List<string>();
+    List<string> alexandra_contacts_phonenumber = new List<string>();
+    List<string> alexandra_contacts_userId = new List<string>();
+    List<string> alexandra_contacts_vcard = new List<string>();
+    List<string> alexandra_contacts_login = new List<string>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        users_dt = await mysqlc.getListUsersLoginAsync();
+        email_dt = await mysqlc.getListUsersEmailAsync();
+        passwords_dt = await mysqlc.getListUsersPasswordAsync();
+        id_dt = await mysqlc.getListUsersIDAsync();
+        fullname_dt = await mysqlc.getListUsersFullnameAsync();
+        position_dt = await mysqlc.getListUsersPositionsAsync();
+        skills_dt = await mysqlc.getListUsersSkills();
+        avatarpath_dt = mysqlc.getAvatarPaths(users_dt);
+        projects_val_dt = await mysqlc.getListUsersProjectsAsync();
+
+        user_ = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+
+        session_role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(user_));
+
+        if (session_role == "admin")
+        {
+            isAdmin = true;
+        }
+        else
+        {
+            isAdmin = false;
+        }
+
+        //Контакты от Александры
+        alexandra_contacts_idalexandra_contacts = await mysqlc.getListAlexandraContactsIDPKEY(user_);
+        alexandra_contacts_firstname = await mysqlc.getListAlexandraContactsFirstname(user_);
+        alexandra_contacts_lastname = await mysqlc.getListAlexandraContactsLastname(user_);
+        alexandra_contacts_phonenumber = await mysqlc.getListAlexandraContactsPhonenumber(user_);
+        alexandra_contacts_userId = await mysqlc.getListAlexandraContactsUserId(user_);
+        alexandra_contacts_vcard = await mysqlc.getListAlexandraContactsVcard(user_);
+
+        int p = 0;
+        if (users_dt != null)
+        {
+            p = users_dt.Count;
+        }
+
+        for (int z = 0; z < p; z++)
+        {
+            cum = new ContactsUserModel
+                {
+                    avatarpath = avatarpath_dt[z],
+                    email = email_dt[z],
+                    fullname = fullname_dt[z],
+                    id = id_dt[z],
+                    passwords = passwords_dt[z],
+                    position = position_dt[z],
+                    projects_val = projects_val_dt[z],
+                    skills = skills_dt[z],
+                    users = users_dt[z],
+                };
+            cum_dt.Add(cum);
+            num++;
+
+        }
+        ready = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task KillContact(int p)
+    {
+        await mysqlc.MySql_ContextAsyncGeneral(mysqlc.deleteAlexandraContactByID(alexandra_contacts_idalexandra_contacts[p]));
+        uriHelper.NavigateTo("/users_list", true);
+    }
+
+}

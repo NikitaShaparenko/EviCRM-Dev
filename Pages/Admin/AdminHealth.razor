@@ -1,0 +1,302 @@
+﻿@using EviCRM.Server.Core
+@using System.Collections.Generic;
+@using System.Net
+@using EviCRM.Server.ViewModels
+
+@page "/admin_health"
+
+@inject NavigationManager UriHelper
+
+@using Microsoft.Extensions.Logging;
+
+<h5>Админ меню \ Состояние платформы</h5>
+<PageTitle>Админ меню \ Состояние платформы</PageTitle>
+
+
+
+<AuthorizeView>
+    <Authorized>
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Состояние платформы</h4>
+
+                        @{
+                            if (links_dt == null && sites == null)
+                            {
+                                <b><i class="bx bx-buoy bx-spin text-primary display-3"></i> Загружаю данные...</b>
+                            }
+                            else if (links_dt.Count == 0)
+                            {
+                                <h5>Нет значений, нет сайтов для сканирования</h5>
+                            }
+                            else
+                            {
+                                int p = 0;
+                                p = links_dt.Count;
+
+                                int num = 0;
+                                int num_p = 1;
+
+                                @if (p > 0)
+                                {
+                                    <table class="table table-striped mb-0">
+
+                                        <tr>
+                                            <th>№</th>
+                                            <th>Ссылка</th>
+                                            <th>HTTP код</th>
+                                            <th>Статус</th>
+                                            <th>Действие</th>
+                                        </tr>
+
+
+                                        @foreach (var ahm in sites)
+                                        {
+                                            <tr>
+                                                <td>@num_p</td>
+                                                @{
+                                                    int inum = num;
+                                                }
+                                                <td>@ahm.ahm_link</td>
+                                                <td>@ahm.ahm_http_code</td>
+                                                <td>@ahm.ahm_status</td>
+
+                                                <td>
+                                                    <button class="btn btn-outline-danger" @onclick="@(async () => await KillLink(inum))">Удалить</button>
+                                                </td>
+                                            </tr>
+
+
+                                            num++;
+                                            num_p++;
+
+                                        }
+                                    </table>
+                                }
+                            }
+                        }
+
+                        <p></p>
+                    </div>
+                </div>
+            </div>
+
+            <p>
+                <div class="form-group row mb-4">
+                    <label for="taskname" class="col-form-label col-lg-2">Добавить ссылку для мониторинга:</label>
+                    <div class="col-lg-10">
+                        <input id="taskname" @bind=@link_add name="link" type="text" asp-for="link" class="form-control" placeholder="Новая ссылка для мониторинга">
+                    </div>
+
+                </div>
+                <button type="button" @onclick=@(async () => await AddLink()) class="btn btn-primary">Добавить новую ссылку</button>
+            </p>
+
+
+
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@functions {
+
+    public async Task AddLink()
+    {
+        await mysqlc.MySql_ContextAsyncAdmHealth(mysqlc.setAddLink(link_add));
+        links_dt.Add(link_add);
+        ahm = new AdminHealthModel
+            {
+                ahm_link = link_add,
+                ahm_num = num.ToString(),
+                ahm_http_code = "",
+                ahm_ping_answer = "",
+                ahm_status = "",
+                ahm_action = "",
+            };
+        sites.Add(ahm);
+        num++;
+
+
+        this.StateHasChanged();
+        UriHelper.NavigateTo("/admin_health", true);
+    }
+
+        }
+
+@functions
+{
+
+}
+
+@code {
+    private List<AdminHealthModel> sites = new List<AdminHealthModel>();
+    private List<string> links_dt = new List<string>();
+
+    private AdminHealthModel ahm = new AdminHealthModel();
+    private AdminHealthModel site = new AdminHealthModel();
+    private BackendController bc = new BackendController();
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+
+    int num = 0;
+
+    private string link_add = "";
+
+    protected async override Task OnInitializedAsync()
+    {
+        links_dt = await mysqlc.getAMHealthLinks();
+
+        if (links_dt != null)
+        {
+
+            foreach (string link in links_dt)
+            {
+                ahm = new AdminHealthModel
+                    {
+                        ahm_link = link,
+                        ahm_num = num.ToString(),
+                        ahm_http_code = "",
+                        ahm_ping_answer = "",
+                        ahm_status = "",
+                        ahm_action = "",
+                    };
+                sites.Add(ahm);
+                num++;
+
+            }
+
+            Thread[] thread = new Thread[links_dt.Count];
+            for (int i = 0; i < links_dt.Count; i++)
+            {
+                thread[i] = new Thread(() => getHTTPCode(i));
+                thread[i].Start();
+                Thread.Sleep(50);
+            }
+
+
+        }
+    }
+
+    public int getHTTPCode2(string link)
+    {
+        var builder = new UriBuilder(link);
+        var uri = builder.Uri;
+        try
+        {
+            HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(uri);
+            webRequest.Timeout = 1000;
+            var response = (HttpWebResponse)webRequest.GetResponse();
+            // This will have statii from 200 to 30x
+            return (int)response.StatusCode;
+        }
+        catch (WebException we) when (we.Response is HttpWebResponse response)
+        {
+            // Statii 400 to 50x will be here
+            if (int.TryParse(response.StatusCode.ToString(), out int a))
+            {
+                return int.Parse(response.StatusCode.ToString());
+            }
+            else
+            {
+                return 200;
+            }
+        }
+        catch (Exception ex)
+        {
+            return int.Parse("405");
+        }
+    }
+
+    public async Task KillLink(int i)
+    {
+        await mysqlc.MySql_ContextAsyncAdmHealthNM(mysqlc.delLink(ahm.ahm_link));
+        sites.RemoveAt(i);
+        UriHelper.NavigateTo("/admin_health", true);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public string getHTTPCodeDescription(int http_code)
+    {
+        switch (http_code)
+        {
+            case 200:
+                return "[Успех] Всё в порядке!";
+            case 301:
+                return "[Успех] Файл перемещён, используется переадрессация";
+            case 404:
+                return "[ОШИБКА] Файл не найден!";
+            case 405:
+                return "[ОШИБКА] Метод не поддерживается!";
+            case 500:
+                return "[ОШИБКА] Критическая ошибка сервера";
+            case 403:
+                return "[ОШИБКА] Ошибка доступа, доступ к данной папке каким-либо образом ограничен";
+            case 502:
+                return "[ОШИБКА] Сервер не может обработать запрос и не знает что ответить";
+            default:
+                return "[Инфо] Не знаю такого кода";
+        }
+
+    }
+
+
+    public void getHTTPCode(int num)
+    {
+
+        if (sites.Count <= num)
+        {
+            return;
+        }
+
+        var builder = new UriBuilder(sites[num].ahm_link);
+        var uri = builder.Uri;
+        try
+        {
+            HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(uri);
+            webRequest.Timeout = 2000;
+            webRequest.AllowAutoRedirect = true;
+            var response = (HttpWebResponse)webRequest.GetResponse();
+            // This will have statii from 200 to 30x
+            sites[num].ahm_http_code = ((int)response.StatusCode).ToString();
+        }
+        catch (WebException we) when (we.Response is HttpWebResponse response)
+        {
+            // Statii 400 to 50x will be here
+            if (int.TryParse(response.StatusCode.ToString(), out int a))
+            {
+                sites[num].ahm_http_code = ((int)response.StatusCode).ToString();
+            }
+            else
+            {
+                sites[num].ahm_http_code = "200";
+            }
+        }
+         catch(WebException ex2)
+         {
+            if(ex2.Message.Contains("302"))
+                sites[num].ahm_http_code = "302";
+        }
+        catch (Exception ex)
+        {
+            sites[num].ahm_http_code = "405";
+        }
+        
+         if (int.TryParse(sites[num].ahm_http_code, out int b))
+            {
+                 sites[num].ahm_status = getHTTPCodeDescription(int.Parse(sites[num].ahm_http_code));
+            }
+            else
+            {
+                sites[num].ahm_http_code = "502";
+            }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+
+}

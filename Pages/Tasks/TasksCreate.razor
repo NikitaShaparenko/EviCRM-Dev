@@ -1,0 +1,1572 @@
+﻿@page "/tasks_create"
+
+
+@inject HttpClient _httpClient
+@inject IHttpClientFactory ClientFactory
+@inject AuthenticationStateProvider authStateProvider
+@inject IHostEnvironment _env;
+@inject IWebHostEnvironment _iwebhost;
+@inject NavigationManager uriHelper;
+@inject IToastService _toastService;
+
+<style>
+
+    .wordwrap {
+        word-wrap: break-word; /* Перенос слов */
+    }
+
+    .container {
+        border: 1px solid #000000;
+        height: 300px;
+    }
+
+        .container textarea {
+            border: 1px solid red;
+            height: 100%;
+        }
+
+    /* Important part */
+    .modal-dialog {
+        overflow-y: initial !important
+    }
+
+    .modal-body {
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+</style>
+
+<h5>Задачи \ Создание</h5>
+<PageTitle>Создание задачи</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+
+        @if (ready_tr == false)
+        {
+            <p><i class="bx bx-buoy bx-spin text-primary display-3"></i><i> Нужно немного времени, чтобы загрузить эту страницу</i></p>
+            <p><i>Пожалуйста подождите...</i></p>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 class="card-title mb-4">Создать новую задачу</h3>
+
+                            @if (isModal_project_analyzer)
+                            {
+                                <TasksCreate_SupressModal OnClose=TasksCreateSupressModal_Handler />
+                            }
+
+                            <div data-repeater-list="outer-group" class="outer">
+                                <div data-repeater-item class="outer">
+                                    <div class="form-group row mb-4">
+                                        <label for="taskname" class="col-form-label col-lg-2">Название задачи:</label>
+                                        <div class="col-lg-10">
+                                            <input id="taskname" name="task_name" @bind=task_name type="text" class="form-control" placeholder="Введите название задачи">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row mb-4">
+                                        <label class="col-form-label col-lg-2">Описание задачи</label>
+                                        <div class="col-lg-10">
+
+                                            <RichTextEdit @ref="task_description"
+                                                      Theme="RichTextEditTheme.Snow"
+                                                      ContentChanged="@OnContentChanged_taskDescription"
+                                                      PlaceHolder="Введите текст изменений"
+                                                      ReadOnly="@readOnly"
+                                                      SubmitOnEnter="false"
+                                                      EnterPressed="@OnSave_taskDescription"
+                                                      ToolbarPosition="Placement.Top">
+                                                <Editor></Editor>
+                                                <Toolbar>
+                                                    <RichTextEditToolbarGroup>
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Bold" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Italic" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Blockquote" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Header" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Strike" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Underline" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+
+                                                        <RichTextEditToolbarSelect Action="RichTextEditAction.Size">
+                                                            <RichTextEditToolbarSelectItem Value="small" />
+                                                            <RichTextEditToolbarSelectItem Selected />
+                                                            <RichTextEditToolbarSelectItem Value="large" />
+                                                            <RichTextEditToolbarSelectItem Value="huge">Very Big</RichTextEditToolbarSelectItem>
+                                                        </RichTextEditToolbarSelect>
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="ordered" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="bullet" />
+                                                    </RichTextEditToolbarGroup>
+                                                <RichTextEditToolbarGroup Float="Float.End">
+                                                        <Button Clicked="@OnSave_taskDescription"><Icon Name="IconName.Save" /></Button>
+                                                    </RichTextEditToolbarGroup>
+                                                </Toolbar>
+                                            </RichTextEdit>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row mb-4">
+                                        <label class="col-form-label col-lg-2">Даты выполнения</label>
+                                        <div class="col-lg-10">
+                                            <div class="input-daterange input-group">
+                                                <div class="input-daterange input-group">
+                                                    <input type="date" class="form-control" @bind=dt_start placeholder="Начало выполнения" name="event_start" />
+                                                    <input type="date" class="form-control" @bind=dt_end placeholder="Планируемое окончание" name="event_end" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="form-group row mb-10">
+                                        <label for="task_budget" class="col-form-label col-lg-2">Бюджет</label>
+                                        <div class="col-lg-10">
+                                            <input id="task_budget" name="task_budget" type="text" @bind=task_budget placeholder="Введите примерный бюджет для задачи (можно словами в свободной форме)" class="form-control">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row mb-10">
+                                        <label for="task_attachments" class="col-form-label col-lg-2">Приложения</label>
+                                        <div class="col-lg-10">
+                                            <InputFile class="form-control" OnChange="LoadFilesAttachments" multiple />
+
+                                            <p></p>
+                                            <table>
+
+                                                <tr>
+                                                    <th scope="col" style="width: 70px;">#</th>
+                                                    <th scope="col">Файл</th>
+                                                    <th scope="col" style="width: 150px;"> </th>
+                                                </tr>
+                                                @for (int i = 0; i < attach_lst.Count; i++)
+                                                {
+                                                    string extension = Path.GetExtension(attach_lst[i]);
+                                                    int temp = i;
+                                                    <tr>
+                                                        <td>@(i+1))</td>
+
+                                                        @switch (extension)
+                                                        {
+                                                            case ".xls":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xls"></i> @attach_lst[i]</a></td>
+                                                                break;
+
+                                                            case ".pdf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pdf"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".wav":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-wav"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".7z":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-7z"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".aac":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-aac"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".accdb":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-accdb"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".accdt":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-accdt"></i> @attach_lst[i]  </a></td>
+                                                                break;
+
+                                                            case ".amr":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-amr"></i> @attach_lst[i]  </a></td>
+                                                                break;
+
+                                                            case ".apk":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-apk"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".app":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-app"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".asax":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-asax"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".asc":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-asc"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".ash":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ash"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".ashx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ashx"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".asp":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-asp"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".aspx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-aspx"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".avi":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-avi"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".axd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-axd"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".bash":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-bash"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".bat":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-bat"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".bin":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-bin"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".bmp":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-bmp"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".bpg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-bpg"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".bz2":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-bz2"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".c":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-c"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".cab":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cab"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".cad":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cad"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".caf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-caf"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".cal":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cal"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".cd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cd"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".cer":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cer"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".cfg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cfg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".cfm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cfm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".cfml":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cfml"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".cgi":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cgi"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".class":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-class"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".cmd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cmd"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".coffee":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-coffee"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".com":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-com"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".conf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-conf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".cpp":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cpp"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".crdownload":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-crdownload"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".cs":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cs"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".csh":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-csh"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".cson":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cson"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".csproj":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-csproj"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".css":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-css"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".csv":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-csv"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".cue":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-cue"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dat":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dat"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".db":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-db"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dbf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dbf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".deb":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-deb"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dgn":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dgn"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dist":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dist"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".diz":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-diz"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dll":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dll"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dmg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dmg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dng":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dng"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".doc":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-doc"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".docb":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-docb"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".docm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-docm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".docx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-docx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dot":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dot"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dotm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dotm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dotx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dotx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".download":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-download"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dpj":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dpj"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dtd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dtd"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dwg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dwg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".dxf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-dxf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".exe":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-exe"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".f4v":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-f4v"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".fax":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-fax"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".fb2":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-fb2"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".fla":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-fla"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".flac":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-flac"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".flv":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-flv"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".gif":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-gif"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".gpg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-gpg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".gz":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-gz"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".h":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-h"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".heic":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-heic"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".htm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-htm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".html":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-html"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ico":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ico"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ics":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ics"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".iff":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-iff"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ifo":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ifo"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".image":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-image"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".inf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-inf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ini":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ini"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".jar":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-jar"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".java":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-java"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".jpe":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-jpe"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".jpeg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-jpeg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".jpg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-jpg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".js":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-js"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".json":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-json"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".jsp":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-jsp"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".jsx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-jsx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".key":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-key"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".lnk":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-lnk"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".log":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-log"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".lua":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-lua"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".m":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-m"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".m2v":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-m2v"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".m3u":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-m3u"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".m3u8":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-m3u8"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".m4a":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-m4a"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".m4v":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-m4v"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mdb":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mdb"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mdf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mdf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mid":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mid"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".midi":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-midi"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mkv":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mkv"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mobi":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mobi"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mod":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mod"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mov":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mov"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mp3":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mp3"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mp4":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mp4"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mpa":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mpa"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mpd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mpd"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mpeg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mpeg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mpg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mpg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mpp":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mpp"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".mpt":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-mpt"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".msi":
+
+                                                                break;
+                                                            case ".nef":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-nef"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".nfo":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-nfo"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".nix":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-nix"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".odb":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-odb"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ods":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ods"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".odt":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-odt"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ogg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ogg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ost":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ost"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            case ".ott":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ott"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pcd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pcd"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pdb":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pdb"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pem":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pem"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pfx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pfx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pgp":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pgp"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".php":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-php"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".png":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-png"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".potx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-potx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pps":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pps"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ppsx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ppsx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ppt":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ppt"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pptm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pptm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pptx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pptx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ps":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ps"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".psd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-psd"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pst":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pst"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".pub":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-pub"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".rar":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-rar"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".resx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-resx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".rom":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-rom"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".rpm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-rpm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".rsa":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-rsa"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".rss":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-rss"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".rtf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-rtf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".sass":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-sass"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".scss":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-scss"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".sh":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-sh"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".sldm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-sldm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".sldx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-sldx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".sln":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-sln"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".sql":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-sql"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".sqlite":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-sqlite"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".step":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-step"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".stl":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-stl"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".svg":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-svg"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".swd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-swd"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".swf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-swf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".sys":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-sys"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".tar":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-tar"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".tcsh":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-tcsh"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".tex":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-tex"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".tga":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-tga"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".tif":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-tif"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".tiff":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-tiff"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".tmp":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-tmp"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".torrent":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-torrent"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".tsv":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-tsv"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".ttf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-ttf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".txt":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-txt"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".udf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-udf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vb":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vb"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vbproj":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vbproj"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vbs":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vbs"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vcd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vcd"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vcs":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vcs"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vdx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vdx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vob":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vob"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vsd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vsd"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vss":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vss"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vst":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vst"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vsx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vsx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".vtx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-vtx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".war":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-war"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".wbk":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-wbk"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".webinfo":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-webinfo"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".webm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-webm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".webp":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-webp"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".wma":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-wma"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".wmf":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-wmf"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".wmv":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-wmv"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xaml":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xaml"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xlm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xlm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xlsm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xlsm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xlsx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xlsx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xlt":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xlt"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xltm":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xltm"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xltx":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xltx"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xml":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xml"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xsd":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xsd"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".xz":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-xz"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".yaml":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-yaml"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".yml":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-yml"></i> @attach_lst[i] </a></td>
+                                                                break;
+                                                            case ".zip":
+                                                                <td><a href=@attach_lst_links[i]><i class="fiv-cla fiv-icon-zip"></i> @attach_lst[i] </a></td>
+                                                                break;
+
+                                                            default:
+                                                                <td><a href=@attach_lst_links[i]><i class="bx bx-save">@attach_lst[i]</i> </a></td>
+                                                                break;
+
+                                                        }
+                                                        <td><button type="button" class="btn btn-danger btn-inverse" @onclick="()=>DeleteAttachment(temp)"> х </button></td>
+
+                                                    </tr>
+                                                }
+
+                                            </table>
+
+                                            @if (file_fileName != "")
+                                            {
+
+                                                <p></p>
+                                                <p><i class="bx bx-buoy bx-spin text-primary display-3"></i><b>Файл загружается, пожалуйста ожидайте...</b> </p>
+
+                                                @file_fileName
+                                                <p>
+                                                    <progress value="@file_UploadedBytes" max="@file_Size"></progress>
+                                                    @(" ") @file_UploadedPercentage.ToString("F1") @("% ")
+                                                    @FormatBytes(file_UploadedBytes) @(" / ") @FormatBytes(file_Size);
+                                                </p>
+                                            }
+
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row mb-4">
+
+
+                                        <label for="select_data" class="col-form-label col-lg-2">Отделы</label>
+                                        <div class="col-lg-10">
+
+                                            <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect Label="Список отделов"
+                                                                                             TItem="@SelectData"
+                                                                                             TValue="string"
+                                                                                             Data="@select_data"
+                                                                                             @bind-Value="@SelectedValues_divs"
+                                                                                             TextSelector="@((p) => p.Name)"
+                                                                                             ValueSelector="@((p) => p.Id)"
+                                                                                             EmptyText="Выберите одно или несколько значений"
+                                                                                             NullDataText="Загружаются значения..." />
+
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row mb-10">
+                                        <label for="select_data_users" class="col-form-label col-lg-2">Персонал</label>
+                                        <div class="col-lg-10">
+
+                                            <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect Label="Список пользователей"
+                                                                                             TItem="@SelectData"
+                                                                                             TValue="string"
+                                                                                             Data="@select_data_users"
+                                                                                             @bind-Value="@SelectedValues_personal"
+                                                                                             TextSelector="@((p) => p.Name)"
+                                                                                             ValueSelector="@((p) => p.Id)"
+                                                                                             EmptyText="Выберите одно или несколько значений"
+                                                                                             NullDataText="Загружаются значения..." />
+
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row mb-10">
+                                        <label for="task_proj" class="col-form-label col-lg-2">Добавить к проекту</label>
+                                        <div class="col-lg-10">
+
+                                            <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect Label="Список проектов"
+                                                                                             TItem="@SelectData"
+                                                                                             TValue="string"
+                                                                                             Data="@select_data_projs"
+                                                                                             @bind-Value="@SelectedValues_projs"
+                                                                                             TextSelector="@((p) => p.Name)"
+                                                                                             ValueSelector="@((p) => p.Id)"
+                                                                                             EmptyText="Выберите одно или несколько значений"
+                                                                                             NullDataText="Загружаются значения..." />
+
+
+                                        </div>
+                                    </div>
+
+                                    <div class="row justify-content-end">
+                                        <div class="col-lg-10">
+                                            <button type="button" onclick=@(()=>Create()) class="btn btn-primary">Создать задачу</button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        }
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code{
+
+    bool ready_tr = false;
+    bool _uploading;
+    bool supress_project_analyzer = false;
+    bool isModal_project_analyzer = false;
+
+        string file_fileName { get; set; }
+        long file_UploadedPercentage { get; set; }
+        long file_Size { get; set; }
+        long file_UploadedBytes { get; set; }
+
+        DateTime dt_start { get; set; }
+        DateTime dt_end { get; set; }
+
+        RichTextEdit task_description;
+
+        List<string> attach_lst = new List<string>();
+        List<string> attach_lst_links = new List<string>();
+
+        List<FileUploadProgress> uploadedFiles = new();
+
+        private List<IBrowserFile> loadedFiles = new();
+        private long maxFileSize = 1024 * 15 * 1024;
+        private int maxAllowedFiles = 100;
+        private bool isLoading;
+
+        bool isFileLoaded { get; set; }
+
+        BackendController bc = new BackendController();
+        MySQL_Controller mysqlc = new MySQL_Controller();
+        Sentinel sentinel = new Sentinel();
+        SystemCore systemcore = new SystemCore();
+
+        List<string> users_dt = new List<string>();
+        List<string> division_dt = new List<string>();
+        List<string> fullname_dt = new List<string>();
+        List<string> divisions_ids = new List<string>();
+        List<string> divisions_name = new List<string>();
+        List<string> task_members_divs = new List<string>();
+        List<string> task_attachments = new List<string>();
+        List<string> task_projects = new List<string>();
+        List<string> task_members = new List<string>();
+
+        List<string> proj_id_dt = new List<string>();
+        List<string> proj_name_dt = new List<string>();
+        List<string> proj_start_dt = new List<string>();
+        List<string> proj_end_dt = new List<string>();
+
+        List<string> _attachments = new List<string>();
+
+        private IList<SelectData> select_data;
+        private IList<SelectData> select_data_users;
+        private IList<SelectData> select_data_projs;
+
+        List<string> SelectedValues_divs { get; set; }
+        List<string> SelectedValues_personal { get; set; }
+        List<string> SelectedValues_projs { get; set; }
+
+        protected string contentAsHtml_taskDescription;
+        protected string contentAsDeltaJson_taskDescription;
+        protected string contentAsText_taskDescription;
+        protected string savedContent_taskDescription;
+
+        string task_name { get; set; }
+        string task_start_date { get; set; }
+        string task_end_date { get; set; }
+        string task_budget { get; set; }
+        string task_author { get; set; }
+
+        string SessionUser { get; set; }
+
+        protected bool readOnly { get; set; }
+
+        public void DeleteAttachment(int j)
+        {
+            attach_lst.RemoveAt(j);
+            attach_lst_links.RemoveAt(j);
+        }
+
+         string getUnicalFileName(string filename_we, string extension)
+        {
+            string guid_str = Guid.NewGuid().ToString();
+            return (filename_we + "_" + Path.GetRandomFileName() + extension);
+        }
+
+        string FormatBytes(long value)
+           => ByteSize.FromBytes(value).ToString("fi2", CultureInfo.CurrentCulture);
+
+        record FileUploadProgress(string FileName, long Size)
+        {
+            public long UploadedBytes { get; set; }
+            public double UploadedPercentage => (double)UploadedBytes / (double)Size * 100d;
+        }
+
+         public string genPersonalStatusString()
+        {
+            string output = "";
+
+            if (SelectedValues_personal != null)
+            {
+                foreach (string str in SelectedValues_personal)
+                {
+                    output += str + "$===$waiting$$$";
+                }
+            }
+            return output;
+        }
+
+         private string GetUniqueFileName(string fileName)
+        {
+            fileName = Path.GetFileName(fileName);
+            return Path.GetFileNameWithoutExtension(fileName)
+                      + "_"
+                      + Guid.NewGuid().ToString().Substring(0, 4)
+                      + Path.GetExtension(fileName);
+        }
+        //RichTextBox
+
+        public async Task OnContentChanged_taskDescription()
+        {
+            contentAsHtml_taskDescription = await task_description.GetHtmlAsync();
+            contentAsDeltaJson_taskDescription = await task_description.GetDeltaAsync();
+            contentAsText_taskDescription = await task_description.GetTextAsync();
+        }
+
+         public async Task OnSave_taskDescription()
+        {
+            savedContent_taskDescription = await task_description.GetHtmlAsync();
+            await task_description.ClearAsync();
+        }
+
+        //Toast Notifications
+        private string _toastText = $@"<strong>Toast:</strong> This is a(n) {NotificationTypes.Primary} notification";
+	    private bool _toastShowIcon = true;
+	    private bool _toastShowCloseButton = true;
+	    private bool _toastShowCountdownProgress = true;
+	    private uint _toastAutoCloseInSec = 5;
+	    private uint _toastShadowEffect = 5;
+	    private NotificationStyles _toastStyle;
+	    private NotificationTypes _toastTypeLevel;
+
+}
+
+@functions{
+
+    #region Toasts Notifications
+
+    //Toasts
+    private async Task ToastsNotifications_ShowAllToast()
+    {
+        foreach (var item in Enum.GetValues<NotificationTypes>())
+        {
+            _toastService.ShowToast($@"<strong>Toast оповещения:</strong> Это оповещение типа {item}", item);
+        }
+    }
+
+    private Guid _lastToastId;
+
+    private async Task ToastsNotifications_ShowCustomToast(string toastText, NotificationStyles ns, NotificationTypes ntype)
+    {
+        _lastToastId = _toastService.ShowToast(new ToastSettings()
+            {
+                Content = builder => builder.AddMarkupContent(0, toastText),
+                NotificationStyle = ns,
+                Type = ntype,
+                AutoCloseInSec = _toastAutoCloseInSec,
+                ShadowEffect = _toastShadowEffect,
+                ShowCloseButton = _toastShowCloseButton,
+                ShowCloseCountdownProgress = _toastShowCountdownProgress,
+                ShowIcon = _toastShowIcon
+            });
+    }
+
+    private async Task ToastsNotifications_ShowCustomToast_Primary(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Primary);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Secondary(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Secondary);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Info(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Info);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Success(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Success);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Warning(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Warning);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Danger(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Danger);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Light(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Light);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Dark(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Dark);
+    }
+    private async Task RemoveAllToasts()
+    {
+        _toastService.ClearAll();
+    }
+    private async Task RemoveLastToasts()
+    {
+        if (_lastToastId != Guid.Empty)
+        {
+            _toastService.RemoveToast(_lastToastId);
+        }
+    }
+
+    public void TasksCreateSupressModal_Handler(bool status)
+    {
+        if (status)
+        {
+            supress_project_analyzer = true;
+        }
+
+        isModal_project_analyzer = false;
+        StateHasChanged();
+
+    }
+
+    #endregion
+
+    async Task OnInputFileChange(InputFileChangeEventArgs e, string unique_filename, int FileNumber)
+    {
+        var startIndex = uploadedFiles.Count;
+
+        await using var timer = new Timer(_ => InvokeAsync(() => StateHasChanged()));
+        timer.Change(TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(500));
+
+        const long CHUNKSIZE = 1024 * 400;
+
+        IBrowserFile file = null;
+
+        if (e.FileCount > 1)
+        {
+            int file_c = 0;
+            var file_dump_col = e.GetMultipleFiles(e.FileCount);
+            foreach (IBrowserFile file_in in file_dump_col)
+            {
+                if (file_c == FileNumber)
+                {
+                    file = file_dump_col[file_c];
+                }
+                file_c++;
+            }
+        }
+        else
+        {
+            file = e.File;
+        }
+
+        long uploadedBytes = 0;
+        long totalBytes = file.Size;
+        long percent = 0;
+        int fragment = 0;
+        long chunkSize;
+
+        var clientlocal = ClientFactory.CreateClient("LocalApi");
+
+        using (var inStream = file.OpenReadStream(long.MaxValue))
+        {
+            _uploading = true;
+            while (_uploading)
+            {
+                try
+                {
+                    chunkSize = CHUNKSIZE;
+                    if (uploadedBytes + CHUNKSIZE > totalBytes)
+                    {
+                        chunkSize = totalBytes - uploadedBytes;
+                    }
+                    var chunk = new byte[chunkSize];
+                    await inStream.ReadAsync(chunk, 0, chunk.Length);
+
+                    using var formFile = new MultipartFormDataContent();
+                    var fileContent = new StreamContent(new MemoryStream(chunk));
+                    formFile.Add(fileContent, "file", unique_filename);
+
+                    var response = await clientlocal.PostAsync($"api/AppendFileTaskTracking/{fragment++}", formFile);
+
+                    uploadedBytes += chunkSize;
+                    percent = uploadedBytes * 100 / totalBytes;
+
+                    file_UploadedPercentage = percent;
+                    file_Size = totalBytes;
+                    file_UploadedBytes = uploadedBytes;
+                    file_fileName = file.Name;
+
+                    systemcore.Log("TaskCreate", "Controller", "Началась загрузка файла (большой файл, потоковая загрузка): " + unique_filename, SystemCore.LogLevels.Info);
+                    systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание", "Началась загрузка файла (большой файл, потоковая загрузка): " + unique_filename, SystemCore.LogLevels.Info);
+                    systemcore.Log("TaskCreate", "Controller", $"Загружено {percent}%  {uploadedBytes} из {totalBytes} байт | Фрагмент: {fragment}", SystemCore.LogLevels.Debug);
+
+                    if (percent >= 100)
+                    {
+                        _uploading = false;
+                        file_UploadedPercentage = 0;
+                        file_Size = 0;
+                        file_UploadedBytes = 0;
+                        file_fileName = "";
+                    }
+
+                    await InvokeAsync(StateHasChanged);
+
+                }
+                catch (Exception ex)
+                {
+                    systemcore.Log("TaskCreate","Controller","Ошибка при загрузке файла (большой файл, потоковая загрузка) : " + unique_filename + ". Ошибка: " + ex.Message,SystemCore.LogLevels.Error);
+                    systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание", "Произошла ошибка при загрузке файла (большой файл, потоковая загрузка) : " + unique_filename, SystemCore.LogLevels.Error);
+                }
+                finally
+                {
+                    _attachments.Add("https://evicrm.store/uploads/tasktracking/" +  unique_filename);
+                    systemcore.Log("TaskCreate", "Controller", "Закончилась загрузка файла (большой файл, потоковая загрузка): " + unique_filename, SystemCore.LogLevels.Info);
+                    systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание", "Закончилась загрузка файла (большой файл, потоковая загрузка): " + unique_filename, SystemCore.LogLevels.Info);
+                }
+            }
+        }
+
+    }
+
+    async Task LoadFilesAttachments(InputFileChangeEventArgs e)
+    {
+        string filename = "";
+        isLoading = true;
+        loadedFiles.Clear();
+
+        int file_num = -1;
+
+        foreach (var file in e.GetMultipleFiles(maxAllowedFiles))
+        {
+            file_num++;
+            try
+            {
+                loadedFiles.Add(file);
+                filename = file.Name;
+                var trustedFileNameForFileStorage = Path.GetRandomFileName();
+                var path = Path.Combine(_env.ContentRootPath, "wwwroot/uploads/tasktracking", filename);
+
+                if (System.IO.File.Exists(Path.Combine(_env.ContentRootPath, "wwwroot/uploads/tasktracking", filename)) || filename.Length > 100)
+                {
+                    string filename_we = Path.GetFileNameWithoutExtension(file.Name);
+                    string extension = Path.GetExtension(file.Name);
+                    filename = getUnicalFileName(filename_we, extension);
+                }
+
+                if (file.Size > maxFileSize)
+                {
+                    systemcore.Log("TaskCreate", "Controller", "Началась загрузка файла: " + filename, SystemCore.LogLevels.Info);
+                    systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание", "Началась загрузка файла: " + filename, SystemCore.LogLevels.Info);
+                    await OnInputFileChange(e, filename, file_num);
+                }
+                else
+                {
+                    await using FileStream fs = new(path, FileMode.Create);
+                    await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
+                    _attachments.Add("https://evicrm.store/uploads/tasktracking/" + filename);
+                }
+            }
+            catch (Exception ex)
+            {
+                systemcore.Log("TaskCreate", "Controller", "Произошла ошибка при загрузке файла: " + filename, SystemCore.LogLevels.Fatal);
+                systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание", "Произошла ошибка при загрузке файла: " + filename + ". Ошибка: " + ex.Message, SystemCore.LogLevels.Fatal);
+            }
+            finally
+            {
+                attach_lst.Add(filename);
+                attach_lst_links.Add("https://evicrm.store/uploads/tasktracking/" + filename);
+                systemcore.Log("TaskCreate", "Controller", "Закончилась загрузка файла: " + filename, SystemCore.LogLevels.Info);
+                systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание", "Закончилась загрузка файла: " + filename, SystemCore.LogLevels.Info);
+                StateHasChanged();
+            }
+        }
+    }
+
+    public int getProjArrNumberByID(string ID)
+    {
+        for (int i = 0; i<proj_id_dt.Count;i++)
+        {
+            if (proj_id_dt[i] == ID)
+            {
+                return i;
+            }
+        }
+        return int.MinValue;
+    }
+
+
+    public bool ProjectAnalyzer()
+    {
+        bool res = true;
+
+        if (SelectedValues_projs != null)
+        {
+            foreach(var elem in SelectedValues_projs)
+            {
+                int proj_arr_id = getProjArrNumberByID(elem);
+
+                if (proj_arr_id != int.MinValue)
+                {
+                    DateTime proj_start = DateTime.Parse(proj_start_dt[proj_arr_id]);
+                    DateTime proj_end = DateTime.Parse(proj_end_dt[proj_arr_id]); 
+
+                    if (dt_start < proj_start || dt_end > proj_end)
+                    {
+                        res = false; //Потребуется изменение границ проекта
+                    }
+                }
+
+                //ID выбранных проектов
+            }
+        }
+        return res;
+    }
+
+    public async Task SupressProjectAnalyzer()
+    {
+        if (SelectedValues_projs != null)
+        {
+            foreach (var elem in SelectedValues_projs)
+            {
+                int i = getProjArrNumberByID(elem);
+
+                if (i != int.MinValue)
+                {
+                    DateTime proj_start = DateTime.Parse(proj_start_dt[i]);
+                    DateTime proj_end = DateTime.Parse(proj_end_dt[i]);
+
+                    if (dt_start < proj_start)
+                    {
+                        await mysqlc.MySql_ContextAsyncGeneral(mysqlc.ProSupressor_DateStart(elem, dt_start.ToShortDateString()));
+                    }
+                    else if (dt_end > proj_end)
+                    {
+                        await mysqlc.MySql_ContextAsyncGeneral(mysqlc.ProSupressor_DateEnd(elem, dt_end.ToShortDateString()));
+                    }
+                }
+            }
+        }
+    }
+
+    public async Task<bool> Create()
+    {
+
+        //Проверка условий для создания задачи
+
+        if (task_name == null || task_name == "")
+        {
+            systemcore.Log("TaskCreate","Задачи \\ Создание","Имя задачи не может быть пустым!", SystemCore.LogLevels.Fatal);
+            systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание","Имя задачи не может быть пустым!", SystemCore.LogLevels.Fatal);
+            await ToastsNotifications_ShowCustomToast_Danger("Название задачи не может быть пустым!");
+            return false;
+        }
+
+        if (dt_start > dt_end)
+        {
+            systemcore.Log("TaskCreate","Задачи \\ Создание","Начало выполнения задачи не может быть позже конца её выполнения!", SystemCore.LogLevels.Fatal);
+            systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание","Начало выполнения задачи не может быть позже конца её выполнения!", SystemCore.LogLevels.Fatal);
+            await ToastsNotifications_ShowCustomToast_Danger("Начало выполнения задачи не может быть позже конца её выполнения!");
+            return false;
+        }
+
+        //Проверка существующей задачи
+        string value = await mysqlc.MySql_ContextAsyncGeneral(mysqlc.getTasksNameByID(task_name));
+
+        List<string> attach_list = new List<string>();
+        List<string> members_list = new List<string>();
+        List<string> divs_list = new List<string>();
+
+        string attach_u = "";
+        string members_u = "";
+        string divs_u = "";
+
+        if (value == null || value == "") //Если существует уже созданная задача
+        {
+            int user_id = 0;
+            string task_proj = "";
+
+            //Добавление выбранных проектов
+            if (SelectedValues_projs != null)
+            {
+                if (SelectedValues_projs.Count > 0)
+                {
+                    List<string> proj_list = new List<string>();
+                    foreach (string proj in SelectedValues_projs)
+                    {
+                        proj_list.Add(proj);
+                    }
+                    task_proj = bc.getMultipleStringEncodingString(proj_list);
+                }
+            }
+
+            if ((ProjectAnalyzer()==false && supress_project_analyzer) || ProjectAnalyzer()==true)
+            {
+                await SupressProjectAnalyzer();
+                string TOSCRIPT_CMD = "";
+
+                List<string> tasks_id_dt = new List<string>();
+                tasks_id_dt = await mysqlc.getListTaskIDAsync();
+                int new_task_id = 0;
+
+                //Проверяем ID последней задачи или генерируем новый
+                if (tasks_id_dt.Count > 1)
+                {
+                    string new_last = tasks_id_dt[tasks_id_dt.Count - 1];
+                    if (new_last != null && new_last != "")
+                    {
+                        new_task_id = int.Parse(new_last);
+                    }
+                    new_task_id++;
+                }
+                else
+                {
+                    new_task_id = Guid.NewGuid().GetHashCode();
+                }
+
+                string task_id = new_task_id.ToString();
+                string task_author = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+
+                TOSCRIPT_CMD = "CREATE";
+                string TOSCRIPT_VAR1 = "";
+                string TOSCRIPT_VAR2 = "";
+
+                //TOSCRIPT - Создание новой задачи
+                string msg = await mysqlc.MySql_ContextAsyncGeneral(mysqlc.TOSCRIPT_ADD(TOSCRIPT_CMD, TOSCRIPT_VAR1, TOSCRIPT_VAR2, task_id, task_author));
+
+                //Проверка состава задачи - добавление пользователя
+
+                if (SelectedValues_personal != null)
+                {
+                foreach (string member in SelectedValues_personal)
+                {
+                    TOSCRIPT_CMD = "ADDMEMBER";
+                    TOSCRIPT_VAR1 = member;
+                    TOSCRIPT_VAR2 = "";
+                    msg = await mysqlc.MySql_ContextAsyncGeneral(mysqlc.TOSCRIPT_ADD(TOSCRIPT_CMD, TOSCRIPT_VAR1, TOSCRIPT_VAR2, task_id, task_author));
+                    members_list.Add(member);
+                }
+                 }
+
+                //Проверка состава задачи - добавление отдела
+                if (SelectedValues_divs != null)
+                {
+                foreach (string div in SelectedValues_divs)
+                {
+                    TOSCRIPT_CMD = "ADDDIV";
+                    TOSCRIPT_VAR1 = div;
+                    TOSCRIPT_VAR2 = "";
+                    msg = await mysqlc.MySql_ContextAsyncGeneral(mysqlc.TOSCRIPT_ADD(TOSCRIPT_CMD, TOSCRIPT_VAR1, TOSCRIPT_VAR2, task_id, task_author));
+                    divs_list.Add(div);
+                }
+                }
+
+                //Создание главной доски Markdown
+
+                Markdown_Desk init_desk = new Markdown_Desk();
+                init_desk.markdown_desk_name = "Главная";
+                init_desk.markdown_desk_personal_id = "";
+                init_desk.markdown_desk_task_id =  task_id;
+                await mysqlc.MySql_ContextAsyncGeneral(mysqlc.createMarkdownDesk(init_desk));
+
+                //Проверка вложений
+                if (_attachments != null && _attachments.Count > 0)
+                {
+                    attach_u = bc.getMultipleStringEncodingString(_attachments);
+                    TOSCRIPT_CMD = "ADDATTACHMENTS";
+                    TOSCRIPT_VAR1 = "Файлы, загруженные при создании задачи";
+                    TOSCRIPT_VAR2 = attach_u;
+                    msg = await mysqlc.MySql_ContextAsyncGeneral(mysqlc.TOSCRIPT_ADD(TOSCRIPT_CMD, TOSCRIPT_VAR1, TOSCRIPT_VAR2, task_id, task_author));
+                }
+
+                members_u = bc.getMultipleStringEncodingString(members_list);
+                divs_u = bc.getMultipleStringEncodingString(divs_list);
+
+                using var connection = new MySqlConnection("server = 82.146.44.138;user = mysql_c;password = 512Dcfbd28#;database=evicrm");
+                await connection.OpenAsync();
+
+                string task_description_str = contentAsHtml_taskDescription;
+
+                //Создание задачи
+                using var command = new MySqlCommand(mysqlc.setCreateTask(task_name, task_description_str, dt_start.ToShortDateString(), dt_end.ToShortDateString(), attach_u, task_budget, members_u, divs_u,task_author, task_proj, genPersonalStatusString()), connection);
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var value2 = reader.GetValue(0);
+                }
+
+                systemcore.Log("TaskCreate","Задачи \\ Создание","Задача создана успешно! ",SystemCore.LogLevels.Info);
+                systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание", "Задача создана успешно!", SystemCore.LogLevels.Info);
+                await ToastsNotifications_ShowCustomToast_Info("Задача создана успешно!");
+
+                uriHelper.NavigateTo(uriHelper.BaseUri + "/tasks_list", forceLoad: true);
+                return true;
+            }
+            else
+            {
+                 isModal_project_analyzer = true;
+                 await InvokeAsync(StateHasChanged);
+                 systemcore.Log("TaskCreate","Задачи \\ Создание","Запрошена возможность переноса дат связанных с задачей проектов",SystemCore.LogLevels.Error);
+                 systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание","Запрошена возможность переноса дат связанных с задачей проектов", SystemCore.LogLevels.Error);
+            }
+        }
+        else
+        {
+            systemcore.Log("TaskCreate","Задачи \\ Создание","Ошибка при создании задачи - Задача уже существует!",SystemCore.LogLevels.Error);
+                systemcore.Syslog(_iwebhost, SessionUser, "Задачи \\ Создание", "Ошибка при создании задачи - Задача уже существует!", SystemCore.LogLevels.Error);
+                await ToastsNotifications_ShowCustomToast_Danger("Задача уже существует!");
+                return false;
+        }
+            return true;
+        
+          }
+    }

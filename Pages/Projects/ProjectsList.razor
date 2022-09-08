@@ -1,0 +1,310 @@
+﻿@page "/proj_list"
+@using EviCRM.Server.Core
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+
+@inject IWebHostEnvironment _environment
+@inject AuthenticationStateProvider authStateProvider
+@inject NavigationManager UriHelper
+
+<h5>Проекты \ Списком</h5>
+
+<AuthorizeView>
+      <Authorized>
+@if (proj_id_dt.Count <1 )
+    {
+        <h5 class="text-truncate font-size-14"><a href="javascript: void(0);" class="text-dark">Нет проектов в текущем представлении</a></h5>
+    }
+    @if (proj_id_dt.Count >0)
+    {
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="">
+            <div class="table-responsive">
+                <table class="table project-list-table table-nowrap align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 100px">#</th>
+                            <th scope="col">Проекты</th>
+                            <th scope="col">Дедлайны</th>
+                            <th scope="col">Статус</th>
+                            <th scope="col">Исполнители</th>
+                            <th scope="col">Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                       
+                                @for (int i = 0; i<proj_id_dt.Count;i++)
+                                {
+                                     int temp = i;
+                                    
+                                @if (username_is_incast.Contains(proj_id_dt[i]) || (username_is_inauthors.Contains(proj_id_dt[i])) || session_role == "admin" || session_role == "owner")
+                                {
+                                  <tr>
+                                        <td>
+                                            
+                                          <div class="avatar-md">
+                                            <span class="avatar-title rounded-circle bg-light text-danger font-size-16">
+                                                @{
+
+                                                    string path_to_file = _environment.WebRootPath;
+                                                    path_to_file += "\\uploads\\users\\avatars\\";
+
+
+                                                    if (File.Exists(path_to_file + proj_avatar_path[i]))
+                                                    {
+                                                        <img src="/uploads/users/avatars/@proj_avatar_path[i]" alt="" class="avatar-sm">
+                                                    }
+                                                    else
+
+                                                    {
+                                                        <img src="/avatars_past/img-1.png" alt="" class="avatar-sm">
+                                                    }
+
+                                                }
+                                            </span>
+                                        </div>  
+                                        </td>
+                                        <td>
+                                       
+                                            <input type="hidden" asp-for="proj_id" value=@proj_id_dt[i]/>
+                                            <!---->
+                                           <h5 class=text-truncate font-size><button type="button" @onclick="() => ProjectShow(temp.ToString())" class="btn btn-link" >@proj_name_dt[i]</button></h5>
+                                             <p class="text-muted mb-0">@proj_short_description_dt[i]</p>
+                                        </td>
+                                
+                                        <td>@proj_end_dt[i]</td>
+
+                                @if(proj_status_dt[i]=="waiting")
+                                {
+                                  <td><span class="badge bg-dark">Ожидает подтверждения</span></td>   
+                                }
+                                            
+                                @if(proj_status_dt[i]=="approved")
+                                {
+                                 <td><span class="badge bg-success">Подтверждён</span></td> 
+                                }
+									
+                            <td>
+                                <div class="avatar-group">
+                                     
+                                                        @{
+                                                            List<string> cast = bc.getMultipleStringDecodingString(proj_users_dt[i]);
+                                                            List<string> users_avatars = new List<string>();
+
+                                                            foreach(string elem in cast)
+                                                            {
+                                                                int p = getUserArrIDByLogin(elem);
+                                                                users_avatars.Add(users_avatars_dt[p]);
+                                                            }
+
+                                                            for(int av = 0; av<cast.Count; av++)
+                                                            {
+                                                                if (users_avatars[av] == "" || users_avatars[av] == null)
+                                                                {
+                                                                    string str = cast[av].ToUpper();
+                                                      char b_str = '?';
+                                       
+                                                     if (str.Length > 0)
+                                                     {
+                                                      b_str = str[0];                                                            
+                                                     }
+
+                                                    <div class="avatar-group-item">
+                                                    <a href="javascript: void(0);" class="d-inline-block">
+                                                 <div class="avatar-xs">
+                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                     @b_str
+
+                                                      </span>
+                                                      </div>
+                                      </a>
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    if (File.Exists(Path.Combine(_environment.WebRootPath,"uploads","users","avatars",users_avatars[av])))
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                    <a href="javascript: void(0);" class="d-inline-block">
+                                                 <div class="avatar-xs">
+                                                    <img src="/uploads/users/avatars/@users_avatars[av]" alt="" class="avatar-xs"/>
+                                                      </div>
+                                      </a>
+                                                                    </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                    <a href="javascript: void(0);" class="d-inline-block">
+                                                 <div class="avatar-xs">
+                                                    <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs"/>
+                                                      </div>
+                                      </a>
+                                                                    </div>
+                                                                    }
+                                                                }
+                                                            }
+                          
+                                                }
+                                   </div>
+                                   
+                            </td>
+                            <td>
+                                 <div class="btn-group-vertical" role="group" aria-label="Действия с проектом">
+                                    <button type="button" class="btn btn-success">Подтвердить</button>
+                                    <button type="button" class="btn btn-success">Завершить досрочно</button>
+                                    <button type="button" class="btn btn-danger">Отменить</button>
+                                 </div>
+                            </td>
+                               
+                            </tr>
+                            }
+                        
+                       }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+}
+ </Authorized>
+<NotAuthorized>
+    <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! "/>
+</NotAuthorized>
+</AuthorizeView>  
+  @inject ILocalStorageService _localStorageService
+@functions{
+
+    protected async override Task OnInitializedAsync()
+    {
+        proj_id_dt = await mysqlc.getListProjIDAsync();
+        proj_name_dt = await mysqlc.getListProjNameAsync();
+        proj_short_description_dt  = await mysqlc.getListProjShortDescriptionAsync();
+        proj_end_dt = await mysqlc.getListProjEndAsync();
+        proj_status_dt = await mysqlc.getListProjStatusAsync();
+        proj_users_dt = await mysqlc.getListProjUsersAsync();
+        tasks_id_dt = await mysqlc.getListTaskIDAsync();
+        tasks_name_dt = await mysqlc.getListTaskNameAsync();
+        proj_avatar_path = await mysqlc.getListProjAvatarPathAsync();
+        users_dt = await mysqlc.getListUsersLoginAsync();
+
+
+        // users_avatars_dt = mysqlc.getAvatarPaths(users_dt);
+
+        users_avatars_dt = await mysqlc.getListUsersAvatarAsync();
+
+        session_cookie_data = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        session_role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(session_cookie_data));
+
+        username_is_incast = isInCast(session_cookie_data);
+        username_is_inauthors = isInAuthors(session_cookie_data);
+
+    }
+
+    private int _localStorageCount;
+    private IList<KeyValuePair<string, string>> _localStorageItems;
+
+    public int getUserArrIDByLogin(string login)
+    {
+        for (int p = 0; p<users_dt.Count; p++)
+        {
+            if (users_dt[p] == login)
+            {
+                return p;
+            }
+        }
+        return 0;
+    }
+
+    List<string> isInCast(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo= 0; zo < proj_users_dt.Count;zo++)
+        {
+            buffer_decoder = bc.getMultipleStringDecodingString(proj_users_dt[zo]);
+            foreach (string bd in buffer_decoder)
+            {
+                if (bd == username)
+                {
+                    lstr.Add(proj_id_dt[zo]);
+                }
+            }
+        }
+        return lstr;
+    }
+    List<string> isInAuthors(string username)
+    {
+        List<string> lstr = new List<string>();
+        List<string> buffer_decoder = new List<string>();
+        for (int zo= 0; zo < proj_users_dt.Count;zo++)
+        {
+
+            if (proj_users_dt[zo] == username)
+            {
+                lstr.Add(proj_id_dt[zo]);
+            }
+        }
+        return lstr;
+    }
+
+   
+    private async Task RefreshLocalStorageItems()
+    {
+        _localStorageItems = new List<KeyValuePair<string, string>>();
+        await foreach (var key in _localStorageService.GetAllKeysAsync())
+        {
+            if (key is null)
+                continue;
+
+            _localStorageItems.Add(new KeyValuePair<string, string>(key, await _localStorageService.GetItemAsStringAsync(key)));
+        }
+
+    }
+    private async Task SaveCustomLocalStorageItem(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key,val);
+        await RefreshLocalStorageItems();
+    }
+
+    public async Task ProjectShow(string proj_id)
+    {
+         await SaveCustomLocalStorageItem("project_overview", proj_id);
+        UriHelper.NavigateTo("/proj_overview");
+    }
+    
+
+}
+
+@code {
+    private BackendController bc = new BackendController();
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+
+    string session_cookie_data { get; set; }
+    string session_role { get; set; }
+
+
+    List<string> proj_id_dt = new List<string>();
+    List<string> proj_name_dt = new List<string>();
+    List<string> proj_short_description_dt = new List<string>();
+    List<string> proj_end_dt = new List<string>();
+    List<string> proj_status_dt = new List<string>();
+    List<string> proj_users_dt = new List<string>();
+    List<string> tasks_id_dt = new List<string>();
+    List<string> tasks_name_dt = new List<string>();
+    List<string> proj_avatar_path = new List<string>();
+
+        List<string> users_avatars_dt = new List<string>();
+        List<string> users_dt = new List<string>();
+
+    List<string> username_is_incast = new List<string>();
+    List<string> username_is_inauthors = new List<string>();
+    
+    int tasks_b1 = 0;
+    int tasks_b2 = 0;
+    int tasks_b3 = 0;
+}

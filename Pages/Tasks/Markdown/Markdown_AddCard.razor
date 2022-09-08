@@ -1,0 +1,175 @@
+﻿@*<PageTitle>Создать карточку</PageTitle>*@
+
+@inject IWebHostEnvironment _env
+
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+
+        .action_menu {
+        position: absolute;
+        right: 5px;
+        bottom: 5px;
+    }
+        .btn-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 35px;
+            text-align: center;
+            padding-left: 0;
+            padding-right: 0;
+            font-size: 16px;
+            white-space: normal; /* восстанавливаем свойству значение по умолчанию */
+        }
+    </style></head>
+
+
+
+
+<body>
+      <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">Создать новую карточку</h3>
+
+                     <img src="@img_src_url" style="width:100%; height:200px;" />
+                     <p></p>
+                    <div class="form-group row mb-4" style="background-color:darkblue">
+                        <div class="form-group row mb-4">
+                            <p></p>
+                            <div class="col-lg-12">
+                                <input id="card_name" name="card_name" @bind=card_name type="text" class="form-control" placeholder="Название карточки">
+                            </div>
+                        </div>
+
+                        <div class="form-group row mb-4">
+                            <div class="col-lg-12">
+                                <input id="card_description" name="card_description" @bind=card_description type="text" class="form-control" placeholder="Описание">
+                            </div>
+                        </div>
+
+                         <div class="form-group row mb-4">
+                            <div class="col-lg-12">
+                                <label><font color="white">Метка карточки : </font></label>
+                                <input type="color" id="head" name="head" class="form-control" style="height:50px; width:100%;" value="@card_color" @onchange="@(e => ColorChanger(e.Value.ToString()))"/>
+                          </div>
+                        </div>
+
+                       
+
+                        <div class="form-group row mb-4">
+                            <label class="col-form-label col-lg-10"><font color="white">Даты выполнения</font></label>
+                            <div class="col-lg-10">
+                                <label><font color="white">c :</font></label>
+                                <div class="input-daterange input-group">
+                                    <input type="date" class="form-control" @bind=dt_start placeholder="Начало выполнения" name="event_start" />
+                                </div>
+                                <p></p>
+                                <label><font color="white">по :</font></label>
+                                <div class="input-daterange input-group">
+                                    <input type="date" class="form-control" @bind=dt_end placeholder="Планируемое окончание" name="event_end" />
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (todo_lst != null)
+                        {
+                            if (todo_lst.Count > 0)
+                            {
+                                foreach(var elem in todo_lst)
+                                {
+                                   
+                                }
+                            }
+                        }
+
+                         <div class="form-group row mb-4">
+                            <div class="col-lg-2">
+                                <button type="button" class="btn btn-success btn-circle" style="width: 40px; height: 40px;" @onclick=ActionMenu><i class="mdi mdi-plus"></i></button>
+                            </div>
+                        </div>
+
+                        
+
+                    </div>
+                    <div class="action_menu">
+                        <button type="button" class="btn btn-success btn-circle" @onclick="async()=>await ActionMenu()"><i class="mdi mdi-check"></i></button>
+                    </div>
+                </div>
+            </div>
+            </div>
+    </div>
+</body>
+</html>
+
+@code
+{
+    [Parameter]
+    public int desk_id_num { get; set; }
+
+    DateTime dt_start { get; set; }
+    DateTime dt_end { get; set; }
+
+    string card_name { get; set; }
+    string card_color { get; set; }
+    string card_description { get; set; }
+    string selectedValues_desk { get; set; }
+
+    IEnumerable<SelectData> select_data_desks { get; set; }
+
+    string img_src_url = "/assets/images/markdown/markdown_card_template.png";
+
+    [Parameter]
+    public string desk_id { get; set; }
+
+    [Parameter]
+    public string task_id { get; set; }
+
+    [Parameter]
+    public EventCallback< ViewModels.Markdown_Card> markdown_card {get;set;}
+
+    List<Markdown_Todo> todo_lst = new List<Markdown_Todo>();
+
+    void ColorChanger(string color)
+    {
+
+    }
+
+    public class SelectData
+    {
+        public string Id { get; set; }
+
+        public string Name { get; set; }
+    }
+
+    public async Task ActionMenu()
+    {
+        ViewModels.Markdown_Card card  = new ViewModels.Markdown_Card();
+
+        card.markdown_card_name = card_name;
+        card.markdown_card_description  = card_description;
+        card.markdown_card_backcolor = card_color;
+        card.markdown_card_date_end = dt_end;
+        card.markdown_card_date_start = dt_start;
+        card.markdown_card_deskid = desk_id;
+        card.markdown_card_img_path = "";
+        card.markdown_card_taskid = task_id;
+        card.desk_num = desk_id_num;
+
+       await markdown_card.InvokeAsync(card);
+    }
+
+
+    protected override void OnInitialized()
+    {
+        //img_src_url = Path.Combine(_env.WebRootPath,"assets","images","markdown","markdown_card_template.png"); //Template IMG
+
+        dt_start = DateTime.Now;
+        dt_end = DateTime.Now;
+
+        StateHasChanged();
+    }
+}

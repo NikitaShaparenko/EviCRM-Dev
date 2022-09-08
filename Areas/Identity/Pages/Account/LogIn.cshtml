@@ -1,0 +1,308 @@
+﻿@page "/login"
+
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Identity
+@using System.Diagnostics
+@using MySqlConnector
+@attribute [IgnoreAntiforgeryToken]
+@inject SignInManager<IdentityUser> SignInManager
+@model EviCRM.Server.Models.Auth.LoginPageModel;
+
+
+@inject IWebHostEnvironment _env
+@inject NavigationManager UriHelper
+@inject SignInManager<IdentityUser> signInManager
+@inject UserManager<IdentityUser> userManager
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+
+<div class="account-pages my-5 pt-sm-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6 col-xl-5">
+                <div class="card overflow-hidden">
+                    <div class="bg-primary bg-soft">
+                        <div class="row">
+                            <div class="col-7">
+                                <div class="text-primary p-4">
+                                    <h5 class="text-primary">Добро пожаловать!</h5>
+                                    <p>Войдите, чтобы пользоваться CRM</p>
+                                </div>
+                            </div>
+                            <div class="col-5 align-self-end">
+                                <img src="/assets/images/profile-img.png" alt="" class="img-fluid">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="auth-logo">
+                            <a href=@Url.Action("Index", "index") class="auth-logo-light">
+                                <div class="avatar-md profile-user-wid mb-4">
+                                    <span class="avatar-title rounded-circle bg-light">
+                                        <img src="/assets/images/logo-light.svg" alt="" class="rounded-circle" height="50">
+                                    </span>
+                                </div>
+                            </a>
+
+                            <a href=@Url.Action("Index", "index") class="auth-logo-dark">
+                                <div class="avatar-md profile-user-wid mb-4">
+                                    <span class="avatar-title rounded-circle bg-light">
+                                        <img src="/assets/images/logo.svg" alt="" class="rounded-circle" height="50">
+                                    </span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="p-2">
+                            <form class="form-horizontal" asp-action="DoLogin" asp-controller="Login" asp-anti-forgery="true">
+
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Имя пользователя</label>
+                                    <input type="text" class="form-control" asp-for=Login id="username" placeholder="Введите имя пользователя">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Пароль</label>
+                                    <div class="input-group auth-pass-inputgroup">
+                                        <input type="password" class="form-control pwd" asp-for=Password placeholder="Введите пароль" aria-label="Password" aria-describedby="password-addon">
+                                        <button class="btn btn-light btnShow" type="button" id="password-addon"><i class="mdi mdi-eye-outline"></i></button>
+                                    </div>
+                                </div>
+
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="remember-check">
+                                    <label class="form-check-label" for="remember-check">
+                                        Запомнить пароль
+                                    </label>
+                                </div>
+
+
+                                <div class="mt-3 d-grid">
+                                    <button class="btn btn-primary waves-effect waves-light" type="submit">Войти</button>
+                                </div>
+
+                                <div class="mt-4 text-center">
+                                    <h5 class="font-size-14 mb-3">Войти с</h5>
+
+                                    <ul class="list-inline">
+                                        <!-- <li class="list-inline-item">
+                                            <a href="javascript::void()" class="social-list-item bg-primary text-white border-primary">
+                                                 <i class="mdi mdi-facebook"></i>
+                                             </a>
+                                         </li>
+                                         <li class="list-inline-item">
+                                             <a href="javascript::void()" class="social-list-item bg-info text-white border-info">
+                                                 <i class="mdi mdi-twitter"></i>
+                                             </a>
+                                         </li>-->
+                                        <li class="list-inline-item">
+                                            <a href=@Url.Action("Index","AuthLoginTelegram") class="social-list-item bg-danger text-white border-danger">
+                                                <i class="mdi mdi-telegram"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div class="mt-4 text-center">
+                                    <a href=@Url.Action("Index", "AuthRecoverpw") class="text-muted"><i class="mdi mdi-lock me-1"></i> Забыли свой пароль?</a>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="mt-5 text-center">
+
+                    <div>
+                        <p>Нет аккаунта? ? <a href="https://evicrm.store/register" class="fw-medium text-primary"> Зарегистрироваться сейчас </a> </p>
+                        <p>
+                            ©
+                            <script>document.write(new Date().getFullYear())</script> EviCRM. Сделано с <i class="mdi mdi-heart text-danger"></i>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end account-pages -->
+<!-- App js -->
+<script src="/assets/js/app.js"></script>
+
+
+<!-- Bootstrap Css -->
+<link href="/assets/css/bootstrap.min.css" id="bootstrap-style" rel="stylesheet" />
+
+<!-- Icons Css -->
+<link href="/assets/css/icons.min.css" rel="stylesheet" />
+
+<!-- App Css-->
+<link href="/assets/css/app.min.css" id="app-style" rel="stylesheet" />
+
+<!-- JAVASCRIPT -->
+<script src="~/assets/libs/jquery/jquery.min.js"></script>
+<script src="~/assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="~/assets/libs/metismenu/metisMenu.min.js"></script>
+<script src="~/assets/libs/simplebar/simplebar.min.js"></script>
+<script src="~/assets/libs/node-waves/waves.min.js"></script>
+
+
+<!-- owl.carousel js -->
+<script src="~/assets/libs/owl.carousel/owl.carousel.min.js"></script>
+<!-- auth-2-carousel init -->
+<script src="~/assets/js/pages/auth-2-carousel.init.js"></script>
+<!-- two-step-verification js -->
+<script src="~/assets/js/pages/two-step-verification.init.js"></script>
+
+<script>
+        $( ".btnShow" ).mousedown(function() {
+      $(".pwd").attr("type","text");
+    });
+    $( ".btnShow" ).on("mouseleave",function() {
+      $(".pwd").attr("type","password");
+    });
+</script>
+
+@functions {
+
+    EviCRM.Server.Core.BackendController bc = new EviCRM.Server.Core.BackendController();
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+    EviCRM.Server.Core.Sentinel sentinel = new EviCRM.Server.Core.Sentinel();
+    EviCRM.Server.Core.SystemCore systemcore = new EviCRM.Server.Core.SystemCore();
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> OnPost(EviCRM.Server.Models.Auth.LoginPageModel lpm)
+    {
+        MySqlConnection mysql_connection = new MySqlConnection("server = 82.146.44.138;user = mysql_c;password = 512Dcfbd28#;database=evicrm");
+
+        if (lpm.Login != null && lpm.Password != null)
+        {
+            if (ModelState.IsValid)
+            {
+                int user_id = 0;
+                string value;
+                if (lpm.Login.Contains('@'))
+                {
+                    value = await mysqlc.MySql_ContextAsyncL(mysqlc.getUserNameByEmail(sentinel.TripleDesEncrypt(lpm.Login)));
+                    systemcore.Log("Login", "Запрос существование пользователя - " + lpm.Login, EviCRM.Server.Core.SystemCore.LogLevels.Info);
+                }
+                else
+                {
+                    value = await mysqlc.MySql_ContextAsyncL(mysqlc.getUserIDByName(sentinel.TripleDesEncrypt(lpm.Login)));
+                    systemcore.Log("Login", "Запрос существование пользователя - " + lpm.Login, EviCRM.Server.Core.SystemCore.LogLevels.Info);
+                }
+
+                if (value != null && value != "")
+                {
+                    systemcore.Log("Login", "Пользователь " + lpm.Login + " существует с ID = " + value, EviCRM.Server.Core.SystemCore.LogLevels.Info);
+
+                    user_id = int.Parse(value);
+
+                    await mysql_connection.OpenAsync();
+                    var command2 = new MySqlCommand(mysqlc.getUserActivatedByID(user_id.ToString()), mysql_connection); using var reader2 = await command2.ExecuteReaderAsync();
+                    while (await reader2.ReadAsync())
+                    {
+                        value = (string)reader2.GetValue(0).ToString();
+                    }
+
+                    mysql_connection.Close();
+
+                    string activ = value;
+
+                    if (activ == "1")
+                    {
+                        await mysql_connection.OpenAsync();
+                        var command3 = new MySqlCommand(mysqlc.getUserPasswordByID(user_id.ToString()), mysql_connection); using var reader3 = await command3.ExecuteReaderAsync();
+
+                        while (await reader3.ReadAsync())
+                        {
+                            value = (string)reader3.GetValue(0).ToString();
+                        }
+
+                        mysql_connection.Close();
+
+                        string old_passwd = value;
+                        string new_passwd = sentinel.SHA512(lpm.Password.ToString());
+
+                        if (old_passwd == new_passwd)
+                        {
+                            await mysql_connection.OpenAsync();
+                            var command4 = new MySqlCommand(mysqlc.getUserFillProfileInfoByID(user_id.ToString()), mysql_connection); using var reader4 = await command4.ExecuteReaderAsync();
+                            while (await reader4.ReadAsync())
+                            {
+                                value = (string)reader4.GetValue(0).ToString();
+                                Debug.WriteLine(value);
+
+                            }
+
+                            mysql_connection.Close();
+
+                            string filluserinfo = value;
+
+                            await bc.SendAlexandraEnvironment(_env);
+
+                            if (lpm.Login.Contains('@'))
+                            {
+                                return await DoLogin(await mysqlc.MySql_ContextAsyncL(mysqlc.getUserNameByEmail(sentinel.TripleDesEncrypt(lpm.Login))), lpm.Password);
+                            }
+                            else
+                            {
+                                return await DoLogin(lpm.Login, lpm.Password);
+                            }
+
+                            if (filluserinfo == "0")
+                            {
+                                return RedirectToAction("Index", "ContactsProfileFill");
+                            }
+                            else
+                            {
+                                return RedirectToAction("Index", "Index");
+                            }
+                        }
+                        else
+                        {
+                            systemcore.Log("Login", "Пользователь ввёл неправильный пароль - " + lpm.Login, EviCRM.Server.Core.SystemCore.LogLevels.Error);
+                        }
+                    }
+                    else if (value == "0")
+                    {
+                        systemcore.Log("Login", "Пользователь:  " + lpm.Login + " не активирован! Активируйте его в админ панели", EviCRM.Server.Core.SystemCore.LogLevels.Error);
+                    }
+                    else
+                    {
+                         systemcore.Log("Login", "Пользователь:  " + lpm.Login + " имеет непонятный статус активации, вероятно баг, value = " + value, EviCRM.Server.Core.SystemCore.LogLevels.Error);
+                    }
+                }
+                else
+                {
+                    systemcore.Log("Login", "Пользователя не существует - " + mysqlc.getUserNameByEmail(sentinel.TripleDesEncrypt(lpm.Login)), EviCRM.Server.Core.SystemCore.LogLevels.Error);
+                }
+
+
+            }
+        }
+
+        if (SignInManager.IsSignedIn(User))
+        {
+            await SignInManager.SignOutAsync();
+            systemcore.Log("Login", "Успешный выход пользователя -  " + sentinel.TripleDesDecrypt(User.Identity.Name), EviCRM.Server.Core.SystemCore.LogLevels.Info);
+        }
+
+        return Redirect("/");
+    }
+    }
+
+    @functions {
+
+    public async Task<IActionResult> DoLogin(string login, string password)
+    {
+        var user = new IdentityUser { UserName = sentinel.TripleDesEncrypt(login), Email = sentinel.TripleDesEncrypt(login)};
+
+        await signInManager.SignInAsync(user, false);
+
+        systemcore.Log("Login", "Успешная авторизация " + " для " + login, EviCRM.Server.Core.SystemCore.LogLevels.Info);
+        return Redirect("/");
+    }
+    }

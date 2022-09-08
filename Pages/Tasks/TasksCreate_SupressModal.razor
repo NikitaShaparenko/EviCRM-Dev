@@ -1,0 +1,38 @@
+﻿<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Проблема со сроками выполнения задачи</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Один или несколько связанных с задачей проектов имеют сроки, которые выходят за рамки сроков задач</p>
+                <p></p>
+                <h6><b>Скорректировать автоматически границы проектов так, чтобы сроки выполнения задач в них умещались?</b></h6>
+            </div>
+            <div class="modal-footer">
+                
+                       
+                        <button type="button" class="btn btn-success" @onclick=@ModalOk>Скорректировать сроки</button>
+                        <button type="button" class="btn btn-danger" @onclick="@ModalCancel">Закрыть</button>
+                      
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+   
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+}

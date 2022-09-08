@@ -1,0 +1,182 @@
+﻿@using EviCRM.Server.Core
+
+@if (!ready)
+{
+    <p>Загружаю журнал...</p>
+}
+else
+{
+<div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Журнал оценок</h4>
+                <div class="table-responsive">
+                    <table class="table table-nowrap align-middle mb-0">
+                     
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" style="width: 70px;">#</th>
+                                <th scope="col">Имя сотрудника</th>
+                                
+                                @for(int p = 0; p<day_num;p++)
+                                {
+                                    <th scope="col">@p (@WhatIsTheDayToday(p))</th>
+                                }
+
+                            </tr>
+                        </thead>
+                        <tbody>
+                                
+                                @for (int i = 0; i<users_dt.Count; i++)
+                                {
+                                   <tr>
+                                       <td>@(i+1)</td>
+
+                                   </tr>
+                                }
+                         </tbody>
+                                @if (users_dt.Count == 0)
+                                {
+                                    <h5 class="text-truncate font-size-14 m-0"><a href="javascript: void(0);" class="text-dark">Нет пользователей</a></h5>
+                                }
+                            
+                    </table>
+                </div>
+            </div>
+        </div>
+        }
+@code {
+
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+    public static BackendController bc = new BackendController();
+
+    public int num { get; set; }
+    int day_num { get; set; } //Сколько дней в месяце
+
+    bool ready = false;
+    List<string> users_dt = new List<string>();
+    List<string> email_dt = new List<string>();
+    List<string> passwords_dt = new List<string>();
+    List<string> id_dt = new List<string>();
+    List<string> fullname_dt = new List<string>();
+    List<string> position_dt = new List<string>();
+    List<string> skills_dt = new List<string>();
+    List<string> avatarpath_dt = new List<string>();
+    List<string> projects_val_dt = new List<string>();
+        
+
+    protected async override Task OnInitializedAsync()
+    {
+        users_dt = await mysqlc.getListUsersLoginAsync();
+        email_dt = await mysqlc.getListUsersEmailAsync();
+        passwords_dt = await mysqlc.getListUsersPasswordAsync();
+        id_dt = await mysqlc.getListUsersIDAsync();
+        fullname_dt = await mysqlc.getListUsersFullnameAsync();
+        position_dt = await mysqlc.getListUsersPositionsAsync();
+        skills_dt = await mysqlc.getListUsersSkills();
+        avatarpath_dt = mysqlc.getAvatarPaths(users_dt);
+        projects_val_dt = await mysqlc.getListUsersProjectsAsync();
+
+
+        int p = 0;
+        if (users_dt != null)
+        {
+            p = users_dt.Count;
+        }
+
+        ready = true;
+    }
+
+
+    [Parameter] public string selected_month {get;set;}
+    [Parameter] public string selected_year {get;set;}
+}
+
+@functions{
+     string WhatIsTheDayToday(int current_day)
+    {
+        DateTime dt = new DateTime(int.Parse(selected_year), MonthNum(), current_day);
+
+        switch(dt.DayOfWeek)
+        {
+            case DayOfWeek.Monday:
+                {
+                    return "Пн";
+                }
+            case DayOfWeek.Tuesday:
+                {
+                    return "Вт";
+                }
+            case DayOfWeek.Wednesday:
+                {
+                    return "Ср";
+                }
+            case DayOfWeek.Thursday:
+                {
+                    return "Чт";
+                }
+            case DayOfWeek.Friday:
+                {
+                    return "Пт";
+                }
+            case DayOfWeek.Saturday:
+                {
+                    return "Сб";
+                }
+            case DayOfWeek.Sunday:
+                {
+                    return "Вс";
+                }
+        }
+        return "??";
+    }
+
+    int MonthNum()
+    {
+        int month_num = 0;
+        switch(selected_month)
+        {
+            case "Январь":
+                month_num = 1;
+                break;
+            case "Февраль":
+                month_num = 2;
+                break;
+            case "Март":
+                month_num = 3;
+                break;
+            case "Апрель":
+                month_num = 4;
+                break;
+            case "Май":
+                month_num = 5;
+                break;
+            case "Июнь":
+                month_num = 6;
+                break;
+            case "Июль":
+                month_num = 7;
+                break;
+            case "Август":
+                month_num = 8;
+                break;
+            case "Сентябрь":
+                month_num = 9;
+                break;
+            case "Октябрь":
+                month_num = 10;
+                break;
+            case "Ноябрь":
+                month_num = 11;
+                break;
+            case "Декабрь":
+                month_num = 12;
+                break;
+        }
+        return month_num;
+    }
+
+    void DayCounter()
+    {
+        day_num = DateTime.DaysInMonth(MonthNum(), int.Parse(selected_year));
+    }
+}

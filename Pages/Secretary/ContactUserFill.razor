@@ -1,0 +1,348 @@
+﻿@page "/contact_userfill"
+
+@inject IToastService _toastService;
+
+<PageTitle>Анкета для регистрации</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+
+
+        <style>
+            <!-- Plugins css -->
+            <link href="~/assets/libs/dropzone/min/dropzone.min.css" rel="stylesheet" type="text/css" / >
+            <link href="~/assets/libs/select2/css/select2.min.css" rel="stylesheet" type="text/css" / >
+            <link href="~/assets/libs/bootstrap-datepicker/css/bootstrap-datepicker.min.css" rel="stylesheet" >
+        </style>
+
+        @if (ready)
+        {
+            <div class="row justify-content-center mt-lg-5">
+                <div class="col-xl-5 col-sm-8">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="text-center">
+                                <div class="row justify-content-center">
+                                    <div class="col-lg-10">
+                                        <h4 class="mt-4 fw-semibold">Давай познакомимся!</h4>
+                                        <p class="text-muted mt-3">Необходимо заполнить небольшую анкету, чтобы закончить регистрацию</p>
+
+                                        <div class="mt-4">
+                                            <!-- Button trigger modal -->
+                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#verificationModal">
+                                                Поехали
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row justify-content-center mt-5 mb-2">
+                                    <div class="col-sm-6 col-8">
+                                        <div>
+                                            <img src="~/assets/images/verification-img.png" alt="" class="img-fluid">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal -->
+
+                        <div class="modal fade" id="verificationModal" tabindex="-1" role="dialog" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Карточка личных данных</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+
+                                            <div id="kyc-verify-wizard">
+                                                <!-- Personal Info -->
+                                            <h4>Персональная информация</h4>
+                                            <p></p>
+                                                <div class="form-group row mb-4">
+                                                    <label for="personal_fullname" class="col-form-label col-lg-2">Фамилия Имя</label>
+                                                    <div class="col-lg-10">
+                                                        <input id="personal_fullname"
+                                                           name="personal_fullname"
+                                                           @bind=card_fullname
+                                                           type="text"
+                                                           class="form-control"
+                                                           placeholder="Введи фамилию и имя">
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group row mb-4">
+                                                    <label for="select_div" class="col-form-label col-lg-2">Отделы</label>
+                                                    <div class="col-lg-10">
+                                                        <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect Label="Список отделов"
+                                                                                                         TItem="@SelectData"
+                                                                                                         TValue="string"
+                                                                                                         Data="@select_data_divs"
+                                                                                                         @bind-Value="@SelectedValues_divs"
+                                                                                                         TextSelector="@((p) => p.Name)"
+                                                                                                         ValueSelector="@((p) => p.Id)"
+                                                                                                         EmptyText="Выберите одно или несколько значений"
+                                                                                                         NullDataText="Загружаются значения..." />
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group row mb-4">
+                                                    <label for="personal_phonenumber" class="col-form-label col-lg-2">Номер телефона</label>
+                                                    <div class="col-lg-10">
+                                                        <input id="personal_phone"
+                                                           name="personal_phone"
+                                                           @bind=card_phone
+                                                           type="text"
+                                                           class="form-control"
+                                                           placeholder="Введи номер телефона">
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group row mb-4">
+                                                    <label for="personal_position" class="col-form-label col-lg-2">Должность</label>
+                                                    <div class="col-lg-10">
+                                                        <input id="personal_position"
+                                                           name="personal_position"
+                                                           @bind=card_position
+                                                           type="text"
+                                                           class="form-control"
+                                                           placeholder="Введи должность">
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group row mb-4">
+                                                    <label class="col-form-label col-lg-2">Био профиля</label>
+                                                    <div class="col-lg-10">
+
+                                                        <RichTextEdit @ref="card_bio"
+                                                                  Theme="RichTextEditTheme.Snow"
+                                                                  ContentChanged="@OnContentChanged_bio"
+                                                                  PlaceHolder="Био профиля - это красивое описание, способ самовыражения, напиши небольшое описание себя, пусть это будет личный уголок в нашей системе"
+                                                                  ReadOnly="false"
+                                                                  SubmitOnEnter="false"
+                                                                  EnterPressed="@OnSave_bio"
+                                                                  ToolbarPosition="Placement.Top">
+                                                            <Editor></Editor>
+                                                            <Toolbar>
+                                                                <RichTextEditToolbarGroup>
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.Bold" />
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.Italic" />
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.Blockquote" />
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.Header" />
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.Strike" />
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.Underline" />
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+
+                                                                    <RichTextEditToolbarSelect Action="RichTextEditAction.Size">
+                                                                        <RichTextEditToolbarSelectItem Value="small" />
+                                                                        <RichTextEditToolbarSelectItem Selected />
+                                                                        <RichTextEditToolbarSelectItem Value="large" />
+                                                                        <RichTextEditToolbarSelectItem Value="huge">Very Big</RichTextEditToolbarSelectItem>
+                                                                    </RichTextEditToolbarSelect>
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="ordered" />
+                                                                    <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="bullet" />
+                                                                </RichTextEditToolbarGroup>
+                                                                <RichTextEditToolbarGroup Float="Float.End">
+                                                                    <Button Clicked="@OnSave_bio"><Icon Name="IconName.Save" /></Button>
+                                                                </RichTextEditToolbarGroup>
+                                                            </Toolbar>
+                                                        </RichTextEdit>
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group row mb-4">
+                                                    <label for="select_div" class="col-form-label col-lg-2">Теги</label>
+                                                    <div class="col-lg-10">
+                                                        <Havit.Blazor.Components.Web.Bootstrap.HxMultiSelect Label="Список тегов"
+                                                                                                         TItem="@SelectData"
+                                                                                                         TValue="string"
+                                                                                                         Data="@select_data_skills"
+                                                                                                         @bind-Value="@SelectedValues_skills"
+                                                                                                         TextSelector="@((p) => p.Name)"
+                                                                                                         ValueSelector="@((p) => p.Id)"
+                                                                                                         EmptyText="Выберите одно или несколько значений"
+                                                                                                         NullDataText="Загружаются значения..." />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button class="btn btn-primary form-control">Сохранить мои данные</button>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+
+    </Authorized>
+
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+
+</AuthorizeView>
+
+@code {
+    bool ready = false;
+
+    List<string> division_dt = new List<string>();
+    List<string> skills_col_dt = new List<string>();
+
+    MySQL_Controller mysqlc = new MySQL_Controller();
+
+    protected override async Task OnInitializedAsync()
+    {
+        skills_col_dt.Add("Тег 1");
+        skills_col_dt.Add("Тег 2");
+        skills_col_dt.Add("Тег 3");
+        skills_col_dt.Add("Тег 4");
+
+
+        division_dt = await mysqlc.getListDivisionsNameAsync();
+        skills_col_dt = await mysqlc.getListSkillsGeneralCollectionAsync();
+
+        if (skills_col_dt.Count < 1)
+        {
+            skills_col_dt.Add("Работник");
+        }
+
+        if (division_dt.Count < 1)
+        {
+            division_dt.Add("Общий отдел");
+        }
+
+        ready = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+     //Toast Notifications
+        private string _toastText = $@"<strong>Toast:</strong> This is a(n) {NotificationTypes.Primary} notification";
+	    private bool _toastShowIcon = true;
+	    private bool _toastShowCloseButton = true;
+	    private bool _toastShowCountdownProgress = true;
+	    private uint _toastAutoCloseInSec = 5;
+	    private uint _toastShadowEffect = 5;
+	    private NotificationStyles _toastStyle;
+	    private NotificationTypes _toastTypeLevel;
+
+     #region Toasts Notifications
+
+    //Toasts
+    private async Task ToastsNotifications_ShowAllToast()
+    {
+        foreach (var item in Enum.GetValues<NotificationTypes>())
+        {
+            _toastService.ShowToast($@"<strong>Toast оповещения:</strong> Это оповещение типа {item}", item);
+        }
+    }
+
+    private Guid _lastToastId;
+
+    private async Task ToastsNotifications_ShowCustomToast(string toastText, NotificationStyles ns, NotificationTypes ntype)
+    {
+        _lastToastId = _toastService.ShowToast(new ToastSettings()
+            {
+                Content = builder => builder.AddMarkupContent(0, toastText),
+                NotificationStyle = ns,
+                Type = ntype,
+                AutoCloseInSec = _toastAutoCloseInSec,
+                ShadowEffect = _toastShadowEffect,
+                ShowCloseButton = _toastShowCloseButton,
+                ShowCloseCountdownProgress = _toastShowCountdownProgress,
+                ShowIcon = _toastShowIcon
+            });
+    }
+
+    private async Task ToastsNotifications_ShowCustomToast_Primary(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Primary);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Secondary(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Secondary);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Info(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Info);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Success(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Success);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Warning(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Warning);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Danger(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Danger);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Light(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Light);
+    }
+    private async Task ToastsNotifications_ShowCustomToast_Dark(string toastText)
+    {
+        await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Dark);
+    }
+    private async Task RemoveAllToasts()
+    {
+        _toastService.ClearAll();
+    }
+    private async Task RemoveLastToasts()
+    {
+        if (_lastToastId != Guid.Empty)
+        {
+            _toastService.RemoveToast(_lastToastId);
+        }
+    }
+
+  
+
+    #endregion
+
+}
+
+@functions {
+
+    private IList<SelectData> select_data_divs;
+        private IList<SelectData> select_data_skills;
+
+        List<string> SelectedValues_divs { get; set; }
+        List<string> SelectedValues_skills { get; set; }
+
+        protected string contentAsHtml_bio;
+        protected string contentAsDeltaJson_bio;
+        protected string contentAsText_bio;
+        protected string savedContent_bio;
+
+     public async Task OnContentChanged_bio()
+        {
+            contentAsHtml_bio = await card_bio.GetHtmlAsync();
+            contentAsDeltaJson_bio = await card_bio.GetDeltaAsync();
+            contentAsText_bio = await card_bio.GetTextAsync();
+        }
+
+         public async Task OnSave_bio()
+        {
+            savedContent_bio = await card_bio.GetHtmlAsync();
+            await card_bio.ClearAsync();
+        }
+
+    RichTextEdit card_bio;
+
+    string card_fullname { get; set; }
+    string card_phone { get; set; }
+    string card_position { get; set; }
+
+
+}

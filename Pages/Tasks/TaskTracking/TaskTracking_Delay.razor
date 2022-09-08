@@ -1,0 +1,99 @@
+﻿@using EviCRM.Server.Pages.Tasks;
+@using ViewModels;
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Перенос сроков выполнения задачи</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row mb-4">
+
+                    <label for="ttm_question_title">Почему вы хотите перенести сроки выполнения задачи?</label>
+
+                    <ul>
+                        <li><p><button type="button" @onclick='(() => SendTOScriptCmd("DELAY_OTHERTASK"))' class="btn btn-primary waves-effect waves-light">Происходит наслоение других задач</button></p></li>
+                        <li><p><button type="button" @onclick='(() => SendTOScriptCmd("DELAY_LACKTIME"))' class="btn btn-primary waves-effect waves-light">Не хватает времени на её выполнение</button></p></li>
+                        <li><p><button type="button" @onclick='(() => SendTOScriptCmd("DELAY_FORCEM"))' class="btn btn-primary waves-effect waves-light">Произошёл форс-мажор</button></p></li>
+                        <li><p><button type="button" @onclick='(() => SendTOScriptCmd("DELAY_NOMONEY"))' class="btn btn-primary waves-effect waves-light">Недостаточно финансирования</button></p></li>
+                        <li><p><button type="button" @onclick='(() => SendTOScriptCmd("DELAY_GUILTYMEMBER"))' class="btn btn-primary waves-effect waves-light">Виноват другой(ие)</button></p></li>
+                        <li><p><button type="button" @onclick='(() => SendTOScriptCmd("DELAY_OTHER"))' class="btn btn-primary waves-effect waves-light">Другая причина</button></p></li>
+                    </ul>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" @onclick="@ModalCancel">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string task_author { get; set; }
+
+    [Parameter]
+    public string task_id { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public ModalDialogType DialogType { get; set; }
+
+    TOScript to_script = new TOScript();
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+        DeleteCancel
+    }
+
+    public async Task SendTOScriptCmd(string cmd)
+    {
+        TaskTrackingModelDelay ttmd = new TaskTrackingModelDelay();
+        ttmd.task_author = task_author;
+        ttmd.task_id = task_id;
+
+        switch (cmd)
+        {
+            case "DELAY_OTHERTASK":
+                await to_script.DELAY_OTHERTASK(ttmd);
+                break;
+            case "DELAY_LACKTIME":
+                await to_script.DELAY_LACKTIME(ttmd);
+                break;
+            case "DELAY_FORCEM":
+                await to_script.DELAY_FORCEM(ttmd);
+                break;
+            case "DELAY_NOMONEY":
+                await to_script.DELAY_NOMONEY(ttmd);
+                break;
+            case "DELAY_GUILTYMEMBER":
+                await to_script.DELAY_GUILTYMEMBER(ttmd);
+                break;
+            case "DELAY_OTHER":
+                await to_script.DELAY_OTHER(ttmd);
+                break;
+            default:
+                await to_script.DELAY_FORCEM(ttmd);
+                break;
+
+        }
+        await OnClose.InvokeAsync(true);
+    }
+}

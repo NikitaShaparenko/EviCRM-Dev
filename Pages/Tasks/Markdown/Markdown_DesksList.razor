@@ -1,0 +1,101 @@
+﻿
+
+<!doctype html>
+
+<PageTitle>Markdown - Список досок</PageTitle>
+
+<html>
+<head>
+    <meta charset="utf-8">
+
+    <style>
+        .action_menu {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+        }
+
+        .btn-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 35px;
+            text-align: center;
+            padding-left: 0;
+            padding-right: 0;
+            font-size: 16px;
+            white-space: normal; /* восстанавливаем свойству значение по умолчанию */
+        }
+    </style>
+</head>
+
+<body>
+
+    @if (ready)
+    {
+
+    <table border="1">
+
+        <tbody>
+
+            @foreach(var elem in desks_list)
+            {
+                <tr>
+                    <td><div style="width: 50px; height: 50px; background-color:@elem.color">&nbsp;</div></td>
+                    <td>@elem.name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    }
+   <div class="action_menu">
+       @if (actionmenu)
+       {
+		<table>
+			
+			<tr>
+			<td><button type="button" class="btn btn-outline" @onclick=CreateCard><i class="mdi mdi-card">Карточка</i></button></td>
+			</tr>
+			
+			<tr>
+			<td><button type="button" class="btn btn-outline" @onclick=CreateDesk><i class="mdi mdi-arrange-send-backward">Доска</i></button></td>
+			</tr>
+		</table>
+        }
+		<button type="button" class="btn btn-success btn-circle" @onclick=ActionMenu><i class="mdi mdi-plus"></i></button>
+	
+    </div>
+
+</body>
+</html>
+
+@code
+{
+    bool ready = false;
+    bool actionmenu = false;
+
+    [Parameter]
+    public List<Markdown_List> desks_list { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> call_create_card { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> call_create_desk { get; set; }
+
+
+    public void ActionMenu()
+    {
+        actionmenu = !actionmenu;
+        StateHasChanged();
+    }
+
+    public async Task CreateCard()
+    {
+       await call_create_card.InvokeAsync();
+    }
+
+    public async Task CreateDesk()
+    {
+        await call_create_desk.InvokeAsync();
+    }
+}

@@ -1,0 +1,56 @@
+﻿@using Majorsoft.Blazor.Components.Notifications
+@inherits LayoutComponentBase
+
+<PageTitle>EviCRM.Server</PageTitle>
+
+<div class="page">
+    <div class="sidebar" style="height:100%">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 auth">
+            <LoginDisplay />
+           
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+
+
+     <ToastContainer />
+</div>
+
+<style>
+	.gdpr-banner {
+		font-size: medium;
+		font-weight: 500;
+		padding: 16px 0;
+		display: flex;
+		-webkit-box-pack: center;
+		-ms-flex-pack: center;
+		justify-content: center;
+		-webkit-box-align: center;
+		-ms-flex-align: center;
+		align-items: center;
+		/*border: 1px solid #e0e0e0;*/
+	}
+</style>
+
+@inject IToastService _toastService
+
+@code {
+    protected override void OnInitialized()
+    {
+        //Common settings can be set globally for ToastContainer and Toasts in IToastService
+        _toastService.GlobalSettings.Position = ToastPositions.TopRight;
+        _toastService.GlobalSettings.RemoveToastsOnNavigation = true;
+        _toastService.GlobalSettings.Width = 420;
+        _toastService.GlobalSettings.PaddingFromSide = -1;
+        _toastService.GlobalSettings.PaddingFromTopOrBottom = -1;
+
+        ToastContainerGlobalSettings.DefaultToastsAutoCloseInSec = 12;
+    }
+}

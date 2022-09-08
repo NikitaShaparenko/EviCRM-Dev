@@ -1,0 +1,192 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using EviCRM.Server.Pages.Secretary
+<!doctype html>
+
+<PageTitle>Markdown - Создать доску</PageTitle>
+
+<html>
+<head>
+    <meta charset="utf-8">
+
+</head>
+
+<style>
+
+    .action_menu {
+        position: absolute;
+        right: 5px;
+        bottom: 5px;
+    }
+
+    .btn-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 35px;
+        text-align: center;
+        padding-left: 0;
+        padding-right: 0;
+        font-size: 16px;
+        white-space: normal; /* восстанавливаем свойству значение по умолчанию */
+    }
+</style>
+
+<body>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">Создать доску</h3>
+
+                    <div class="form-group row mb-4">
+                       
+                        <div class="col-lg-10">
+                            <label class="col-form-label">Название доски</label>
+                        </div>
+
+                        <div class="col-lg-10">
+                            <input id="desk_name" name="desk_name" @bind=desk_name type="text" class="form-control" placeholder="Введите название доски">
+                        </div>
+                    </div>
+
+                    <div class="form-group row mb-4">
+                        <div class="col-lg-10">
+                            <label class="col-form-label">Видимость</label>
+                        </div>
+
+                        <div class="col-lg-10">
+
+                            <HxRadioButtonList Label="Видимость доски"
+                                               TItem="Visibility"
+                                               TValue="string"
+                                               Data="@visibility_list"
+                                               @bind-Value="@SelectedPerson"
+                                               @onchange="@VisibilityChanged"
+                                               TextSelector="@(p => p.Name)"
+                                               ValueSelector="@(p => p.Code)" />
+
+                        </div>
+                    </div>
+
+                    @if (SelectedPerson == "PERSON")
+                    {
+                        <div class="form-group row mb-4">
+                           
+                            <div class="col-lg-10">
+                                <label class="col-form-label">Кому</label>
+                            </div>
+
+                            <div class="col-lg-10">
+                                <Havit.Blazor.Components.Web.Bootstrap.HxSelect Label="Список пользователей"
+                                                                            TItem="@SelectData"
+                                                                            TValue="string"
+                                                                            Data="@select_data_users"
+                                                                            @bind-Value="@SelectedValues_personal"
+                                                                            TextSelector="@((p) => p.Name)"
+                                                                            ValueSelector="@((p) => p.Id)"
+                                                                            NullDataText="Загружаются значения..." />
+                            </div>
+                        </div>
+                    }
+
+                    <div class="action_menu">
+                        <button type="button" class="btn btn-success btn-circle" @onclick="async()=>await ActionMenu()"><i class="mdi mdi-check"></i></button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</body>
+</html>
+
+@code {
+
+    [Required(ErrorMessage = "Введи название доски")]
+    string desk_name { get; set; }
+    string SelectedValues_personal { get; set; }
+
+    [Parameter]
+    public int desk_num_id { get; set; }
+
+    [Parameter]
+    public string task_id { get; set; }
+
+    [Parameter]
+    public EventCallback<Markdown_Desk> OnDeskCreated { get; set; }
+
+    [Parameter]
+    public EventCallback<Markdown_Desk> OnDeskErrorCreating { get; set; }
+
+    [Parameter]
+    public IList<SelectData> select_data_users { get; set; }
+
+    [Required(ErrorMessage = "Выбери кому ты хочешь выставить доску")]
+    public string SelectedPerson { get; set; }
+
+    public async Task ActionMenu()
+    {
+        Markdown_Desk markdown_Desk = new Markdown_Desk();
+        markdown_Desk.markdown_desk_name = desk_name;
+        markdown_Desk.markdown_desk_task_id = task_id;
+        markdown_Desk.desk_num = desk_num_id;
+
+        if (SelectedPerson == "PERSON")
+        {
+            markdown_Desk.markdown_desk_personal_id = SelectedValues_personal;
+        }
+
+        if (Markdown_CanBeSent())
+        {
+            await OnDeskCreated.InvokeAsync(markdown_Desk);
+        }
+        else
+        {
+            await OnDeskErrorCreating.InvokeAsync(markdown_Desk);
+        }
+    }
+
+    public void VisibilityChanged()
+    {
+        StateHasChanged();
+    }
+
+    bool Markdown_CanBeSent()
+    {
+        if (desk_name == "" || desk_name == null)
+        {
+            return false;
+        }
+
+        if (SelectedPerson == "PERSON")
+        {
+            if (SelectedValues_personal == "" || SelectedValues_personal == null)
+            {
+                return false;
+            }
+        }
+       
+        return true;
+    }
+
+    internal class Visibility
+    {
+        public string Name { get; set; }
+        public string Code { get; set; }
+    }
+
+    private List<Visibility> visibility_list = new List<Visibility>
+{
+        new Visibility { Name = "Общая доска для всех", Code = "ALL" },
+        new Visibility { Name = "Персональная доска работнику", Code = "PERSON" },
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        SelectedPerson = "ALL";
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

@@ -1,0 +1,1550 @@
+﻿@page "/task_tracking"
+
+@using EviCRM.Server.Core
+@using System.Collections.Generic;
+@using System.Net
+@using EviCRM.Server.Models
+@using EviCRM.Server.ViewModels
+@using System.Net.Sockets
+@using System.Globalization
+@using EviCRM.Server.Pages.Tasks;
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+@using System.Web.Mvc
+
+@using Blzr.BootstrapSelect
+
+@inject NavigationManager UriHelper
+@inject ILocalStorageService localStorage
+@inject AuthenticationStateProvider authStateProvider
+@inject IToastService _toastService;
+
+<h5>Задачи \ Отслеживание задачи</h5>
+<PageTitle>Задачи \ Отслеживание задачи</PageTitle>
+
+<style>
+
+    .dont-break-out {
+        /* These are technically the same, but use both */
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        -ms-word-break: break-all;
+        /* This is the dangerous one in WebKit, as it breaks things wherever */
+        word-break: break-all;
+        /* Instead use this non-standard one: */
+        word-break: break-word;
+        /* Adds a hyphen where the word breaks, if supported (No Blink) */
+        -ms-hyphens: auto;
+        -moz-hyphens: auto;
+        -webkit-hyphens: auto;
+        hyphens: auto;
+    }
+
+    .wordwrap {
+        word-wrap: break-word; /* Перенос слов */
+    }
+
+    .container {
+        border: 1px solid #000000;
+        height: 300px;
+    }
+
+        .container textarea {
+            border: 1px solid red;
+            height: 100%;
+        }
+
+    /* Important part */
+    .modal-dialog {
+        overflow-y: initial !important
+    }
+
+    .modal-body {
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+</style>
+
+@inject IWebHostEnvironment _env
+
+<AuthorizeView>
+    <Authorized>
+
+        @if (!ready)
+        {
+            <h6><i class="bx bx-buoy bx-spin text-primary display-3"></i> Задача загружается, подождите пожалуйста </h6>
+        }
+        else
+        {
+           
+            @if (task_id_cookie == null || task_id_cookie == "")
+            {
+                <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_ErrorModal 
+                OnClose=@ErrorModalHandler />
+            }
+            else
+            {
+
+                <!--Модальные окна-->
+                @if (modalRemindOpened)
+                {
+                    <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_RemindBoard 
+                    divisions_ids=@divisions_ids
+                    divisions_name=@divisions_name
+                    fullname_dt=@fullname_dt
+                    task_author=@user_
+                    task_id=@task_id.ToString()
+                    users_dt=@users_dt
+                    OnClose="OnRemindBoardClosed" />
+                }
+                <!-- Модальное окно завершения задачи как провал -->
+                @if (modalCloseFailedOpened)
+                {
+                    <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_MarkAsFault
+                    task_author=@task_id_cookie
+                    task_id=@task_id.ToString()
+                    OnClose="OnCloseFailClosed"
+                    OnOk="OnOkFailClosed" />
+                }
+                @if (modalRevisionOpened)
+                {
+                    <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_Revision
+                    task_started=DateTime.Parse(tasks_start_dt[0])
+                    task_ended=DateTime.Parse(tasks_end_dt[0])
+                    divisions_ids=@divisions_ids
+                    divisions_name=@divisions_name
+                    fullname_dt=@fullname_dt
+                    OnClose="OnCloseRevisionClosed"
+                    OnUpdate="OnUpdateRevision"
+                    task_author=@user_
+                    task_id=@task_id.ToString()
+                    users_dt=@users_dt />
+                }
+                @if (modalDateChangeOpened)
+                {
+                    <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_ModalDatesChange
+                    task_author=@task_id_cookie
+                    task_id=@task_id.ToString()
+                    modal_dt_start=@DateTime.Parse(tasks_start_dt[0])
+                    modal_dt_end=@DateTime.Parse(tasks_end_dt[0])
+                    Updating_dts=OnUpdatingDtStart
+                    OnClose=@OnCloseDateChanger
+                    OnTaskStatusUpdate=TaskStatusUpdate />
+                }
+
+
+                @if (task_id_cookie != null && ready)
+                {
+                    <div class="row">
+
+                        <!--Панель управления-->
+
+                     <div class="col-lg-4">
+                            <div class="card bg-primary text-white-50">
+                                <div class="card-body">
+
+                                    <h5 class="mb-4 text-white"><i class="mdi mdi-bullseye-arrow me-3"></i>Основные сведения</h5>
+
+                                    <p></p>
+
+                                    <p><h5 style="color:white"><i class="bx bx-code-block"></i> Описание задачи: </h5></p>
+
+                                    <h6 style="color:white">
+                                        <b>
+                                            @foreach (string str in tasks_description_dt)
+                                            {
+                                                <p>
+                                                    @((MarkupString)str)
+                                                </p>
+                                            }
+                                        </b>
+                                    </h6>
+                                    <p></p>
+
+
+                                    <!-- Проверка статуса задачи -->
+                                    @switch (current_task_status)
+                                    {
+                                        case "waiting":
+                                            <p class="card-text text-white"><h5 style="color:white"><i class="bx bx-book-bookmark"></i>Состояние задачи: </h5><h5 style="color:white">Ожидает подтверждения</h5></p>
+                                            break;
+
+                                        case "approved":
+                                            <p class="card-text text-white"><h5 style="color:white"><i class="bx bx-book-bookmark"></i>Состояние задачи: </h5><h5 style="color:lightblue">Подтверждена</h5></p>
+                                            break;
+
+                                        case "pending":
+                                            <p class="card-text text-white"><h5 style="color:white"><i class="bx bx-book-bookmark"></i>Состояние задачи: </h5><h5 style="color:green">Выполняется</h5></p>
+                                            break;
+
+                                        case "delayed":
+                                            <p class="card-text text-white"><h5 style="color:white"><i class="bx bx-book-bookmark"></i>Состояние задачи: </h5><h5 style="color:red">Просрочена</h5></p>
+                                            break;
+
+                                        case "completed":
+                                            <p class="card-text text-white"><h5 style="color:white"><i class="bx bx-book-bookmark"></i>Состояние задачи: </h5><h5 style="color:green">Выполнена</h5></p>
+                                            break;
+
+                                        case "canceled":
+                                            <p class="card-text text-white"><h5 style="color:white"><i class="bx book-bookmark"></i>Состояние задачи: </h5><h5 style="color:red">Отменена</h5></p>
+                                            break;
+
+                                        case "failed":
+                                            <p class="card-text text-white"><h5 style="color:white"><i class="bx book-bookmark"></i>Состояние задачи: </h5><h5 style="color:red">Провалена</h5></p>
+                                            break;
+
+                                        default:
+                                            <p class="card-text text-white"><h5 style="color:white"><i class="bx book-bookmark"></i>Состояние задачи: </h5><h5 style="color:blue">Задача создана</h5></p>
+
+                                            break;
+
+                                    }
+
+                                    <!--Проверка персонального статуса-->
+                                    @switch (global_personal_status)
+                                    {
+                                        case "waiting":
+                                            <h5 style="color:white"><i class="bx book-bookmark"></i>Моя лепта: <span class="badge rounded-pill badge-secondary font-size-11">Ожидает подтверждения</span></h5>
+                                            break;
+
+                                        case "approved":
+                                            <h5 style="color:white"><i class="bx book-bookmark"></i>Моя лепта: <span class="badge rounded-pill badge-info font-size-11">Подтверждено</span> </h5>
+                                            break;
+
+                                        case "pending":
+                                            <h5 style="color:white"><i class="bx book-bookmark"></i>Моя лепта: <span class="badge rounded-pill badge-success font-size-11">Выполняется</span> </h5>
+                                            break;
+
+                                        case "delayed":
+                                            <h5 style="color:white"><i class="bx book-bookmark"></i>Моя лепта: <span class="badge rounded-pill badge-danger font-size-11">Просрочена</span> </h5>
+                                            break;
+
+                                        case "completed":
+                                            <h5 style="color:white"><i class="bx book-bookmark"></i>Моя лепта: <span class="badge rounded-pill bg-success font-size-11">Выполнена</span> </h5>
+                                            break;
+
+                                        case "canceled":
+                                            <h5 style="color:white"><i class="bx book-bookmark"></i>Моя лепта: <span class="badge rounded-pill bg-danger  font-size-11">Отменена</span></h5>
+                                            break;
+
+                                        case "failed":
+                                            <h5 style="color:white"><i class="bx book-bookmark"></i>Моя лепта: <span class="badge rounded-pill bg-danger  font-size-11">Провалена</span></h5>
+                                            break;
+                                    }
+
+                                    <!--Загрузка автора задачи-->
+                                    @if (tasks_author_dt.Count > 0)
+                                    {
+                                        <p class="card-text text-white"><h5 style="color:white"><i class="bx bx-male"></i>Автор задачи:@header_task_author</h5></p>
+                                    }
+
+                                    <!-- Загрузка связанных проектов -->
+                                    @if (tasks_proj_dt.Count > 0)
+                                    {
+                                        <p class="card-text text-white"><h5 style="color:white"><i class="bx bx-card"></i>Проекты связанные с задачей: </h5></p>
+                                        <ul>
+
+                                            @foreach (string strc in header_projs)
+                                            {
+                                                <li><p class="card-text text-white"><h5 style="color:white"><i class="bx bx-card"> @strc</i></h5></p></li>
+                                            }
+
+                                        </ul>
+                                    }
+
+                                    <!-- Загрузка даты начала выполнения -->
+                                    @if (tasks_start_dt.Count > 0)
+                                    {
+                                        <p class="card-text text-white"><h5 style="color:white"><i class="bx bx-calendar-event"></i>Дата начала: @tasks_start_dt[0] </h5></p>
+                                    }
+
+                                     <!-- Загрузка даты конца выполнения -->
+                                    @if (tasks_end_dt.Count > 0)
+                                    {
+                                        <p class="card-text text-white"><h5 style="color:white"><i class="bx bx-check-square"></i>Дата окочания: @tasks_end_dt[0]</h5></p>
+                                    }
+
+                                    @{
+                                        TimeSpan ts = (DateTime.Parse(tasks_end_dt[0]) - DateTime.Now);
+                                        TimeSpan ts2 = (DateTime.Parse(tasks_end_dt[0]) - DateTime.Now);
+                                        bool is_delay = false;
+                                        if (ts.TotalSeconds > 0)
+                                        {
+                                            ts2 = ts;
+                                            is_delay = false;
+                                        }
+                                        else
+                                        {
+                                            ts2 = ts.Negate();
+                                            is_delay = true;
+                                        }
+
+                                    }
+                                    
+                                    <!--Загрузка обратного отсчёта-->
+                                    @if (!is_delay)
+                                    {
+                                        <p style="color:white; background-color:green;">Осталось @ts.Days дней @ts.Hours часов @ts.Minutes минут @ts.Seconds секунд </p>
+                                    }
+                                    else
+                                    {
+                                        <p style="color:white; background-color:red;">Просрочена на @ts2.Days дней @ts2.Hours часов @ts2.Minutes минут @ts2.Seconds секунд </p>
+                                    }
+
+                                    <!-- Админ меню управления -->
+                                    @if (isAdmin)
+                                    {
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button type="button" class="btn btn-secondary waves-effect waves-light" @onclick="ModalDatesChangeOpen">Изменить даты</button>
+
+                                            @if (current_task_status == "pending")
+                                            {
+                                                <button type="button" class="btn btn-success waves-effect waves-light" @onclick="ModalBeforeHeadOpen">Досрочно закрыть</button>
+                                            }
+                                            <button type="button" class="btn btn-outline-info waves-effect waves-light" @onclick="ModalRemindOpen">Напомнить</button>
+                                           
+                                            @if (current_task_status == "delayed")
+                                            {
+                                                <button type="button" class="btn btn-danger waves-effect waves-light" @onclick="ModalCloseFailedOpen">Закрыть как провал</button>
+                                            }
+                                            @if (current_task_status == "completed" || current_task_status == "canceled" || current_task_status == "failed")
+                                            {
+                                                <button type="button" class="btn btn-secondary waves-effect waves-light" @onclick="ModalRevisionOpen">Вернуть на доработку</button>
+                                            }
+                                            <button type="button" class="btn btn-outline-danger waves-effect waves-light" @onclick="UpdateTaskTrackingCarousel">Обновить ленту</button>
+
+                                        </div>
+                                    }
+
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Карта целей а-ля Трелло -->
+
+                       @* <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_CardMarkdown users_dt=@users_dt fullname_dt=@fullname_dt card_delegate=card_delegate_dt OnCarouselRefresh=@UpdateTaskTrackingCarousel global_personal_status=@global_personal_status task_id=@task_id.ToString() card_body=@card_body card_id=@card_id card_marksdown=@card_marksdown isAdmin=@isAdmin task_implementer=@user_ />
+*@
+                        <!-- Навбар пользователей -->
+                        @if (task_id_cookie != null && task_id_cookie != "" && ready)
+                        {
+                            <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_UserNavbar 
+                            OnCarouselRefresh=@UpdateTaskTrackingCarousel
+                            OnUserListRefresh=@RefreshUserList
+                            divs_avatars=@divs_avatars_dt
+                            divisions_ids=@divisions_ids
+                            divisions_name=@divisions_name
+                            global_personal_status=@global_personal_status 
+                            IsAdmin=@isAdmin 
+                            task_id_cookie=@task_id_cookie 
+                            users_dt=@users_dt 
+                            members_id_selected=@bc.getMultipleStringDecodingString(tasks_members_dt[0])
+                            divisions_id_selected=@bc.getMultipleStringDecodingString(tasks_members_divs_dt[0])
+                            fullname_dt=@fullname_dt
+                            users_avatars=@users_avatars_dt
+                            />
+                        }
+
+                        @if (task_id_cookie != null && task_id_cookie != "" && ready)
+                        {
+                           <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_Notes 
+                           task_id=@task_id_cookie />
+                        }
+
+                        @if (task_id_cookie != null && task_id_cookie != "" && ready)
+                        {
+                          <EviCRM.Server.Pages.Tasks.Markdown.Markdown_General
+
+                          OnToastHandler=@ShowCustomNotification
+                          tasks_id=@task_id_cookie />
+                        }
+
+                        <!-- Доска напоминаний -->
+                        <!-- Модальное окно напоминания  -->
+                        @*    <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_Remi />*@
+
+
+                    </div>
+
+                    <!-- Подтверждение начала выполнения задачи -->
+                    @if (global_personal_status == "waiting")
+                    {
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h4 class="card-title mb-3">Необходимо подтвердить начало выполнение задачи!</h4>
+                                        <h4>Система будет считать, что вы приступили к заданию, сразу после подтверждения</h4>
+                                        <b>Если всё устраивает, то нажмите кнопку:</b>
+                                        <button type="button" class="btn btn-outline-primary" @onclick="RogueConfirm">Начал(а) выполнять задачу</button>
+                                        @*<button type="button" class="btn btn-outline-danger" onclick="CancelConfirm">Эта задача выставлена </button>*@
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+
+                    @if (task_tracking_carousel_loaded)
+                    {
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h4 class="card-title mb-5">Хронология событий</h4>
+                                        <div class="">
+                                            <ul class="verti-timeline list-unstyled">
+                                                <!-- Один элемент -->
+                                                <!---/////////////////////////////////////-->
+                                                @if (tasktracking_cmd.Count > 0)
+                                                {
+                                                    @if (tasktracking_cmd.Count > 1)
+                                                    {
+                                                        @for (int i = 0; i < tasktracking_cmd.Count; i++)
+                                                        {
+                                                            string toscript_cmd = tasktracking_cmd[i];
+
+                                                            switch (toscript_cmd)
+                                                            {
+                                                                case "CREATE":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx bxs-plus-square h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Задача создана</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                                @* <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Задача создана</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>*@
+                                                                            @*</div>*@
+                                                                            </div>
+                                                                           
+                                                                        </div>
+
+                                                                    </li>
+
+                                                                    break;
+                                                                case "COMPLETE":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-task h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Задача заверешена в срок</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+
+                                                                    break;
+                                                                case "COMPLETEBEFOREHAND":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-task h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Задача заверешена заблаговременно</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "COMPLETEDELAY":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-task h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Задача заверешена с задержкой</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "CANCELED":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-bx-error-alt h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Задача отменена</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "DELAY":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-timer h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Задача отложена по срокам</h5>
+                                                                                    @{
+                                                                                        switch (tasktracking_var1[i])
+                                                                                        {
+                                                                                            case "OTHERTASK":
+                                                                                                <h5>Ввиду других задач</h5>
+                                                                                                break;
+
+                                                                                            case "LACKTIME":
+                                                                                                <h5>Ввиду нехватки времени</h5>
+                                                                                                break;
+
+                                                                                            case "FORCEM":
+                                                                                                <h5>Ввиду форс-мажора</h5>
+                                                                                                break;
+
+                                                                                            case "NOMONEY":
+                                                                                                <h5>Ввиду нехватки финансирования</h5>
+                                                                                                break;
+
+                                                                                            case "GUILTYMEMBER":
+                                                                                                <h5>Ввиду вины другого исполнителя</h5>
+                                                                                                break;
+
+                                                                                            case "OTHER":
+                                                                                                <h5>Ввиду других причин</h5>
+                                                                                                break;
+                                                                                        }
+                                                                                    }
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "NOSIR":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-no-entry h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Пользователь отказался выполнять задачу</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "PAUSE":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-timer h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Задачу поставили на паузу</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "FAIL":
+
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-error-circle h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Задача провалена</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i] => </p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "ADDMEMBER":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-user-plus h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Пользователь добавил участника</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)sentinel.TripleDesDecrypt(tasktracking_var1[i]))</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+
+                                                                     case "ADDDIV":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-user-plus h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Пользователь добавил отдел</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)getDivNameByDivID(sentinel.TripleDesDecrypt(tasktracking_var1[i])))</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "KILLMEMBER":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-user-minus h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Пользователь исключил участника</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "COMMIT":
+
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-error-circle h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="col-lg-4">
+                                                                                <div class="card bg-primary text-white-50">
+                                                                                    <div class="card-body">
+                                                                                        <h5 class="mb-4 text-white"><i class="bx bxs-face me-3"></i>Новые изменения</h5>
+                                                                                        <h5 class="card-text text-black-50">@tasktracking_datetime[i]</h5>
+                                                                                        <p class="card-text text-white">@tasktracking_var1[i]</p>
+                                                                                        <p class="card-text text-white">@((MarkupString)@tasktracking_var2[i])</p>
+                                                                                        <div class="avatar-group">
+
+                                                                                            @{
+                                                                                                List<string> cast = bc.getMultipleStringDecodingString(tasktracking_var3[i]);
+                                                                                                List<string> users_avatars_lst = new List<string>();
+
+                                                                                                foreach (string elem in cast)
+                                                                                                {
+                                                                                                    int p = getUserArrIDByLogin(elem);
+                                                                                                    users_avatars_lst.Add(users_avatars_dt[p]);
+                                                                                                }
+
+                                                                                                for (int av = 0; av < cast.Count; av++)
+                                                                                                {
+                                                                                                    if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                                                                                    {
+                                                                                                        string str = cast[av].ToUpper();
+                                                                                                        char b_str = '?';
+
+                                                                                                        if (str.Length > 0)
+                                                                                                        {
+                                                                                                            b_str = str[0];
+                                                                                                        }
+
+                                                                                                        <div class="avatar-group-item">
+                                                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                <div class="avatar-xs">
+                                                                                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                                                                        @b_str
+
+                                                                                                                    </span>
+                                                                                                                </div>
+                                                                                                            </a>
+                                                                                                        </div>
+                                                                                                    }
+                                                                                                    else
+                                                                                                    {
+                                                                                                        if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                        else
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+
+                                                                                            }
+                                                                                        </div>
+
+
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+
+
+                                                                    break;
+                                                                case "ADDATTACHMENTS":
+
+                                                                    List<string> lst_string = new List<string>();
+                                                                    lst_string = bc.getMultipleStringDecodingString(tasktracking_var2[i]);
+
+                                                                    List<string> lst_string_wl = new List<string>();
+                                                                    lst_string_wl = bc.getMultipleStringDecodingString(tasktracking_var2[i]);
+
+                                                                    foreach (string str in lst_string_wl)
+                                                                    {
+                                                                        str.Replace("http://evicrm.store/uploads/tasktracking/", "");
+                                                                    }
+
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-error-circle h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="col-lg-4">
+                                                                                <div class="card bg-info text-white-50">
+                                                                                    <div class="card-body">
+                                                                                        <h5 class="mb-4 text-white"><i class="bx bxs-face me-3"></i>Добавлены новые файлы</h5>
+                                                                                        <h5 class="card-text text-black-50">@tasktracking_datetime[i]</h5>
+                                                                                        <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+
+                                                                                        @for (int o = 0; o < lst_string.Count; o++)
+                                                                                        {
+                                                                                            <div class="flex-shrink-0 me-3">
+                                                                                                <i class="bx bx-file h5 text-primary dont-break-out"><a href="@lst_string[o]">@lst_string_wl[o]</a> </i>
+                                                                                            </div>
+                                                                                        }
+
+
+
+                                                                                        <div class="avatar-group">
+                                                                                            @{
+                                                                                                cast = bc.getMultipleStringDecodingString(tasktracking_var3[i]);
+                                                                                                users_avatars_lst = new List<string>();
+
+                                                                                                foreach (string elem in cast)
+                                                                                                {
+                                                                                                    int p = getUserArrIDByLogin(elem);
+                                                                                                    users_avatars_lst.Add(users_avatars_dt[p]);
+                                                                                                }
+
+                                                                                                for (int av = 0; av < cast.Count; av++)
+                                                                                                {
+                                                                                                    if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                                                                                    {
+                                                                                                        string str = cast[av].ToUpper();
+                                                                                                        char b_str = '?';
+
+                                                                                                        if (str.Length > 0)
+                                                                                                        {
+                                                                                                            b_str = str[0];
+                                                                                                        }
+
+                                                                                                        <div class="avatar-group-item">
+                                                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                <div class="avatar-xs">
+                                                                                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                                                                        @b_str
+
+                                                                                                                    </span>
+                                                                                                                </div>
+                                                                                                            </a>
+                                                                                                        </div>
+                                                                                                    }
+                                                                                                    else
+                                                                                                    {
+                                                                                                        if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                        else
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+
+                                                                                            }
+
+                                                                                        </div>
+
+
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "REFUSE":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-no-entry h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Пользователь отказался выполнять задачу</h5>
+                                                                                    @{
+                                                                                        switch (tasktracking_var1[i])
+                                                                                        {
+                                                                                            case "NOTME":
+                                                                                                <h5>Так как она не связана с ним</h5>
+                                                                                                break;
+
+                                                                                            case "IMPOSSIBLE":
+                                                                                                <h5>Считает задачу невозможной</h5>
+                                                                                                break;
+
+                                                                                            case "NOWAY":
+                                                                                                <h5>Не согласен с условиями</h5>
+                                                                                                break;
+
+                                                                                        }
+                                                                                    }
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "ROGER":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-message h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Пользователь подтвердил условия выполнения задачи</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "CHANGEDEADLINE":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-calendar-event h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Перенёс дедлайн по задаче</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "CHANGESTARTDATE":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-calendar-event h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Перенёс дату начала выполнения задачи</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "ADDGOALS":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-bookmarks h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Добавил цель</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "DELETEGOALS":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-bookmarks h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Удалил одну из целей</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "MARKGOALS":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-bookmarks h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Выполнил одну из целей</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "DELEGATE":
+                                                                    <li class="event-list">
+                                                                        <ul>
+                                                                            <li class="event-list">
+                                                                                <div class="event-timeline-dot">
+                                                                                    <i class="bx bx-right-arrow-circle"></i>
+                                                                                </div>
+                                                                                <div class="d-flex">
+                                                                                    <div class="flex-shrink-0 me-3">
+                                                                                        <i class="bx bx-git-pull-request h2 text-primary"></i>
+                                                                                    </div>
+                                                                                    <div class="flex-grow-1">
+                                                                                        <div>
+                                                                                            <h5>Делегировал выполнение задачи</h5>
+                                                                                            <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                            <h5 class="card-text text-black-50">Делегировал @tasktracking_var1[i] для @tasktracking_var2[i]</h5>
+                                                                                            <h5 class="card-text text-black-50">Цель c названием : @tasktracking_var3[i]</h5>
+                                                                                            <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </li>
+                                                                    break;
+                                                                case "PERSONALCOMPLETE":
+                                                                    <li class="event-list">
+                                                                        <ul>
+                                                                            <li class="event-list">
+                                                                                <div class="event-timeline-dot">
+                                                                                    <i class="bx bx-right-arrow-circle"></i>
+                                                                                </div>
+                                                                                <div class="d-flex">
+                                                                                    <div class="flex-shrink-0 me-3">
+                                                                                        <i class="bx bx-git-merge h2 text-primary"></i>
+                                                                                    </div>
+                                                                                    <div class="flex-grow-1">
+                                                                                        <div>
+                                                                                            <h5>Выполнил делегированную задачу</h5>
+                                                                                            <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                            <h5 class="card-text text-black-50">Ранее @tasktracking_var1[i] делегировал для @tasktracking_var2[i]</h5>
+                                                                                            <h5 class="card-text text-black-50">Цель c названием : @tasktracking_var3[i]</h5>
+                                                                                            <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </li>
+                                                                    break;
+                                                                case "PERSONALDELAY":
+                                                                    <li class="event-list">
+                                                                        <ul>
+                                                                            <li class="event-list">
+                                                                                <div class="event-timeline-dot">
+                                                                                    <i class="bx bx-right-arrow-circle"></i>
+                                                                                </div>
+                                                                                <div class="d-flex">
+                                                                                    <div class="flex-shrink-0 me-3">
+                                                                                        <i class="bx bx-error h2 text-primary"></i>
+                                                                                    </div>
+                                                                                    <div class="flex-grow-1">
+                                                                                        <div>
+                                                                                            <h5>Отложил по срокам выполнение делегированной задачи</h5>
+                                                                                            <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                            <h5 class="card-text text-black-50">Ранее @tasktracking_var1[i] делегировал для @tasktracking_var2[i]</h5>
+                                                                                            <h5 class="card-text text-black-50">Цель c названием : @tasktracking_var3[i]</h5>
+                                                                                            <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </li>
+                                                                    break;
+                                                                case "PERSONALREFUSE":
+                                                                    <li class="event-list">
+                                                                        <ul>
+                                                                            <li class="event-list">
+                                                                                <div class="event-timeline-dot">
+                                                                                    <i class="bx bx-right-arrow-circle"></i>
+                                                                                </div>
+                                                                                <div class="d-flex">
+                                                                                    <div class="flex-shrink-0 me-3">
+                                                                                        <i class="bx bx-minus-circle h2 text-primary"></i>
+                                                                                    </div>
+                                                                                    <div class="flex-grow-1">
+                                                                                        <div>
+                                                                                            <h5>Отказался от выполнения делегированной задачи</h5>
+                                                                                            <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                            <h5 class="card-text text-black-50">Ранее @tasktracking_var1[i] делегировал для @tasktracking_var2[i]</h5>
+                                                                                            <h5 class="card-text text-black-50">Цель c названием : @tasktracking_var3[i]</h5>
+                                                                                            <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </li>
+                                                                    break;
+                                                                case "PERSONALUNDELEGATE":
+                                                                    <li class="event-list">
+                                                                        <ul>
+                                                                            <li class="event-list">
+                                                                                <div class="event-timeline-dot">
+                                                                                    <i class="bx bx-right-arrow-circle"></i>
+                                                                                </div>
+                                                                                <div class="d-flex">
+                                                                                    <div class="flex-shrink-0 me-3">
+                                                                                        <i class="bx bx-x h2 text-primary"></i>
+                                                                                    </div>
+                                                                                    <div class="flex-grow-1">
+                                                                                        <div>
+                                                                                            <h5>Пользователь вернул выполнение задания команде</h5>
+                                                                                            <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                            <h5 class="card-text text-black-50">Ранее @tasktracking_var1[i] делегировал для @tasktracking_var2[i]</h5>
+                                                                                            <h5 class="card-text text-black-50">Цель с названием @tasktracking_var3[i]</h5>
+                                                                                            <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </li>
+                                                                    break;
+                                                                case "QUESTION":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-error-circle h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="col-lg-4">
+                                                                                <div class="card bg-info">
+                                                                                    <div class="card-body">
+                                                                                        <h5 class="mb-4 text-white"><i class="bx bx-question-mark me-3"></i>Вопрос к исполнителям:</h5>
+                                                                                        <h5 class="card-text text-black-50">@tasktracking_datetime[i]</h5>
+                                                                                        <p class="card-text text-white">@tasktracking_var1[i]</p>
+                                                                                        <p class="card-text text-white">@((MarkupString)@tasktracking_var2[i])</p>
+                                                                                        <div class="avatar-group">
+                                                                                            @{
+
+                                                                                                cast = bc.getMultipleStringDecodingString(tasktracking_var3[i]);
+                                                                                                users_avatars_lst = new List<string>();
+
+                                                                                                foreach (string elem in cast)
+                                                                                                {
+                                                                                                    int p = getUserArrIDByLogin(elem);
+                                                                                                    users_avatars_lst.Add(users_avatars_dt[p]);
+                                                                                                }
+
+                                                                                                for (int av = 0; av < cast.Count; av++)
+                                                                                                {
+                                                                                                    if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                                                                                    {
+                                                                                                        string str = cast[av].ToUpper();
+                                                                                                        char b_str = '?';
+
+                                                                                                        if (str.Length > 0)
+                                                                                                        {
+                                                                                                            b_str = str[0];
+                                                                                                        }
+
+                                                                                                        <div class="avatar-group-item">
+                                                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                <div class="avatar-xs">
+                                                                                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                                                                        @b_str
+
+                                                                                                                    </span>
+                                                                                                                </div>
+                                                                                                            </a>
+                                                                                                        </div>
+                                                                                                    }
+                                                                                                    else
+                                                                                                    {
+                                                                                                        if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                        else
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+
+                                                                                            }
+
+                                                                                        </div>
+
+
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "MESSAGE":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-error-circle h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="col-lg-4">
+                                                                                <div class="card bg-info">
+                                                                                    <div class="card-body">
+                                                                                        <h5 class="mb-4 text-white"><i class="bx bx-error me-3"></i>Сообщение исполнителям</h5>
+                                                                                        <h5 class="card-text text-black-50">@tasktracking_datetime[i]</h5>
+                                                                                        <p class="card-text text-white">@((MarkupString)tasktracking_var1[i])</p>
+                                                                                        <div class="avatar-group">
+
+                                                                                            @{
+
+                                                                                                cast = bc.getMultipleStringDecodingString(tasktracking_var3[i]);
+                                                                                                users_avatars_lst = new List<string>();
+
+                                                                                                foreach (string elem in cast)
+                                                                                                {
+                                                                                                    int p = getUserArrIDByLogin(elem);
+                                                                                                    users_avatars_lst.Add(users_avatars_dt[p]);
+                                                                                                }
+
+                                                                                                for (int av = 0; av < cast.Count; av++)
+                                                                                                {
+                                                                                                    if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                                                                                    {
+                                                                                                        string str = cast[av].ToUpper();
+                                                                                                        char b_str = '?';
+
+                                                                                                        if (str.Length > 0)
+                                                                                                        {
+                                                                                                            b_str = str[0];
+                                                                                                        }
+
+                                                                                                        <div class="avatar-group-item">
+                                                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                <div class="avatar-xs">
+                                                                                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                                                                        @b_str
+
+                                                                                                                    </span>
+                                                                                                                </div>
+                                                                                                            </a>
+                                                                                                        </div>
+                                                                                                    }
+                                                                                                    else
+                                                                                                    {
+                                                                                                        if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                        else
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+
+                                                                                            }
+
+                                                                                        </div>
+
+
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+
+                                                                    break;
+                                                                case "WARNING":
+
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bx-error-circle h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="col-lg-4">
+                                                                                <div class="card bg-warning">
+                                                                                    <div class="card-body">
+                                                                                        <h5 class="mb-4 text-white"><i class="bx bx-error me-3"></i>Предупреждение!</h5>
+                                                                                        <h5 class="card-text text-black-50">@tasktracking_datetime[i]</h5>
+                                                                                        <p class="card-text text-white">@tasktracking_var1[i]</p>
+                                                                                        <p class="card-text text-white">@((MarkupString)@tasktracking_var2[i])</p>
+                                                                                        <div class="avatar-group">
+
+                                                                                            @{
+                                                                                                cast = bc.getMultipleStringDecodingString(tasktracking_var3[i]);
+                                                                                                users_avatars_lst = new List<string>();
+
+                                                                                                foreach (string elem in cast)
+                                                                                                {
+                                                                                                    int p = getUserArrIDByLogin(elem);
+                                                                                                    users_avatars_lst.Add(users_avatars_dt[p]);
+                                                                                                }
+
+                                                                                                for (int av = 0; av < cast.Count; av++)
+                                                                                                {
+                                                                                                    if (users_avatars_lst[av] == "" || users_avatars_lst[av] == null)
+                                                                                                    {
+                                                                                                        string str = cast[av].ToUpper();
+                                                                                                        char b_str = '?';
+
+                                                                                                        if (str.Length > 0)
+                                                                                                        {
+                                                                                                            b_str = str[0];
+                                                                                                        }
+
+                                                                                                        <div class="avatar-group-item">
+                                                                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                <div class="avatar-xs">
+                                                                                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                                                                        @b_str
+
+                                                                                                                    </span>
+                                                                                                                </div>
+                                                                                                            </a>
+                                                                                                        </div>
+                                                                                                    }
+                                                                                                    else
+                                                                                                    {
+                                                                                                        if (File.Exists(Path.Combine(_env.WebRootPath, "uploads", "users", "avatars", users_avatars_lst[av])))
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/@users_avatars_lst[av]" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                        else
+                                                                                                        {
+                                                                                                            <div class="avatar-group-item">
+                                                                                                                <a href="javascript: void(0);" class="d-inline-block">
+                                                                                                                    <div class="avatar-xs">
+                                                                                                                        <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs" />
+                                                                                                                    </div>
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+
+                                                                                            }
+
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "REVISION":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-trash h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Отправил задачу на повторное выполнение (исправление)</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                case "CONCLUSION":
+                                                                    <li class="event-list">
+                                                                        <div class="event-timeline-dot">
+                                                                            <i class="bx bx-right-arrow-circle"></i>
+                                                                        </div>
+                                                                        <div class="d-flex">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <i class="bx bxs-copy h2 text-primary"></i>
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <div>
+                                                                                    <h5>Вынесли заключение по задаче</h5>
+                                                                                    <h5><i>@tasktracking_datetime[i]</i></h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var1[i])</h5>
+                                                                                    <h5 class="card-text text-black-50">@((MarkupString)tasktracking_var2[i])</h5>
+                                                                                    <p class="text-muted">@tasktracking_author_view_patched[i]</p>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </li>
+                                                                    break;
+                                                                default:
+
+                                                                    break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @if (!task_tracking_carousel_loaded)
+                            {
+                                <h6><i class="bx bx-buoy bx-spin text-primary display-3"></i> Лента загружается </h6>
+                            }
+
+                        </div>
+
+                        <!-- Окно действий -->
+
+                        <EviCRM.Server.Pages.Tasks.TaskTracking.TaskTracking_DownActionBar 
+                            OnCarouselRefresh=@UpdateTaskTrackingCarousel
+                            @ref=ttd
+                            personal_status=@personal_status
+                            personal_status_arg1=@personal_status_arg1
+                            personal_status_arg2=@personal_status_arg2
+                            global_personal_status=@global_personal_status
+                            divisions_ids=@divisions_ids
+                            divisions_name=@divisions_name
+                            fullname_dt=@fullname_dt
+                            isAdmin=@isAdmin
+                            task_author=@task_id_cookie
+                            task_id=@task_id.ToString()
+                            users_dt=@users_dt
+                            tasks_end_dt=@tasks_end_dt
+                            OnPersonalStatusChange=PersonalStatusChange />
+                    }
+                }
+            }
+            }
+    </Authorized>
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code{
+
+     //Toast Notifications
+        private string _toastText = $@"<strong>Toast:</strong> This is a(n) {NotificationTypes.Primary} notification";
+	    private bool _toastShowIcon = true;
+	    private bool _toastShowCloseButton = true;
+	    private bool _toastShowCountdownProgress = true;
+	    private uint _toastAutoCloseInSec = 5;
+	    private uint _toastShadowEffect = 5;
+	    private NotificationStyles _toastStyle;
+	    private NotificationTypes _toastTypeLevel;
+}

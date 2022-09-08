@@ -1,0 +1,697 @@
+﻿@page "/maps"
+
+@using System.Drawing
+@using EviCRM.Server.Pages.Maps
+@using EviCRM.Server.Pages.Maps.Data
+@using EviCRM.Server.Pages.Maps.Models
+@using EviCRM.Server.Pages.Maps.Models.Events
+@using EviCRM.Server.Core;
+
+@inject IJSRuntime jsRuntime
+@inject NavigationManager uriHelper;
+
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject AuthenticationStateProvider authStateProvider
+
+<h5>Карты</h5>
+<PageTitle>Карты</PageTitle>
+
+@if (ready)
+{
+
+    <div id="container">
+        <div style="width:@(windowWidth - 200); height:@(windowHeight)px">
+            <EviCRM.Server.Pages.Maps.LeafletMainHandler Map="_map"
+                                                     ModalCalled=CheckForModalInteropping
+                                                     mpvm=@mpvm_lst
+                                                     l_mrk=lst_mrkr
+                                                     l_mrk_alexandra=lst_mrkr_alexandra />
+        </div>
+
+        @if (isModalOpened)
+        {
+            <MapsModal isCreate=@modal_isCreate
+               Lat=@modal_lat
+               Lng=@modal_lng
+               Alt=@modal_alt
+               view_Body=@modal_viewbody
+               OnClose=Modal_OnCloseHandler
+               OnSave=Modal_OnSaveHandler />
+        }
+
+        <div class="form-inline m-2">
+
+            @if (mpvm_lst.Count > 0)
+            {
+                <table class="table table-striped mb-0">
+
+                    <tr>
+                        <th>№</th>
+                        <th>Название точки</th>
+                        <th>Добавлена</th>
+                        <th>Координаты</th>
+                        <th>Действия</th>
+                    </tr>
+
+                    @foreach (var elem in mpvm_lst)
+                    {
+                        <tr>
+
+                            <td>
+
+                                @{
+                                    int index = mpvm_lst.IndexOf(elem);
+                                    index += 1;
+                                }
+
+                                @index
+
+                            </td>
+
+                            <td><input type="text" name="elem_name" @bind="@elem.Name" /></td>
+                            <td>@(elem.addedDateTime.ToShortDateString() + " " + elem.addedDateTime.ToShortTimeString())</td>
+                            <td>@("N " + elem.Lat + ", E " + elem.Lng)</td>
+
+                            <td>
+                                <button type="button" class="btn btn-outline-primary" @onclick="() => PanTo(elem.Lat,elem.Lng,elem.mpd)"> Показать </button>
+                                <button type="button" class="btn btn-outline-success" @onclick="async() => await SavePoint(elem)"><i class='bx bx-save'></i> </button>
+                                <button type="button" class="btn btn-outline-danger" @onclick="async() => await KillPoint(elem)"><i class="fas fa-times ms-1"></i></button>
+                            </td>
+
+                        </tr>
+                    }
+
+                </table>
+            }
+        </div>
+
+        @if (alexandra_locations_idalexandra != null)
+        {
+            <div class="form-inline m-2">
+                @if (alexandra_locations_idalexandra.Count >0 )
+                {
+                <h6>Точки на карте, добавленные Александрой</h6>
+
+                <table class="table table-striped mb-0">
+
+                    <tr>
+                        <th>№</th>
+                        <th>Название точки</th>
+                        <th>Добавлена</th>
+                        <th>Координаты</th>
+                        <th>Действия</th>
+                    </tr>
+
+                    @foreach (var elem in mpvm_lst_alexandra)
+                    {
+                        <tr>
+
+                            <td>
+
+                                @{
+                                    int index = mpvm_lst_alexandra.IndexOf(elem);
+                                    index += 1;
+                                }
+
+                                @index
+
+                            </td>
+
+                            <td><input type="text" name="elem_name" @bind="@elem.Name" /></td>
+                            <td>@(elem.addedDateTime.ToShortDateString() + " " + elem.addedDateTime.ToShortTimeString())</td>
+                            <td>@("N " + elem.Lat + ", E " + elem.Lng)</td>
+
+                            <td>
+                                <button type="button" class="btn btn-outline-primary" @onclick="() => PanTo(elem.Lat,elem.Lng,elem.mpd)"> Показать </button>
+                                <button type="button" class="btn btn-outline-success" @onclick="async() => await AlexandraSavePoint(elem)"><i class='bx bx-save'></i> </button>
+                                <button type="button" class="btn btn-outline-danger" @onclick="async() => await AlexandraKillPoint(elem)"><i class="fas fa-times ms-1"></i></button>
+                            </td>
+
+                        </tr>
+                    }
+
+                </table>
+
+
+                }
+            </div>
+        }
+
+
+    </div>
+
+}
+else
+{
+    <h5><i class="bx bx-buoy bx-spin text-primary display-3"></i> Загружаю карты, ожидайте пожалуйста... </h5>
+}
+
+@code {
+
+    private IJSObjectReference jsModule;
+    LeafletModes leaflet = LeafletModes.standart;
+
+    enum LeafletModes
+    {
+        one_time_point,
+        standart,
+        custom_point,
+    }
+
+    public int windowHeight, windowWidth;
+
+    public class WindowDimensions
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
+
+    List<string> idmaps_points_dt = new List<string>();
+    List<string> point_e_dt = new List<string>();
+    List<string> point_n_dt = new List<string>();
+    List<string> descr_dt = new List<string>();
+    List<string> time_adding_dt = new List<string>();
+
+    List<string> alexandra_locations_idalexandra = new List<string>();
+    List<string> alexandra_locations_lat = new List<string>();
+    List<string> alexandra_locations_lng = new List<string>();
+    List<string> alexandra_locations_name = new List<string>();
+    List<string> alexandra_locations_user = new List<string>();
+    List<string> alexandra_locations_datetime = new List<string>();
+
+}
+
+@functions
+{
+    #region Local Storage
+
+    private int _localStorageCount;
+    private IList<KeyValuePair<string, string>> _localStorageItems;
+
+    private async Task InsertLocalStorageItems(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key, val);
+    }
+    private async Task<string> GetLocalStorageItems(string key)
+    {
+        return await _localStorageService.GetItemAsStringAsync(key);
+    }
+    private async Task RefreshLocalStorageItems()
+    {
+        _localStorageItems = new List<KeyValuePair<string, string>>();
+        await foreach (var key in _localStorageService.GetAllKeysAsync())
+        {
+            if (key is null)
+                continue;
+
+            _localStorageItems.Add(new KeyValuePair<string, string>(key, await _localStorageService.GetItemAsStringAsync(key)));
+        }
+    }
+    private async Task SaveCustomLocalStorageItem(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key, val);
+        await RefreshLocalStorageItems();
+    }
+
+    #endregion
+
+
+
+    public async Task<bool> isOneTimePoint()
+    {
+        if (await GetLocalStorageItems("maps_onetimepoint") != null)
+        {
+            if (await GetLocalStorageItems("maps_onetimepoint") != "")
+            {
+                if (await GetLocalStorageItems("maps_onetimepoint") == "true")
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    public async Task<bool> isCustomShow()
+    {
+        if (await GetLocalStorageItems("maps_custompoint_e") != null)
+        {
+            if (await GetLocalStorageItems("maps_custompoint_e") != "")
+            {
+                if (await GetLocalStorageItems("maps_custompoint_n") != null)
+                {
+                    if (await GetLocalStorageItems("maps_custompoint_n") != "")
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public async Task<bool> KillCustomShow()
+    {
+        try
+        {
+            await InsertLocalStorageItems("maps_custompoint_e", "");
+            await InsertLocalStorageItems("maps_custompoint_n", "");
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public async Task<bool> KillOneTimePoint()
+    {
+        try
+        {
+            await InsertLocalStorageItems("maps_onetimepoint", "");
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+     async Task AlexandraSavePoint(MapsPoint_ViewModel mpvm)
+    {
+        string point_id = getMapIDByAlexandraMPVM(mpvm);
+
+        if (point_id != null)
+        {
+            await mysqlc.MySql_ContextAsyncGeneral(mysqlc.editAlexandraMapPoint(mpvm, point_id));
+        }
+
+        uriHelper.NavigateTo("/maps", true);
+    }
+
+     async Task AlexandraKillPoint(MapsPoint_ViewModel mpvm)
+    {
+        int index = mpvm_lst_alexandra.IndexOf(mpvm);
+
+        var marker = new Marker(mpvm.Lat, mpvm.Lng);
+        _map.RemoveLayer(marker);
+        mpvm_lst_alexandra.RemoveAt(index);
+
+        string point_id = getMapIDByAlexandraMPVM(mpvm);
+
+        if (point_id != null)
+        {
+            await mysqlc.MySql_ContextAsyncGeneral(mysqlc.deleteAlexandraMapPoint(point_id));
+        }
+
+        StateHasChanged();
+    }
+
+
+    async Task SavePoint(MapsPoint_ViewModel mpvm)
+    {
+        string point_id = getMapIDByMPVM(mpvm);
+
+        if (point_id != null)
+        {
+            await mysqlc.MySql_ContextAsyncGeneral(mysqlc.editMapPoint(mpvm, point_id));
+        }
+
+        uriHelper.NavigateTo("/maps", true);
+    }
+
+    async Task KillPoint(MapsPoint_ViewModel mpvm)
+    {
+        int index = mpvm_lst.IndexOf(mpvm);
+
+        var marker = new Marker(mpvm.Lat, mpvm.Lng);
+        _map.RemoveLayer(marker);
+        mpvm_lst.RemoveAt(index);
+
+        string point_id = getMapIDByMPVM(mpvm);
+
+        if (point_id != null)
+        {
+            await mysqlc.MySql_ContextAsyncGeneral(mysqlc.deleteMapPoint(point_id));
+        }
+
+        StateHasChanged();
+    }
+
+    public string? getMapIDByMPVM(MapsPoint_ViewModel mpvm)
+    {
+        string id = null;
+        if (idmaps_points_dt != null)
+        {
+            for (int i = 0; i < idmaps_points_dt.Count; i++)
+            {
+                if (float.Parse(point_e_dt[i]) == mpvm.Lat && float.Parse(point_n_dt[i]) == mpvm.Lng)
+                {
+                    return idmaps_points_dt[i];
+                }
+            }
+        }
+        return id;
+    }
+
+    public string? getMapIDByAlexandraMPVM(MapsPoint_ViewModel mpvm)
+    {
+        string id = null;
+        if (alexandra_locations_idalexandra != null)
+        {
+            for (int i = 0; i < alexandra_locations_idalexandra.Count; i++)
+            {
+                if (float.Parse(alexandra_locations_lat[i]) == mpvm.Lat && float.Parse(alexandra_locations_lng[i]) == mpvm.Lng)
+                {
+                    return alexandra_locations_idalexandra[i];
+                }
+            }
+        }
+        return id;
+    }
+
+
+    public void Modal_OnCloseHandler(bool isClosed)
+    {
+        _map.modal_maps_interop_isModalCalled = false;
+        isModalOpened = false;
+
+        StateHasChanged();
+    }
+
+    public async Task Modal_OnSaveHandler(string body)
+    {
+        isModalOpened = false;
+
+        MapsPoint_ViewModel mpvm = new MapsPoint_ViewModel
+            {
+                Lat = modal_lat,
+                Lng = modal_lng,
+                Alt = modal_alt,
+                user_login = _user,
+                addedDateTime = DateTime.Now,
+                Name = body,
+            };
+
+
+        SetMarkerOnMap(mpvm.Lat, mpvm.Lng, body);
+
+        // lst_mrkr.Add(mrkr);
+        mpvm_lst.Add(mpvm);
+
+        await mysqlc.MySql_ContextAsyncGeneral(mysqlc.addMapPoint(mpvm));
+
+        uriHelper.NavigateTo("/maps", true);
+
+        StateHasChanged();
+    }
+
+    private async Task DateTimeCallback(object state)
+    {
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            jsModule = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./assets/js/client_screensize.js");
+            var dimension = await jsModule.InvokeAsync<WindowDimensions>("getWindowSize");
+
+            windowHeight = dimension.Height;
+            windowWidth = dimension.Width;
+
+            // ===== Local Storage =====
+            if (await isCustomShow())
+            {
+                leaflet = LeafletModes.custom_point;
+                await KillCustomShow();
+            }
+
+            if (await isOneTimePoint())
+            {
+                leaflet = LeafletModes.one_time_point;
+                await KillOneTimePoint();
+            }
+
+            _user = authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+            _user_role = await mysqlc.MySql_ContextAsyncL(mysqlc.getProjectUsersRolesByIdentityName(_user));
+
+            if (_user_role == "admin" || _user_role == "owner" || _user_role == "secretary")
+            {
+                isAdmin = true;
+            }
+            else
+            {
+                isAdmin = false;
+            }
+
+            idmaps_points_dt = await mysqlc.getListMapsPointsIDMaps(_user);
+            point_e_dt = await mysqlc.getListMapsPointsE(_user);
+            point_n_dt = await mysqlc.getListMapsPointsN(_user);
+            descr_dt = await mysqlc.getListMapsPointsDescription(_user);
+            time_adding_dt = await mysqlc.getListMapsPointsWhenAdd(_user);
+
+            alexandra_locations_idalexandra = await mysqlc.getListAlexandraLocationIDPKEY(_user);
+            alexandra_locations_lat = await mysqlc.getListAlexandraLocationLat(_user);
+            alexandra_locations_lng = await mysqlc.getListAlexandraLocationLng(_user);
+            alexandra_locations_name = await mysqlc.getListAlexandraLocationName(_user);
+            alexandra_locations_datetime = await mysqlc.getListAlexandraLocationDateTime(_user);
+
+            mpvm_lst.Clear();
+
+            if (idmaps_points_dt != null)
+            {
+                for (int i = 0; i < idmaps_points_dt.Count; i++)
+                {
+                    MapsPoint_ViewModel mpvm = new MapsPoint_ViewModel
+                        {
+                            Lat = float.Parse(point_e_dt[i]),
+                            Lng = float.Parse(point_n_dt[i]),
+                            Alt = 0,
+                            user_login = _user,
+                            addedDateTime = DateTime.Parse(time_adding_dt[i]),
+                            Name = descr_dt[i],
+                        };
+
+                    MapPopupData mpd = new MapPopupData();
+                    mpd.LatLng = new LatLng(mpvm.Lat, mpvm.Lng);
+                    mpd.Content = mpvm.Name;
+                    mpvm.mpd = mpd;
+                    mpvm_lst.Add(mpvm);
+
+                    var marker = new Marker(mpvm.Lat, mpvm.Lng);
+                    marker.Tooltip = new Models.Tooltip { Content = mpvm.Name };
+
+                    lst_mrkr.Add(marker);
+
+
+
+                    //SetMarkerOnMap(mpvm.Lat, mpvm.Lng, mpvm.Name);
+                }
+            }
+
+            //Alexandra MapsPoints
+
+            mpvm_lst_alexandra.Clear();
+
+            if (alexandra_locations_idalexandra != null)
+            {
+                if (alexandra_locations_idalexandra.Count > 0)
+                {
+                    for (int i = 0; i < alexandra_locations_idalexandra.Count; i++)
+                    {
+                        MapsPoint_ViewModel mpvm = new MapsPoint_ViewModel
+                            {
+                                Lat = float.Parse(alexandra_locations_lat[i]),
+                                Lng = float.Parse(alexandra_locations_lng[i]),
+                                Alt = 0,
+                                user_login = _user,
+                                addedDateTime = DateTime.Parse(alexandra_locations_datetime[i]),
+                                Name = alexandra_locations_name[i],
+                            };
+
+                        MapPopupData mpd = new MapPopupData();
+                        mpd.LatLng = new LatLng(mpvm.Lat, mpvm.Lng);
+                        mpd.Content = mpvm.Name;
+                        mpvm.mpd = mpd;
+                        mpvm_lst_alexandra.Add(mpvm);
+
+                        var marker = new Marker(mpvm.Lat, mpvm.Lng);
+                        marker.Tooltip = new Models.Tooltip { Content = mpvm.Name };
+
+                        lst_mrkr_alexandra.Add(marker);
+
+                    }
+                }
+            }
+
+
+            // ===== Leaflet =====
+
+            _map = new Map(jsRuntime)
+                {
+                    Center = _startAt,
+                    Zoom = 4.8f
+                };
+
+            _map.OnInitialized += () =>
+            {
+                _map.AddLayer(new TileLayer
+                    {
+                        UrlTemplate = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        Attribution = "&copy; карты <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>",
+                    });
+            };
+
+            // ===== /Leaflet =====
+
+            isModalOpened = false;
+
+            ready = true;
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+            // Timer(DateTimeCallback, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
+    }
+
+    public void CheckForModalInteropping()
+    {
+        if (_map.modal_maps_interop_isModalCalled == true)
+        {
+            modal_alt = _map.modal_maps_interop_latlng.Alt;
+            modal_lng = _map.modal_maps_interop_latlng.Lng;
+            modal_lat = _map.modal_maps_interop_latlng.Lat;
+            modal_isCreate = _map.modal_maps_interop_isCreate;
+
+            isModalOpened = true;
+            StateHasChanged();
+        }
+    }
+
+    public void SetMarkerOnMap(float lat, float lng, string tooltip_content)
+    {
+        // Create the marker
+        var marker = new Marker(lat, lng);
+        marker.Tooltip = new Models.Tooltip { Content = tooltip_content };
+
+        // Add it to the layers collection
+        _map.AddLayer(marker);
+    }
+
+    private LatLng _startAt = new LatLng(47.5574007f, 16.3918687f);
+    public string CityName { get; set; }
+
+    private void FindCity()
+    {
+        _circle.Radius = 5000000f;
+        var city = cityService.FindCity(CityName);
+        if (city != null)
+        {
+            var marker = new Marker(city.Coordinates)
+                {
+                    Icon = new EviCRM.Server.Pages.Maps.Models.Icon
+                    {
+                        Url = city.CoatOfArmsImageUrl,
+                        ClassName = "map-icon",
+                    },
+                    Tooltip = new Models.Tooltip
+                    {
+                        Content = city.Name,
+                    },
+                    Popup = new Popup
+                    {
+                        Content = city.Description,
+                    }
+                };
+
+            _map.AddLayer(marker);
+        }
+    }
+
+    private void ZoomMap()
+    {
+        _map.FitBounds(new PointF(45.943f, 24.967f), new PointF(46.943f, 25.967f), maxZoom: 5f);
+    }
+
+    private void PanTo(float lat, float lng, MapPopupData mpd)
+    {
+        _map.OpenMapPopup(mpd);
+        _map.PanTo(new PointF(lat, lng), animate: true, duration: 10f);
+    }
+
+    public async Task<BrowserDimension> GetDimensions()
+    {
+        return await jsRuntime.InvokeAsync<BrowserDimension>("getDimensions");
+    }
+
+    public class BrowserDimension
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
+
+    public void ModalOpen()
+    {
+        isModalOpened = true;
+    }
+
+}
+
+@code
+{
+
+    List<MapsPoint_ViewModel> mpvm_lst = new List<MapsPoint_ViewModel>();
+    List<MapsPoint_ViewModel> mpvm_lst_alexandra = new List<MapsPoint_ViewModel>();
+
+    List<Marker> lst_mrkr = new List<Marker>();
+    List<Marker> lst_mrkr_alexandra = new List<Marker>();
+
+    MySQL_Controller mysqlc = new MySQL_Controller();
+    BrowserDimension bd = new BrowserDimension();
+
+    public bool isModalOpened { get; set; }
+
+    private Map _map;
+
+    private Circle _circle;
+    public CityService cityService;
+
+    string style_params = "";
+
+    float modal_alt = 0;
+    float modal_lng = 0;
+    float modal_lat = 0;
+    bool modal_isCreate = false;
+    string modal_viewbody { get; set; }
+
+    string _user { get; set; }
+    string _user_role { get; set; }
+    bool isAdmin { get; set; }
+
+    bool ready = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+
+}

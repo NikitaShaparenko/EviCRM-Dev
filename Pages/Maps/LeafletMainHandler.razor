@@ -1,0 +1,80 @@
+﻿@using System.Threading.Tasks
+@using EviCRM.Server.Pages.Maps.Models
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+
+@inject IJSRuntime JsRuntime
+
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+
+<div id="@Map.Id" style="width: 100%; height: 100%;"></div>
+
+@code {
+
+    [Parameter] public Map Map { get; set; }
+
+    [Parameter] public EventCallback<bool> ModalCalled {get;set;}
+
+    [Parameter] public List<MapsPoint_ViewModel> mpvm { get; set; }
+
+    [Parameter] public List<Marker> l_mrk { get; set; }
+
+     [Parameter] public List<Marker> l_mrk_alexandra { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LeafletInterops.Create(JsRuntime, Map);
+            Map.RaiseOnInitialized();
+            Map.OnContext = new EventCallback<Models.Events.MouseEvent>(this,(Action) MapInterpreter);
+
+            //if (mpvm != null)
+            //{
+            //    foreach (var elem in mpvm)
+            //    {
+            //        SetMarkerOnMap(elem.Lat, elem.Lng, elem.Name);
+            //    }
+            //}
+
+            if (l_mrk != null)
+            {
+                foreach (var elem in l_mrk)
+                {
+                    Map.AddLayer(elem);
+                }
+
+            }
+
+            if (l_mrk_alexandra != null)
+            {
+                foreach (var elem in l_mrk_alexandra)
+                {
+                    Map.AddLayer(elem);
+                }
+
+            }
+
+              Map.RaiseOnInitialized();
+            await InvokeAsync(StateHasChanged);
+
+        }
+    }
+
+     public void SetMarkerOnMap(float lat, float lng, string tooltip_content)
+    {
+        // Create the marker
+        var marker = new Marker(lat, lng);
+        marker.Tooltip = new Models.Tooltip { Content = tooltip_content };
+
+        // Add it to the layers collection
+        Map.AddLayer(marker);
+    }   
+
+    public void MapInterpreter()
+    {
+        ModalCalled.InvokeAsync(true);
+    }
+
+}

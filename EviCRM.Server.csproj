@@ -1,0 +1,176 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TypeScriptNoEmitOnError>False</TypeScriptNoEmitOnError>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <TypeScriptNoEmitOnError>False</TypeScriptNoEmitOnError>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-EviCRM.Server-F85D64E5-AC07-41EB-B50A-44211FF26287</UserSecretsId>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="attachments\**" />
+    <Compile Remove="Pages\Contacts\**" />
+    <Compile Remove="Pages\FileManager\**" />
+    <Compile Remove="Новая папка1\**" />
+    <Content Remove="attachments\**" />
+    <Content Remove="Pages\Contacts\**" />
+    <Content Remove="Pages\FileManager\**" />
+    <Content Remove="Новая папка1\**" />
+    <EmbeddedResource Remove="attachments\**" />
+    <EmbeddedResource Remove="Pages\Contacts\**" />
+    <EmbeddedResource Remove="Pages\FileManager\**" />
+    <EmbeddedResource Remove="Новая папка1\**" />
+    <None Remove="attachments\**" />
+    <None Remove="Pages\Contacts\**" />
+    <None Remove="Pages\FileManager\**" />
+    <None Remove="Новая папка1\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Data\WeatherForecast.cs" />
+    <Compile Remove="Data\WeatherForecastService.cs" />
+    <Compile Remove="Pages\CalendarSimple.cshtml.cs" />
+    <Compile Remove="Pages\Calendar\Calendar.razor.cs" />
+    <Compile Remove="Pages\Tasks\TaskCreate2.razor.cs" />
+    <Compile Remove="Pages\Tasks\TaskTracking.razor.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Pages\CalendarSimple.cshtml" />
+    <Content Remove="Pages\Calendar\Calendar.razor" />
+    <Content Remove="Pages\Maps\LeafletMap.razor" />
+    <Content Remove="Pages\MarksChart — копия.razor" />
+    <Content Remove="Pages\MarksChartUnitrazor — копия.razor" />
+    <Content Remove="TasksTrack.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Append.Blazor.Notifications" Version="1.1.0" />
+    <PackageReference Include="Blazor.Cropper" Version="1.1.4" />
+    <PackageReference Include="Blazor.Leaflet.OpenStreetMap" Version="0.2.3" />
+    <PackageReference Include="BlazorCalendar" Version="2.4.4" />
+    <PackageReference Include="Blazored.LocalStorage" Version="4.2.0" />
+    <PackageReference Include="Blazored.Modal" Version="6.0.1" />
+    <PackageReference Include="Blazored.TextEditor" Version="1.0.8" />
+    <PackageReference Include="Blazorise" Version="1.0.4" />
+    <PackageReference Include="Blazorise.Bootstrap" Version="1.0.4" />
+    <PackageReference Include="Blazorise.Charts" Version="1.0.4" />
+    <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.0.4" />
+    <PackageReference Include="Blazorise.RichTextEdit" Version="1.0.4" />
+    <PackageReference Include="BlazorWebView" Version="0.2.0" />
+    <PackageReference Include="Blzr.BootstrapSelect" Version="0.3.0" />
+    <PackageReference Include="Bogus" Version="34.0.2" />
+    <PackageReference Include="ChartJs.Blazor.Fork" Version="2.0.2" />
+    <PackageReference Include="CRC.Fast.Net.Core" Version="1.0.0" />
+    <PackageReference Include="Crc32.NET" Version="1.2.0" />
+    <PackageReference Include="CsvHelper" Version="27.2.1" />
+    <PackageReference Include="Havit.Blazor.Components.Web.Bootstrap" Version="2.6.6" />
+    <PackageReference Include="Humanizer" Version="2.14.1" />
+    <PackageReference Include="ImageProcessor" Version="2.9.1" />
+    <PackageReference Include="iTextSharp.LGPLv2.Core" Version="1.8.0" />
+    <PackageReference Include="LettuceEncrypt" Version="1.2.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.Collapse" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.Common.JsInterop" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.CssEvents" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.GdprConsent" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.Modal" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.Notifications" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.PermaLink" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.Tabs" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.Timer" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Components.Typeahead" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Extensions.BrowserStorage" Version="1.5.0" />
+    <PackageReference Include="Majorsoft.Blazor.Server.Logging.Console" Version="1.5.0" />
+    <PackageReference Include="Meziantou.Framework.ByteSize" Version="2.0.0" />
+    <PackageReference Include="Microsoft.AspNet.Mvc" Version="5.2.8" />
+    <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.4.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="6.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="6.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.jQuery.Unobtrusive.Ajax" Version="3.2.6" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="6.0.3" />
+    <PackageReference Include="MudBlazor" Version="6.0.11-dev.4" />
+    <PackageReference Include="MySqlConnector" Version="2.1.8" />
+    <PackageReference Include="OpenPop.NET" Version="2.0.6.1120" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.1" />
+    <PackageReference Include="Quamotion.RemoteViewing.AspNetCore" Version="1.1.211" />
+    <PackageReference Include="Radzen.Blazor" Version="3.18.7" />
+    <PackageReference Include="ServiceStack.Redis" Version="6.0.2" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.5.61" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.0" />
+    <PackageReference Include="SyslogLogging" Version="2.0.1.7" />
+    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+    <PackageReference Include="System.Net.Http.Json" Version="6.0.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="6.0.0" />
+    <PackageReference Include="System.Text.Json" Version="6.0.3" />
+    <PackageReference Include="WebWindow.Blazor" Version="0.1.0-20200807.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Pages\RemoteViewing\" />
+    <Folder Include="Pages\Tasks\TaskTracking\Новая папка\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\assets\css\office\images\block-content.svg" />
+    <None Include="wwwroot\assets\css\office\images\close.svg" />
+    <None Include="wwwroot\assets\css\office\images\comment.svg" />
+    <None Include="wwwroot\assets\css\office\images\delete.svg" />
+    <None Include="wwwroot\assets\css\office\images\desktop.svg" />
+    <None Include="wwwroot\assets\css\office\images\done.svg" />
+    <None Include="wwwroot\assets\css\office\images\download.svg" />
+    <None Include="wwwroot\assets\css\office\images\embeded.svg" />
+    <None Include="wwwroot\assets\css\office\images\error.svg" />
+    <None Include="wwwroot\assets\css\office\images\file_docx.svg" />
+    <None Include="wwwroot\assets\css\office\images\file_docxf.svg" />
+    <None Include="wwwroot\assets\css\office\images\file_pptx.svg" />
+    <None Include="wwwroot\assets\css\office\images\file_upload.svg" />
+    <None Include="wwwroot\assets\css\office\images\file_xlsx.svg" />
+    <None Include="wwwroot\assets\css\office\images\fill-forms.svg" />
+    <None Include="wwwroot\assets\css\office\images\filter.svg" />
+    <None Include="wwwroot\assets\css\office\images\icon_docx.svg" />
+    <None Include="wwwroot\assets\css\office\images\icon_pptx.svg" />
+    <None Include="wwwroot\assets\css\office\images\icon_xlsx.svg" />
+    <None Include="wwwroot\assets\css\office\images\info.svg" />
+    <None Include="wwwroot\assets\css\office\images\logo.svg" />
+    <None Include="wwwroot\assets\css\office\images\mobile-fill-forms.svg" />
+    <None Include="wwwroot\assets\css\office\images\mobile.svg" />
+    <None Include="wwwroot\assets\css\office\images\notdone.svg" />
+    <None Include="wwwroot\assets\css\office\images\review.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

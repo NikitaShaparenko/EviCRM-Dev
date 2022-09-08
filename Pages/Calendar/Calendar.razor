@@ -1,0 +1,204 @@
+﻿@page "/calendar2"
+@inject CalendarViewModel ViewModel
+@using EviCRM.Server.Calendar
+
+@using System.Net.Http
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+
+@implements IDisposable
+@*//@inject IHttpContextAccessor _httpContextAccessor;*@
+@inject AuthenticationStateProvider authStateProvider
+
+@using System.ComponentModel;
+@using EviCRM.Server.Models.TUI
+@using EviCRM.Server.ViewModels.TUI
+
+<link rel="stylesheet" type="text/css" href="/assets/libs/tui-time-picker/tui-time-picker.min.css">
+<link rel="stylesheet" type="text/css" href="/assets/libs/tui-date-picker/tui-date-picker.min.css">
+<link href="/assets/libs/tui-calendar/tui-calendar.min.css" rel="stylesheet" type="text/css" />
+
+
+<h5>Календарь</h5>
+
+ <div id="right">
+                        <div id="menu" class="mb-3">
+
+                            <span id="menu-navi" class="d-sm-flex flex-wrap text-center text-sm-start justify-content-sm-between">
+                                <div class="d-sm-flex flex-wrap gap-1">
+                                    <div class="btn-group mb-2" role="group" aria-label="Basic example">
+                                        <button type="button" class="btn btn-primary move-day" @onclick=@(async ()=> await MoveCalendarView(CalendarMove.Previous))>
+                                            <i class="calendar-icon ic-arrow-line-left mdi mdi-chevron-left" data-action="move-prev"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-primary move-day" @onclick=@(async ()=> await MoveCalendarView(CalendarMove.Next))>
+                                            <i class="calendar-icon ic-arrow-line-right mdi mdi-chevron-right" data-action="move-next"></i>
+                                        </button>
+                                    </div>
+
+
+                                    <button type="button" class="btn btn-primary move-today mb-2" @onclick=@(async ()=> await MoveCalendarView(CalendarMove.Today))>Сегодня</button>
+                                </div>
+
+                                <h4 id="renderRange" class="render-range fw-bold pt-1 mx-3"></h4>
+
+                                <div class="dropdown align-self-start mt-3 mt-sm-0 mb-2">
+                                    <button id="dropdownMenu-calendarType" class="btn btn-primary" type="button" data-bs-toggle="dropdown"
+                                            aria-haspopup="true" aria-expanded="true">
+                                        <i id="calendarTypeIcon" class="calendar-icon ic_view_month" style="margin-right: 4px;"></i>
+                                        <span id="calendarTypeName">Вид</span>&nbsp;
+                                        <i class="calendar-icon tui-full-calendar-dropdown-arrow"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" role="menu" aria-labelledby="dropdownMenu-calendarType">
+                                        <li role="presentation">
+                                            <a class="dropdown-item" role="menuitem" @onclick=@(()=> ChangeCalendarView(TUICalendarViewName.Month))>
+                                                 <i type="button"class="calendar-icon ic_view_day" @onclick=@(()=> ChangeCalendarView(TUICalendarViewName.Month))></i>Месяц
+                                            </a>
+                                        </li>
+                                        <li role="presentation">
+                                            <a class="dropdown-item" role="menuitem" @onclick=@(()=> ChangeCalendarView(TUICalendarViewName.Week))>
+                                                 <i type="button" class="calendar-icon ic_view_week" @onclick=@(()=> ChangeCalendarView(TUICalendarViewName.Week))></i>Неделя
+                                            </a>
+                                        </li>
+                                        <li role="presentation">
+                                            <a class="dropdown-item" role="menuitem" @onclick=@(()=> ChangeCalendarView(TUICalendarViewName.Day))>
+                                                <i type="button" class="calendar-icon ic_view_month" @onclick=@(()=> ChangeCalendarView(TUICalendarViewName.Day))></i>День
+                                            </a>
+                                        </li>
+                                        
+                              
+                                        
+                                    </ul>
+                                </div>
+                            </span>
+
+                        </div>
+                    </div>
+
+                    <div class="lnb-new-schedule float-sm-end ms-sm-3 mt-4 mt-sm-0">
+                        <button id="btn-new-schedule" type="button" class="btn btn-primary lnb-new-schedule-btn" @onclick=@(()=> ScrollToNow())>
+                           На сегодня
+                        </button>
+                    </div>
+                    <div id="calendarList" class="lnb-calendars-d1 mt-4 mt-sm-0 me-sm-0 mb-4"></div>
+ 
+
+@*<div class="col-lg-12">
+
+<div class="btn-group m-2" role="group" aria-label="Basic example">
+  <button type="button" @onclick=@(()=> ChangeCalendarView(TUICalendarViewName.Month)) class="btn btn-secondary">Месяц</button>
+  <button type="button" @onclick=@(()=> ChangeCalendarView(TUICalendarViewName.Week)) class="btn btn-secondary">Неделя</button>
+  <button type="button" @onclick=@(()=> ChangeCalendarView(TUICalendarViewName.Day)) class="btn btn-secondary">День</button>
+</div>
+
+<div class="col-lg-8"></div>
+<div class="btn-group m-2" role="group" aria-label="Basic example">
+    <button type="button" @onclick=@(async ()=> await MoveCalendarView(CalendarMove.Previous)) class="btn btn-secondary">Вчера</button>
+    <button type="button" @onclick=@(async ()=> await MoveCalendarView(CalendarMove.Today)) class="btn btn-secondary">Сегодня</button>
+    <button type="button" @onclick=@(async ()=> await MoveCalendarView(CalendarMove.Next)) class="btn btn-secondary">Завтра</button>
+</div>
+<div>
+ </div>
+    <button type="button" @onclick=@(()=> ScrollToNow()) class="btn btn-secondary">На сегодня</button>
+</div>*@
+
+<div class="d-flex flex-row align-items-center m-2">
+    <div class="pr-2">Перейти на дату:</div>
+    <div class="text-sm-center">
+        <input type="date" value="@selectDate.ToString("MM/dd/yyyy")" @onchange="@(async (e) => await ScrollToDate(DateTimeOffset.Parse(e.Value.ToString())))" />
+    </div>
+</div>
+@*<div class="btn-group m-2" role="group" aria-label="Basic example">
+<button type="button" @onclick=@(()=> ClearCalendar()) class="btn btn-secondary">Очистить календарь</button>
+</div>*@
+
+<div>@ViewModel.StartDate.GetValueOrDefault().LocalDateTime.ToShortDateString() - @ViewModel.EndDate.GetValueOrDefault().LocalDateTime.ToShortDateString()</div>
+ 
+
+<TUICalendar Schedules="ViewModel.Schedules" 
+             CalendarOptions="ViewModel.CalendarOptions" 
+             CalendarProperties="ViewModel.CalendarProps"
+             CalendarViewName="ViewModel.CalendarViewName"
+             @bind-VisibleStartDateRange="ViewModel.StartDate"
+             @bind-VisibleEndDateRange="ViewModel.EndDate"
+             OnChangeCalendarEventOrTask="@(async (x) => await ViewModel.OnChangeCalendarEventOrTask(x))"
+             OnClickCalendarEventOrTask="@(async (x) => await ViewModel.OnClickCalendarEventOrTask(x))"
+             OnCreateCalendarEventOrTask="@(async (x) => await ViewModel.OnCreateCalendarEventOrTask(x))"
+             OnDeleteCalendarEventOrTask="(async (x) => await ViewModel.OnDeleteCalendarEventOrTask(x))"
+             @ref=_calendarRef>
+         </TUICalendar>
+
+
+
+
+    
+
+
+
+@code{
+    private TUICalendar _calendarRef;
+    private DateTimeOffset selectDate = DateTimeOffset.Now;
+
+    string user { get; set; }
+
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+    async Task<string> getFullnameByLogin(string input)
+    {
+
+        string result = await mysqlc.MySql_ContextAsyncL(mysqlc.getUsernameByLogin(input));
+        return result;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.InitCalendarDataAsync();
+        ViewModel.PropertyChanged += OnPropertyChangedHandler;
+
+        //user = await getFullnameByLogin(_httpContextAccessor.HttpContext.User.Identity?.Name!);
+        user = await getFullnameByLogin(authStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name);
+    }
+
+    async void OnPropertyChangedHandler(object sender, PropertyChangedEventArgs e)
+    {
+        await InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+    }
+
+    private void ChangeCalendarView(TUICalendarViewName viewName)
+    {
+        ViewModel.CalendarViewName = viewName;
+    }
+
+    private async Task MoveCalendarView(CalendarMove move)
+    {
+        await _calendarRef.MoveCalendar(move);
+
+    }
+
+    private async void ClearCalendar()
+    {
+        await _calendarRef.CalendarInterop.Clear();
+    }
+
+    private void ScrollToNow()
+    {
+        _calendarRef.CalendarInterop.ScrollToNow();
+    }
+
+    public void Dispose()
+    {
+        ViewModel.PropertyChanged -= OnPropertyChangedHandler;
+    }
+
+    private async Task ScrollToDate(DateTimeOffset selectedDateTime)
+    {
+        await _calendarRef.CalendarInterop.SetDate(selectedDateTime);
+    }
+}
+
+ 

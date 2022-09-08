@@ -1,0 +1,761 @@
+﻿@page "/proj_overview"
+@using EviCRM.Server.Core
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+
+@inject IWebHostEnvironment _environment
+  @inject ILocalStorageService _localStorageService
+  @inject NavigationManager UriHelper
+
+<h5>Проекты \ Обзор проекта</h5>
+
+@if (ready)
+{
+    @if (current_project_num_to_show == int.MinValue)
+    {
+        <div class="col-lg-4">
+            <div class="card border border-danger">
+                <div class="card-header bg-transparent border-danger">
+                    <h5 class="my-0 text-danger"><i class="mdi mdi-block-helper me-3"></i>Не удаётся загрузить текущий проект</h5>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Мне не показать вам страницу, так как я не понимаю к какому проекту она относится</h5>
+                    <p>Я бы на самом на самом деле с радостью вам его показал, но я не получил достоверных данных какой именно проект показать</p>
+                    <p></p>
+                    <p><b>Это может быть следствием:</b></p>
+                    <ul>
+                        <li>Чьей-то злой шутки</li>
+                        <li>Технической ошибки программиста</li>
+                        <li>Отключены Cookie в браузере, для текущего сайта они очень нужны</li>
+                    </ul>
+
+                    <p>В любом случае, если вы читаете это сообщение, то свяжитесь с разработчиком: <a target="_blank" href="https://t.me/nikita4shap" class="btn btn-primary btn-lg waves-effect waves-light">Написать</a> </p>
+                </div>
+            </div>
+        </div>
+    }
+    @if (current_project_num_to_show != int.MinValue)
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0 me-4">
+
+                                <div class="avatar-md">
+                                    <span class="avatar-title rounded-circle bg-light text-danger font-size-16">
+                                        @{
+
+                                            string path_to_file = _environment.WebRootPath;
+                                            path_to_file += "\\uploads\\users\\avatars\\";
+
+
+                                            if (File.Exists(path_to_file + proj_avatar_path[current_project_num_to_show]))
+                                            {
+                                                <img src="/uploads/users/avatars/@proj_avatar_path[current_project_num_to_show]" alt="" class="avatar-sm">
+                                            }
+                                            else
+
+                                            {
+                                                <img src="/avatars_past/img-1.png" alt="" class="avatar-sm">
+                                            }
+
+                                        }
+                                    </span>
+                                </div>  
+
+                            </div>
+
+                            <div class="flex-grow-1 overflow-hidden">
+                                <h5 class="text-truncate font-size-15">@proj_name_dt[current_project_num_to_show]</h5>
+                                <p class="text-muted">@proj_short_description_dt[current_project_num_to_show]</p>
+                            </div>
+                        </div>
+
+                        <h5 class="font-size-15 mt-4">Детали проекта :</h5>
+
+                        <p class="text-muted">@((MarkupString)(Base64Decode(proj_description_dt[current_project_num_to_show])))</p>
+
+                        @* <div class="text-muted mt-4">
+                            <p><i class="mdi mdi-chevron-right text-primary me-1"></i> To achieve this, it would be necessary</p>
+                            <p><i class="mdi mdi-chevron-right text-primary me-1"></i> Separate existence is a myth.</p>
+                            <p><i class="mdi mdi-chevron-right text-primary me-1"></i> If several languages coalesce</p>
+                            </div>
+                        *@
+
+                        <div class="row task-dates">
+                            <div class="col-sm-3 col-6">
+                                <div class="mt-4">
+                                    <h5 class="font-size-14"><i class="bx bx-calendar me-1 text-primary"></i>Дата начала:</h5>
+                                    <p class="text-muted mb-0">@proj_start_dt[current_project_num_to_show]</p>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-3 col-6">
+                                <div class="mt-4">
+                                    <h5 class="font-size-14"><i class="bx bx-calendar-check me-1 text-primary"></i>Дедлайн:</h5>
+                                    <p class="text-muted mb-0">@proj_end_dt[current_project_num_to_show]</p>
+                                </div>
+                            </div>
+
+                              <div class="col-sm-6 col-6">
+                                <div class="mt-4">
+                                    <h5 class="font-size-14"><i class="bx bx-calendar-check me-1 text-primary"></i>Обратный отсчёт:</h5>
+                                    <p class="text-muted mb-0">@getCountdown(DateTime.Parse(proj_end_dt[current_project_num_to_show]))</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- end col -->
+
+  <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Исполнители</h4>
+
+                        <div class="table-responsive">
+                            <table class="table align-middle table-nowrap">
+                                <tbody>
+
+                                    @{
+                                        List<string> cast = bc.getMultipleStringDecodingString(proj_users_dt[current_project_num_to_show]);
+                                        List<string> users_avatars = new List<string>();
+
+                                        foreach (string elem in cast)
+                                        {
+                                            int p = getUserArrIDByLogin(elem);
+                                            users_avatars.Add(users_avatars_dt[p]);
+                                        }
+                                    }
+
+
+                                    @for (int av = 0; av < cast.Count; av++)
+                                    {
+                                        <tr>
+                                            <td style="width: 50px;">
+
+
+                                                @if (users_avatars[av] == "" || users_avatars[av] == null)
+                                                {
+                                                    string str = cast[av].ToUpper();
+                                                    char b_str = '?';
+
+                                                    @if (str.Length > 0)
+                                                    {
+                                                        b_str = str[0];
+                                                    }
+
+                                                    <div class="avatar-group-item">
+                                                        <a href="javascript: void(0);" class="d-inline-block">
+                                                            <div class="avatar-xs">
+                                                                <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                    @b_str
+
+                                                                </span>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    if (File.Exists(Path.Combine(_environment.WebRootPath, "uploads", "users", "avatars", users_avatars[av])))
+                                                    {
+                                                        <div class="avatar-group-item">
+                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                <div class="avatar-xs">
+                                                                    <img src="/uploads/users/avatars/@users_avatars[av]" alt="" class="avatar-xs"/>
+                                                                </div>
+                                                            </a>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="avatar-group-item">
+                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                <div class="avatar-xs">
+                                                                    <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs"/>
+                                                                </div>
+                                                            </a>
+                                                        </div>
+                                                    }
+                                                }
+                                                
+
+
+                                            </td>
+                                            <td><h5 class="font-size-14 m-0"><a href="javascript: void(0);" class="text-dark">@getFullnameByLogin(cast[av])</a></h5></td>
+
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-lg-8">
+           <div class="table-responsive">
+                <table class="table project-list-table table-nowrap align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 100px">#</th>
+                            <th scope="col">Название задач</th>
+                            <th scope="col">Дедлайны</th>
+                            <th scope="col">Статус</th>
+                            <th scope="col">Исполнители</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                            @{
+
+                                List<string> actual_tasks = new List<string>();
+                                actual_tasks = getTasksIDByProjectArrID(current_project_num_to_show);
+
+                                int num = 0;
+
+                                string task_name = "";
+
+                                for (int z = 0; z < tasks_id_dt.Count; z++)
+                                {
+                                    int temp = z;
+                                    if (actual_tasks.Contains(tasks_id_dt[z]))
+                                {
+                                    <tr>
+                                        <td>@(num+1)</td>
+                                        @{
+                                            //task_name = await get_taskNameByID(tasks_id_dt[z].ToString());
+                                            task_name = "";
+                                        }
+                                        <td>
+                                            <h5 class=text-truncate font-size><button type="button" @onclick="() => TaskShow(tasks_id_dt[temp])" class="btn btn-link" >@tasks_name_dt[temp]</button></h5>
+
+                                        </td>
+
+                                        
+                                        <td>@tasks_enddate_dt[z]</td>
+
+                                          <td>
+
+                                        @{
+                                            //string status_proj = await mysqlc.MySql_ContextAsyncGeneral(mysqlc.getTaskStatusByID(tasks_id_dt[z].ToString()));
+                                            string status_proj = tasks_status_dt[z];
+                                            switch (status_proj)
+                                            {
+                                                case "waiting":
+                                                    <span class="badge bg-dark">Ожидает подтверждения</span>
+                                                    break;
+                                                case "approved":
+                                                    status_proj = "Подтверждён";
+                                                    break;
+                                                case "pending":
+                                                    status_proj = "Выполняется";
+                                                    break;
+                                                case "completed":
+                                                    status_proj = "Выполнена";
+                                                    break;
+                                                case "delayed":
+                                                    status_proj = "Отложена";
+                                                    break;
+                                                case "canceled":
+                                                    status_proj = "Отменена";
+                                                    break;
+                                                case "failed":
+                                                    status_proj = "Провалена";
+                                                    break;
+
+                                            }
+                                        }
+                                       //@status_proj
+                                       </td>
+                                        <td>
+                                            <div class="avatar-group">
+                                     
+                                                        @{
+                                                            List<string> task_cast = bc.getMultipleStringDecodingString(tasks_members_dt[z]);
+                                                            List<string> task_users_avatars = new List<string>();
+
+                                                            foreach(string elem in task_cast)
+                                                            {
+                                                                int p = getUserArrIDByLogin(elem);
+                                                                task_users_avatars.Add(users_avatars_dt[p]);
+                                                            }
+
+                                                            for(int av = 0; av<task_cast.Count; av++)
+                                                            {
+                                                                if (task_users_avatars[av] == "" || task_users_avatars[av] == null)
+                                                                {
+                                                                    string str = task_cast[av].ToUpper();
+                                                      char b_str = '?';
+                                       
+                                                     if (str.Length > 0)
+                                                     {
+                                                      b_str = str[0];                                                            
+                                                     }
+
+                                                    <div class="avatar-group-item">
+                                                    <a href="javascript: void(0);" class="d-inline-block">
+                                                 <div class="avatar-xs">
+                                                    <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                     @b_str
+
+                                                      </span>
+                                                      </div>
+                                      </a>
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    if (File.Exists(Path.Combine(_environment.WebRootPath,"uploads","users","avatars",task_users_avatars[av])))
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                    <a href="javascript: void(0);" class="d-inline-block">
+                                                 <div class="avatar-xs">
+                                                    <img src="/uploads/users/avatars/@task_users_avatars[av]" alt="" class="avatar-xs"/>
+                                                      </div>
+                                      </a>
+                                                                    </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="avatar-group-item">
+                                                    <a href="javascript: void(0);" class="d-inline-block">
+                                                 <div class="avatar-xs">
+                                                    <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs"/>
+                                                      </div>
+                                      </a>
+                                                                    </div>
+                                                                    }
+                                                                }
+                                                            }
+                          
+                                                }
+                                   </div>
+                                        </td>
+                                    </tr>
+
+                                    num++;
+                                }
+
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+         <div class="col-lg-4">
+                 <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Отделы</h4>
+
+                        <div class="table-responsive">
+                            <table class="table align-middle table-nowrap">
+                                <tbody>
+
+                                    @{
+                                        List<string> cast_div = bc.getMultipleStringDecodingString(proj_div_dt[current_project_num_to_show]);
+                                        List<string> divs_avatars = new List<string>();
+
+                                        foreach (string elem in cast_div)
+                                        {
+                                            int p = getDivArrByDivID(elem);
+                                            divs_avatars.Add(divs_avatar_dt[p]);
+                                        }
+                                    }
+
+
+                                    @for (int am = 0; am < cast_div.Count; am++)
+                                    {
+                                        <tr>
+                                            <td style="width: 50px;">
+
+
+                                                @if (divs_avatars[am] == "" || divs_avatars[am] == null)
+                                                {
+                                                    string str = cast_div[am].ToUpper();
+                                                    char b_str = '?';
+
+                                                    @if (str.Length > 0)
+                                                    {
+                                                        b_str = str[0];
+                                                    }
+
+                                                    <div class="avatar-group-item">
+                                                        <a href="javascript: void(0);" class="d-inline-block">
+                                                            <div class="avatar-xs">
+                                                                <span class="avatar-title rounded-circle bg-danger text-white font-size-16">
+
+                                                                    @b_str
+
+                                                                </span>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    if (File.Exists(Path.Combine(_environment.WebRootPath, "uploads", "users", "avatars", divs_avatars[am])))
+                                                    {
+                                                        <div class="avatar-group-item">
+                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                <div class="avatar-xs">
+                                                                    <img src="/uploads/users/avatars/@divs_avatars[am]" alt="" class="avatar-xs"/>
+                                                                </div>
+                                                            </a>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="avatar-group-item">
+                                                            <a href="javascript: void(0);" class="d-inline-block">
+                                                                <div class="avatar-xs">
+                                                                    <img src="/uploads/users/avatars/default.png" alt="" class="avatar-xs"/>
+                                                                </div>
+                                                            </a>
+                                                        </div>
+                                                    }
+                                                }
+                                                
+
+
+                                            </td>
+                                            <td><h5 class="font-size-14 m-0"><a href="javascript: void(0);" class="text-dark">@getDivNameByID(cast_div[am])</a></h5></td>
+
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        <!-- end row -->
+
+       @* <div class="row">
+          
+        </div>*@
+    }
+}
+@functions{
+
+}
+@inject ILocalStorageService _localStorageService
+
+@code {
+    private BackendController bc = new BackendController();
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+
+    List<string> proj_divs_dt = new List<string>();
+    List<string> proj_id_dt = new List<string>();
+    List<string> proj_name_dt = new List<string>();  
+    List<string> proj_description_dt = new List<string>();
+    List<string> proj_end_dt = new List<string>();
+    List<string> proj_start_dt = new List<string>();
+    List<string> proj_status_dt = new List<string>();
+    List<string> proj_users_dt = new List<string>();
+    List<string> proj_short_description_dt = new List<string>();
+
+    List<string> tasks_proj_dt = new List<string>();
+    List<string> tasks_id_dt = new List<string>();
+    List<string> tasks_name_dt = new List<string>();
+    List<string> tasks_status_dt = new List<string>();
+    List<string> tasks_enddate_dt = new List<string>();
+    List<string> tasks_members_dt = new List<string>();
+    List<string> tasks_divs_dt = new List<string>();
+
+    List<string> proj_avatar_path = new List<string>();
+    List<string> fullname_dt = new List<string>();
+
+    List<string> proj_div_dt = new List<string>();
+
+    List<string> divs_avatar_dt = new List<string>();
+    List<string> divs_name_dt = new List<string>();
+    List<string> divs_id_dt = new List<string>();
+
+
+    List<string> users_dt = new List<string>();
+    List<string> users_avatars_dt = new List<string>();
+
+    string cur_num { get; set; }
+    int current_project_num_to_show { get; set; }
+    int real_id { get; set; }
+
+    string proj_id { get; set; }
+    bool ready { get; set; }
+
+    public static string Base64Encode(string plainText) {
+        var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+        return System.Convert.ToBase64String(plainTextBytes);
+    }
+    public static string Base64Decode(string base64EncodedData) {
+        var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
+        return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+    }
+
+      public string getCountdown(DateTime dt_end)
+    {
+        DateTime current = DateTime.Now;
+
+        string countdown = "";
+
+        var diff_dt = dt_end - current;
+
+        
+        if (diff_dt.TotalSeconds < 0)
+        {
+            countdown = "Просрочка на "; 
+            diff_dt = diff_dt.Negate();
+        }
+        else
+        {
+            countdown = "Осталось ";
+        }
+
+        if (diff_dt.Days > 0)
+        {
+            countdown += diff_dt.Days + " дней ";
+        }
+
+         if (diff_dt.Hours > 0)
+        {
+            countdown += diff_dt.Hours + " часов ";
+        }
+
+         if (diff_dt.Minutes > 0)
+        {
+            countdown += diff_dt.Minutes + " минут ";
+        }
+
+        // if (diff_dt.Seconds > 0)
+        //{
+        //    countdown += diff_dt.Seconds + " секунд ";
+        //}
+
+        return countdown;
+    }
+
+    public int getDivArrByDivID(string id)
+    {
+        int a = 0;
+
+        for (int p = 0; p<divs_id_dt.Count;p++)
+        {
+            if (divs_id_dt[p] == id)
+            {
+                a = p;
+            }
+        }
+
+        return a;
+    }
+
+    public string getDivNameByID(string id)
+    {
+        int a = 0;
+
+        for (int p = 0; p<divs_id_dt.Count;p++)
+        {
+            if (divs_id_dt[p] == id)
+            {
+                a = p;
+            }
+        }
+
+        return divs_name_dt[a];
+    }
+
+    public string getFullnameByLogin(string login)
+    {
+        int m = int.MinValue;
+
+        for(int p = 0; p<users_dt.Count;p++)
+        {
+            if (users_dt[p] == login)
+            {
+                m = p;
+            }
+        }
+
+        if (m == int.MinValue)
+        {
+            return "Анонимный пользователь";
+        }
+        else
+
+        {
+            return fullname_dt[m];
+        }
+
+    }
+
+    public int getUserArrIDByLogin(string login)
+    {
+        for (int p = 0; p<users_dt.Count; p++)
+        {
+            if (users_dt[p] == login)
+            {
+                return p;
+            }
+        }
+        return 0;
+    }
+    private async Task<string> GetLocalStorageItems(string key)
+    {
+        return await _localStorageService.GetItemAsStringAsync(key);
+    }
+
+    public void ProjectShow(string proj_id)
+    {
+        InsertLocalStorageItems("project_overview",proj_id);
+        UriHelper.NavigateTo("/project_overview");
+    }
+
+
+    public async Task<string> get_taskNameByID(string task_name)
+    {
+        return await mysqlc.MySql_ContextAsyncGeneral(mysqlc.getTasksNameByID(task_name));
+    }
+
+    string task_name { get; set; }
+    string task_crew { get; set; }
+    string status_proj { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        ready = false;
+        if (await _localStorageService.GetItemAsStringAsync("project_overview") == null)
+        {
+            proj_id = "";
+        }
+        else
+        {
+            proj_id = await _localStorageService.GetItemAsStringAsync("project_overview");
+        }
+
+        proj_divs_dt = await mysqlc.getListDivisionsIDAsync();
+        proj_id_dt = await mysqlc.getListProjIDAsync();
+        proj_name_dt = await mysqlc.getListProjNameAsync();
+        proj_description_dt  = await mysqlc.getListProjDescriptionAsync();
+        proj_end_dt = await mysqlc.getListProjEndAsync();
+        proj_start_dt = await mysqlc.getListProjStartDateAsync();
+        proj_status_dt = await mysqlc.getListProjStatusAsync();
+        proj_users_dt = await mysqlc.getListProjUsersAsync();
+        proj_short_description_dt  = await mysqlc.getListProjShortDescriptionAsync();
+        tasks_proj_dt = await mysqlc.getListTaskProjAsync();
+        tasks_id_dt = await mysqlc.getListTaskIDAsync();
+        tasks_name_dt = await mysqlc.getListTaskNameAsync();
+        tasks_status_dt = await mysqlc.getListTaskStatusAsync();
+        tasks_enddate_dt = await mysqlc.getListTaskEndDateAsync();
+
+        proj_avatar_path = await mysqlc.getListProjAvatarPathAsync();
+
+        proj_div_dt = await mysqlc.getListProjDivisions();
+        //task_name = await mysqlc.MySql_ContextAsyncGeneral(mysqlc.getTasksNameByID(tasks_id_dt[z].ToString()));
+        //task_crew = await mysqlc.MySql_ContextAsyncGeneral(mysqlc.getTaskMembersByID(tasks_id_dt[z].ToString()));
+        //status_proj = await mysqlc.MySql_ContextAsyncGeneral(mysqlc.getTaskStatusByID(tasks_id_dt[z].ToString()));
+        users_dt = await mysqlc.getListUsersLoginAsync();
+        fullname_dt = await mysqlc.getListUsersFullnameAsync();
+
+        // users_avatars_dt = mysqlc.getAvatarPaths(users_dt);
+
+        users_avatars_dt = await mysqlc.getListUsersAvatarAsync();
+
+        divs_avatar_dt = await mysqlc.getListDivisionsAvatarAsync();
+        divs_name_dt = await mysqlc.getListDivisionsNameAsync();
+        divs_id_dt = await mysqlc.getListDivisionsIDAsync();
+
+        tasks_members_dt = await mysqlc.getListTaskMembersAsync();
+        tasks_divs_dt = await mysqlc.getListTaskMembersDivsAsync();
+
+        current_project_num_to_show = int.MinValue;
+
+        if (int.TryParse(proj_id,out int a))
+        {
+            current_project_num_to_show = int.Parse(proj_id);
+        }
+        ready = true;
+        StateHasChanged();
+
+        //         for (int i = 0; i<proj_id_dt.Count;i++)
+        //{
+        //    if (int.TryParse(proj_id_dt[i],out int z))
+        //    {
+        //        if (current_project_num_to_show == int.Parse(proj_id_dt[i]))
+        //        {
+        //            current_project_num_to_show = i;
+        //        }
+        //    }
+
+        //}
+    }
+
+
+    private int _localStorageCount;
+    private IList<KeyValuePair<string, string>> _localStorageItems;
+
+
+    private async Task RefreshLocalStorageItems()
+    {
+        _localStorageItems = new List<KeyValuePair<string, string>>();
+        await foreach (var key in _localStorageService.GetAllKeysAsync())
+        {
+            if (key is null)
+                continue;
+
+            _localStorageItems.Add(new KeyValuePair<string, string>(key, await _localStorageService.GetItemAsStringAsync(key)));
+        }
+
+    }
+    private async Task SaveCustomLocalStorageItem(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key,val);
+        await RefreshLocalStorageItems();
+    }
+
+    private async Task InsertLocalStorageItems(string key, string val)
+    {
+        await _localStorageService.SetItemAsync(key,val);
+    }
+
+    public async Task TaskShow(string str_num)
+    {
+        await SaveCustomLocalStorageItem("task_tracking_id", str_num);
+        UriHelper.NavigateTo("/task_tracking");
+    }
+
+    //public string getProjectIDByArrID(int project_arr_id)
+    //{
+        
+    //}
+
+
+    List<string> getTasksIDByProjectArrID(int proj_arr)
+    {
+        string proj_id = proj_id_dt[proj_arr];
+
+        List<string> a_list = new List<string>();
+        for (int p = 0; p< tasks_proj_dt.Count;p++)
+        {
+            List<string> decode = bc.getMultipleStringDecodingString(tasks_proj_dt[p]);
+            foreach(string str2 in decode)
+            {
+                if (str2 == proj_id)
+            {
+                a_list.Add(tasks_id_dt[p].ToString());
+            }
+            }
+        }
+        return a_list;
+
+    }
+}

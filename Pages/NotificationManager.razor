@@ -1,0 +1,260 @@
+﻿@using EviCRM.Server.Core
+@using System.Diagnostics
+@using Majorsoft.Blazor.Components.Notifications
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.SignalR.Client
+
+@using Append.Blazor.Notifications
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+@using Majorsoft.Blazor.Components.GdprConsent
+@using Majorsoft.Blazor.Components
+
+@inject NavigationManager NavigationManager
+@inject NavigationManager UriHelper
+
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+@*@inject INotificationService _notificationService*@
+
+@inject IToastService _toastService
+@inject IJSRuntime JS
+
+@functions{
+
+	private HubConnection? hubConnection_chat; //Хаб чата
+	private HubConnection? hubConnection_mail; //Хаб почты
+	private HubConnection? hubConnection_task; //Хаб задачника
+	private HubConnection? hubConnection_general; //Хаб общий
+
+	private List<string> messages_chat = new List<string>();
+	private List<string> messages_mail = new List<string>();
+	private List<string> messages_task = new List<string>();
+	private List<string> messages_general = new List<string>();
+
+	private List<string> lst_messages_chat = new List<string>();
+	private List<string> lst_messages_mail = new List<string>();
+	private List<string> lst_messages_task = new List<string>();
+	private List<string> lst_messages_general = new List<string>();
+
+	BackendController bc = new BackendController();
+
+	private string? userInput;
+	private string? messageInput;
+
+	public async Task SignalR_Chat_Handler(string user, string message)
+	{
+		bool isTabActive = false;
+
+		if (notify_toasts)
+		{
+			await ToastsNotifications_ShowCustomToast_Primary("Новое сообщение!" + Environment.NewLine + "'" + user + "' написал: " + message);
+		}
+		if (notify_browser)
+		{
+			//await NotificationShow("Новое сообщение в чате!", Environment.NewLine + "'" + user + "' написал: " + message);
+		}
+		if (notify_Telegram)
+		{
+			//await TelegramNotificator(user, message);
+		}
+	}
+
+	public async Task TelegramNotificator(string login, string message)
+    {
+        List<string> cmd_bn = new List<string>();
+        List<string> cmd_bv = new List<string>();
+
+        cmd_bn.Add("cmd");
+        cmd_bv.Add("telegram_direct");
+
+        cmd_bn.Add("login");
+        cmd_bv.Add(login);
+
+        cmd_bn.Add("message");
+        cmd_bv.Add(Base64Encode("message"));
+        List<string> chatID_collections = new List<string>();
+
+        string telegram_status_cmd = bc.backend_GetLinkBuilder(cmd_bn,cmd_bv);
+        string telegram_status = await bc.backend_PostAsync("http://localhost:9254/get/", telegram_status_cmd);
+
+
+    }
+
+	 public static string Base64Encode(string plainText) {
+        var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+  return System.Convert.ToBase64String(plainTextBytes);
+}
+
+public static string Base64Decode(string base64EncodedData) {
+  var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
+  return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+}
+
+	private async Task NotificationShow(string n_title, string n_description)
+    {
+        //await _notificationService.CreateAsync(n_title, n_description);
+        //path = "images/github.png"
+    }
+
+	public async Task SignalR_Mail_Handler(string user,string message)
+	{
+		
+	}
+
+	public async Task SignalR_Task_Handler(string user,string message)
+	{
+		
+	}
+
+	public async Task SignalR_General_Handler(string user,string message)
+	{
+		
+	}
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection_chat = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/signalr_chat"))
+            .Build();
+
+		 hubConnection_mail = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/signalr_mail"))
+            .Build();
+
+		 hubConnection_task = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/signalr_task"))
+            .Build();
+
+		 hubConnection_general = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/signalr_general"))
+            .Build();
+
+        hubConnection_chat.On<string, string>("broadcastMessage", (user,message) =>
+        {
+            var encodedMsg = $"#{user}#: ${message}$";
+            messages_chat.Add(encodedMsg);
+			SignalR_Chat_Handler(user,message);
+            InvokeAsync(StateHasChanged);
+        });
+
+		 hubConnection_mail.On<string, string>("broadcastMessage", (user,message) =>
+        {
+            var encodedMsg = $"#{user}#: ${message}$";
+            messages_mail.Add(encodedMsg);
+			SignalR_Mail_Handler(user,message);
+            InvokeAsync(StateHasChanged);
+        });
+
+		 hubConnection_task.On<string, string>("broadcastMessage", (user,message) =>
+        {
+            var encodedMsg = $"#{user}#: ${message}$";
+            messages_task.Add(encodedMsg);
+			SignalR_Task_Handler(user,message);
+            InvokeAsync(StateHasChanged);
+        });
+
+		 hubConnection_general.On<string, string>("broadcastMessage", (user,message) =>
+        {
+            var encodedMsg = $"#{user}#: ${message}$";
+            messages_general.Add(encodedMsg);
+			SignalR_General_Handler(user,message);
+            InvokeAsync(StateHasChanged);
+        });
+
+		
+        await hubConnection_chat.StartAsync();
+		await hubConnection_mail.StartAsync();
+		await hubConnection_task.StartAsync();
+		await hubConnection_general.StartAsync();
+
+		//Notification modules
+
+        ////Supporting by Browser
+        //bool IsSupportedByBrowser = await _notificationService.IsSupportedByBrowserAsync();
+
+        ////Checking for permision
+        //PermissionType permission = await _notificationService.RequestPermissionAsync();
+        
+        ////Check Notification Status
+        //permission = _notificationService.PermissionStatus;
+
+    }
+
+
+	//Toasts
+	private async Task ToastsNotifications_ShowAllToast()
+	{
+		foreach (var item in Enum.GetValues<NotificationTypes>())
+		{
+			_toastService.ShowToast($@"<strong>Toast оповещения:</strong> Это оповещение типа {item}", item);
+		}
+	}
+
+	private Guid _lastToastId;
+
+	private async Task ToastsNotifications_ShowCustomToast_Primary(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Primary);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Secondary(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Secondary);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Info(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Info);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Success(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Success);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Warning(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Warning);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Danger(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Danger);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Light(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Light);
+	}
+	private async Task ToastsNotifications_ShowCustomToast_Dark(string toastText)
+	{
+		await ToastsNotifications_ShowCustomToast(toastText, NotificationStyles.Normal, NotificationTypes.Dark);
+	}
+	private async Task ToastsNotifications_ShowCustomToast(string toastText,NotificationStyles ns,NotificationTypes ntype)
+	{
+		_lastToastId = _toastService.ShowToast(new ToastSettings()
+		{
+			Content = builder => builder.AddMarkupContent(0, toastText),
+			NotificationStyle = ns,
+			Type = ntype,
+			AutoCloseInSec = _toastAutoCloseInSec,
+			ShadowEffect = _toastShadowEffect,
+			ShowCloseButton = _toastShowCloseButton,
+			ShowCloseCountdownProgress = _toastShowCountdownProgress,
+			ShowIcon = _toastShowIcon
+		});
+	}
+
+}
+
+@code{
+	bool notify_toasts = true;
+	bool notify_browser = true;
+	bool notify_Telegram = true;
+
+    private string _toastText = $@"<strong>Toast:</strong> This is a(n) {NotificationTypes.Primary} notification";
+	private bool _toastShowIcon = true;
+	private bool _toastShowCloseButton = true;
+	private bool _toastShowCountdownProgress = true;
+	private uint _toastAutoCloseInSec = 5;
+	private uint _toastShadowEffect = 5;
+	private NotificationStyles _toastStyle;
+	private NotificationTypes _toastTypeLevel;
+
+	private ElementReference log1;
+	private string _toastLog = "";
+}

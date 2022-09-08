@@ -1,0 +1,96 @@
+﻿<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+
+                @if (isCreate)
+                {
+                    <h4 class="modal-title">Новая точка на карте</h4>
+                }
+                else
+                {
+                    <h4 class="modal-title">Просмотр точки на карте</h4>
+                }
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="col-lg-10">
+                    <label><b>Запомнить эту точку?</b></label>
+                </div>
+
+                <p></p>
+
+                <p><i><b>Выбрана геопозиция:</b></i></p>
+                <p><b>Широта: </b>@Lat.ToString("N5")</p>
+                <p><b>Долгота: </b>@Lng.ToString("N5")</p>
+
+                @* <p><b>Высота: </b>@Alt.ToString("N5")</p>*@
+
+                <p></p>
+
+                <div class="col-lg-10">
+                    <label>Название для новой точки:</label>
+                    <input id="new_point_name" @bind=@new_point_body class="form-control" />
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                @if (isCreate)
+                {
+                    <button type="button" class="btn btn-primary" @onclick=@ModalSave>Создать точку</button>
+                    <button type="button" class="btn btn-danger" @onclick="@ModalCancel">Закрыть</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-danger" @onclick="@ModalCancel">Закрыть</button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    string new_point_body { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnSave { get; set; }
+
+    [Parameter]
+    public bool isCreate { get; set; }
+
+    [Parameter]
+    public float Lat { get; set; }
+
+    [Parameter]
+    public float Lng { get; set; }
+
+    [Parameter]
+    public float Alt { get; set; }
+
+    [Parameter]
+    public string view_Body { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalSave()
+    {
+        @if (new_point_body.Length > 0)
+        {
+            return OnSave.InvokeAsync(new_point_body);
+        }
+        else
+        {
+            return Task.CompletedTask;
+        }
+        return OnClose.InvokeAsync(false);
+    }
+}

@@ -1,0 +1,63 @@
+﻿<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Произошла ошибка при загрузке задачи!</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                    <div class="card border border-danger">
+                        <div class="card-header bg-transparent border-danger">
+                            <h5 class="my-0 text-danger"><i class="mdi mdi-block-helper me-3"></i>Не удаётся загрузить текущую задачу</h5>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">Мне не показать вам страницу, так как я не понимаю к какой задаче она относится</h5>
+                            <p>Я бы на самом на самом деле с радостью вам её показал, но я не получил достоверных данных какую именно задачу показать</p>
+                            <p></p>
+                            <p><b>Это может быть следствием:</b></p>
+                            <ul>
+                                <li>Чьей-то злой шутки</li>
+                                <li>Технической ошибки программиста</li>
+                                <li>Отключены Cookie в браузере, для текущего сайта они очень нужны</li>
+                            </ul>
+
+                            <p>В любом случае, если вы читаете это сообщение, то свяжитесь с разработчиком: <a target="_blank" href="https://t.me/nikita4shap" class="btn btn-primary btn-lg waves-effect waves-light">Написать</a> </p>
+                        </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+
+                <button type="button" class="btn btn-primary" @onclick=@ModalOk>OK</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public ModalDialogType DialogType { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+        DeleteCancel
+    }
+}
+

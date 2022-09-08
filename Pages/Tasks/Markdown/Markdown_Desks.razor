@@ -1,0 +1,296 @@
+﻿<html>
+<head>
+    <meta charset="utf-8">
+    <title>Markdown - Доска</title>
+
+    <style>
+        .action_menu_top {
+            position: absolute;
+            right: 0;
+            top: 2;
+        }
+
+        .colored_borders {
+            left: 2;
+        }
+    </style>
+
+</head>
+
+
+<body>
+
+    <div class="card bg-info text-white-50">
+        <div class="card-body">
+            <div class="row" style="background-color:darkblue">
+
+                <p></p>
+
+                <h5><font color="white">@desk_title_name</font><button type="button" class="card-title btn btn-circle-top action_menu_top" width="10px" height="10px" @onclick=DeskContextMenuClick><font color="white">&#9776;</font></button></h5>
+
+                @if (isGlobalMenuShown)
+                {
+                    <div class="col">
+                        <div class="row">
+                            <button type="button" class="btn btn-outline-info" @onclick="(async()=>await AddCard())">Добавить карточку</button>
+                        </div>
+                        <div class="row">
+                            <button type="button" class="btn btn-outline-info" @onclick="(async()=>await SortCards())">Сортировать по ...</button>
+                        </div>
+                    </div>
+                }
+
+                <p></p>
+
+                @if (markdown_card_idmarkdown != null)
+                {
+                    for(int i = 0; i<markdown_card_idmarkdown.Count;i++)
+                    {
+                    <div class="col-lg-12">
+                    <div class="card" style="background-color:white">
+
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">@markdown_card_cardname[i]<button type="button" class="card-title btn btn-circle-top action_menu_top" width="10px" height="10px" @onclick=ContextMenuClick>&#9776;</button></h5>
+
+                            @if (isMenuShown)
+                            {
+                                <div class="col">
+                                    <div class="row">
+                                        <button type="button" class="btn btn-outline-info" @onclick="(async()=>await CopyCard())">Копировать карточку</button>
+                                    </div>
+                                    <div class="row">
+                                        <button type="button" class="btn btn-outline-info" @onclick="(async()=>await MoveCard())">Переместить карточку</button>
+                                    </div>
+                                </div>
+                            }
+
+                            <img src="@markdown_card_imgpath[i]" style="width:100%;height:200px" />
+                            <p></p>
+                            <h6>@markdown_card_carddescription[i]</h6>
+                            <font color="black"> <span class="mdi mdi-clock" aria-hidden="true">Начало: @DateTime.Parse(markdown_card_datestart[i]).ToString("dddd, dd MMMM yyyy")</span></font>
+
+                            @if(DateTime.Now > DateTime.Parse(markdown_card_dateend[i]))
+                                    {
+                                        <font color="white"><span style="background-color:#FF4B0F" class="mdi mdi-clock" aria-hidden="true"> @DateTime.Parse(markdown_card_dateend[i]).ToString("dddd, dd MMMM yyyy")</span></font>
+                                    }
+                                    else
+                                    {
+                                        <font color="white"><span style="background-color:green" class="mdi mdi-clock" aria-hidden="true">  @DateTime.Parse(markdown_card_dateend[i]).ToString("dddd, dd MMMM yyyy")</span></font>
+                                    }
+
+                            
+
+
+                        </div>
+
+                    </div>
+                </div>
+                <p></p>
+                    }
+                }
+
+                @if (card_markdown_id != null)
+                {
+                    @for (int i = 0; i < card_markdown_id.Count; i++)
+                    {
+                        <div class="row">
+
+                            <div class="col-auto">
+
+                                <input class="form-check-input" type="checkbox" value="" id="flexCheck-@i" @onchange="async()=>await Markdown(i)">
+                                <label class="h6 form-check-label" for="flexCheck-@i">
+                                    @card_markdown_body[i]
+                                </label>
+                            </div>
+
+                            <div class="col-auto">
+                                <button type="button" class="btn btn-outline-danger active" @onclick="async()=> await KillCardMarkdown(i)">x</button>
+                            </div>
+                        </div>
+
+                        <p></p>
+                    }
+                }
+
+                @*Footer*@
+
+                <div class="col-lg-12">
+                    <div class="card" style="background-color:white">
+                        <div class="card-body">
+
+                            <button type="button" class="btn btn-outline-info form-control" @onclick="(async()=>await AddDesk())">Добавить доску</button>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
+
+@code {
+
+    /// <summary>
+    /// Event Handlers
+    /// </summary>
+
+    [Parameter]
+    public int desk_num { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnCreateDesk { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnCreateCard { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnSorting { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnCopyingCard { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnMovingCard { get; set; }
+
+    [Parameter]
+    public EventCallback<Markdown_Desk_TwoIntBindings> OnMarkdown { get; set; }
+
+    [Parameter]
+    public EventCallback<Markdown_Desk_TwoIntBindings> OnKillMarkdown { get; set; }
+
+    enum Desk_Option
+    {
+        View,
+        Create,
+    }
+
+    Desk_Option desk_status = Desk_Option.View; 
+
+   
+
+
+    private async Task Markdown(int i)
+    {
+        Markdown_Desk_TwoIntBindings tib = new Markdown_Desk_TwoIntBindings();
+        tib.index = desk_num;
+        tib.parameter = i;
+        await OnMarkdown.InvokeAsync(tib);
+    }
+
+    private async Task KillCardMarkdown(int i)
+    {
+        Markdown_Desk_TwoIntBindings tib = new Markdown_Desk_TwoIntBindings();
+        tib.index = desk_num;
+        tib.parameter = i;
+        await OnKillMarkdown.InvokeAsync(tib);
+    }
+
+    private async Task AddCard()
+    {
+        await OnCreateCard.InvokeAsync(desk_num);
+    }
+
+    private async Task AddDesk()
+    {
+
+        desk_status = Desk_Option.Create;
+        await InvokeAsync(StateHasChanged);
+
+        await OnCreateDesk.InvokeAsync(desk_num);
+    }
+
+    private async Task SortCards()
+    {
+        await OnSorting.InvokeAsync(desk_num);
+    }
+
+    private async Task CopyCard()
+    {
+        await OnCopyingCard.InvokeAsync(desk_num);
+    }
+
+    private async Task MoveCard()
+    {
+        await OnMovingCard.InvokeAsync(desk_num);
+    }
+
+
+    /// <summary>
+    /// Markdown Desks Description
+    /// </summary>
+
+    [Parameter]
+    public string markdown_desk_id { get; set; }
+
+    [Parameter]
+    public string markdown_desk_name { get; set; }
+
+    [Parameter]
+    public string markdown_desk_personalid { get; set; }
+
+    //----------------------------------------------------
+
+    /// <summary>
+    /// Markdown Cards Description
+    /// </summary>
+
+    [Parameter]
+    public List<string> markdown_card_idmarkdown { get; set; }
+
+    [Parameter]
+    public List<string> markdown_card_cardname { get; set; }
+
+    [Parameter]
+    public List<string> markdown_card_carddescription { get; set; }
+
+    [Parameter]
+    public List<string> markdown_card_datestart { get; set; }
+
+    [Parameter]
+    public List<string> markdown_card_dateend { get; set; }
+
+    [Parameter]
+    public List<string> markdown_card_imgpath { get; set; }
+
+    [Parameter]
+    public List<string> markdown_card_backcolor { get; set; }
+
+    //---------------------------------------------------
+
+
+
+    [Parameter]
+    public string desk_title_name { get; set; }
+
+    [Parameter]
+    public List<string> card_markdown_id { get; set; }
+
+    [Parameter]
+    public List<string> card_markdown_body { get; set; }
+
+    [Parameter]
+    public string task_id { get; set; }
+
+
+
+    bool isMenuShown = false;
+
+    bool isGlobalMenuShown = false;
+
+
+    void DeskContextMenuClick()
+    {
+        isGlobalMenuShown = !isGlobalMenuShown;
+        StateHasChanged();
+    }
+
+    void ContextMenuClick()
+    {
+        isMenuShown = !isMenuShown;
+        StateHasChanged();
+    }
+
+}

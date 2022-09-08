@@ -1,0 +1,129 @@
+﻿@page "/calendar"
+@using BlazorCalendar
+@using BlazorCalendar.Models
+@using EviCRM.Server.Calendar
+
+@using Majorsoft.Blazor.Components.Modal
+@inject AuthenticationStateProvider authStateProvider
+@using EviCRM.Server.Core;
+
+<PageTitle>Календарь</PageTitle>
+
+@using Blazored.Modal
+@using Blazored.Modal.Services
+
+@inject IModalService modalService
+@*@inject IHttpContextAccessor _httpContextAccessor;*@
+
+<AuthorizeView>
+      <Authorized>
+          
+<div class="d-flex flex-row mb-2">
+	
+	<select @bind="@SelectedView" class="me-2">
+		<option value="@BlazorCalendar.DisplayedView.Annual">Год</option>
+		<option value="@BlazorCalendar.DisplayedView.Monthly" selected>Месяц</option>
+	</select>
+
+	<button type="button" @onclick="@(m => ClicMonthNavigate(-1))">◀️</button>  
+	<button type="button" @onclick="@(m => ClicMonthNavigate(1))" class="me-2">▶️</button>
+	<input type="date" class="me-2" value="@(today.ToString("yyyy-MM-dd"))" @onchange="@(e => ChangeFirstDate(e.Value.ToString()))" />
+	<input type="number" class="me-2" min="1" @bind-value="months">
+	<select @bind="@PriorityDisplay" class="me-2">
+		<option value="@PriorityLabel.Code" selected>Метка</option>
+		<option value="@PriorityLabel.Caption">Описание</option>
+	</select>
+	<div>
+		<input type="checkbox" @bind="draggable" id="is-draggable" />
+		<label for="is-draggable">Перетаскивание</label>
+	</div>		 
+</div>
+
+@if (DeleteDialogOpen)
+{
+<CalendarTasks isAdmin=@isAdmin ID=@modal_ID editViewModel=@editViewModelBase operationType=@operationModal OnUpdate=@CallbackUpdateInterpeter OnDelete=@CallbackDeleteInterpreter  event_Date=@modal_event_date_click OnClose="@OnDeleteDialogClose" event_callback="@CallbackInterpreter"></CalendarTasks>
+}
+
+<CalendarContainer FirstDate="today" TasksList="TasksList_Calendar.ToArray()"  DisplayedView="SelectedView" >
+	<AnnualView Months="months" Style="height:80vh"  
+				PriorityDisplay="@PriorityDisplay"
+				HeaderClick="HeaderClick"
+				TaskClick="TaskClick" EmptyDayClick="EmptyDayClick"
+				Draggable="@draggable" DragStart="DragStart" DropTask="DropTask" />
+
+     <MonthlyView PriorityDisplay="@PriorityDisplay"
+				OutsideCurrentMonthClick="OutsideCurrentMonthClick"
+				TaskClick="TaskClick" DayClick="DayClick" 
+				Draggable="@draggable" DragStart="DragStart" DropTask="DropTask" />
+</CalendarContainer>
+
+
+<br />
+ </Authorized>
+<NotAuthorized>
+    <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! "/>
+</NotAuthorized>
+</AuthorizeView>  
+
+	
+@code{
+
+	#region Service Section
+
+	private void EmptyDayClick(ClickEmptyDayParameter clickEmptyDayParameter)
+	{
+		fakeConsole = "Empty day :" + clickEmptyDayParameter.Day.ToShortDateString();
+	}
+
+	private void DragStart(DragDropParameter dragDropParameter)
+	{	 
+		fakeConsole = $"DragStart event :{dragDropParameter.Day.ToShortDateString()} {dragDropParameter.taskID}";
+	}  
+
+	private void DropTask(DragDropParameter dragDropParameter)
+	{													 
+		fakeConsole = $"DropTask event :{dragDropParameter.Day.ToShortDateString()} {dragDropParameter.taskID}";
+
+		BlazorCalendar.Models.Tasks taskDropped = TasksList_Calendar.FirstOrDefault(t => t.ID == dragDropParameter.taskID);
+
+		var TotalDay = (taskDropped.DateEnd - taskDropped.DateStart).TotalDays;
+		taskDropped.DateEnd = dragDropParameter.Day.AddDays(TotalDay);
+		taskDropped.DateStart = dragDropParameter.Day;
+	}
+
+	protected override void OnAfterRender(bool firstRender)
+	{
+		if (firstRender)
+		{
+			new Timer(DateTimeCallback, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+		}
+	}
+
+	private void DateTimeCallback(object state)
+	{
+		InvokeAsync(() => StateHasChanged());
+	}
+
+	private void ChangeFirstDate(string value)
+	{
+		if (string.IsNullOrEmpty(value)) return;
+		today = DateTime.Parse(value.ToString());
+	}
+
+	private void ClicMonthNavigate(int monthToAdd)
+	{
+		today = today.AddMonths(monthToAdd);
+	}
+
+	private void HeaderClick(DateTime month)
+	{
+		SelectedView = DisplayedView.Monthly;
+		fakeConsole = "HeaderClick :" + month.ToString("MMM yyyy");
+	}
+	private void OutsideCurrentMonthClick(int MonthAdded)
+	{
+		today = today.AddMonths(MonthAdded);
+	}
+
+	#endregion
+}

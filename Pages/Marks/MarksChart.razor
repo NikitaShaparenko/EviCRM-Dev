@@ -1,0 +1,364 @@
+﻿@page "/marks_chart"
+@using Majorsoft.Blazor.Extensions.BrowserStorage
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+@inject NavigationManager UriHelper
+@inject IWebHostEnvironment _env
+@inject ILocalStorageService _localStorageService
+@inject ISessionStorageService _sessionStorageService
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject AuthenticationStateProvider authStateProvider
+
+<style>
+    select {
+        width: 150px; /* Ширина списка в пикселах */
+    }
+</style>
+
+<h5>Дневник</h5>
+<PageTitle>Дневник</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+
+        <style>
+            .button_transparent {
+                background-color: Transparent;
+                background-repeat: no-repeat;
+                border: none;
+                cursor: pointer;
+                overflow: hidden;
+                outline: none;
+            }
+        </style>
+
+        <div class="input-daterange input-group">
+
+            <select class="form-select-lg" id="ddm_month" @bind="global_month">
+                <option value="1">Январь</option>
+                <option value="2">Февраль</option>
+                <option value="3">Март</option>
+                <option value="4">Апрель</option>
+                <option value="5">Май</option>
+                <option value="6">Июнь</option>
+                <option value="7">Июль</option>
+                <option value="8">Август</option>
+                <option value="9">Сентябрь</option>
+                <option value="10">Октябрь</option>
+                <option value="11">Ноябрь</option>
+                <option value="12">Декабрь</option>
+            </select>
+
+            <p></p>
+
+            <select name="ddm_year" class="form-select-lg" id="ddm_year" @bind="global_year">
+                <option value="2022">2022</option>
+                <option value="2023">2023</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+                <option value="2029">2029</option>
+                <option value="2030">2030</option>
+            </select>
+
+        </div>
+
+        <p></p>
+
+        @if (ready)
+        {
+            <div class="card">
+
+                <div class="card-body">
+                    <h4 class="card-title mb-4">Журнал оценок</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-nowrap align-middle mb-0">
+
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" style="width: 70px;">#</th>
+                                    <th scope="col">Имя сотрудника</th>
+
+                                    @foreach (int days in days_num)
+                                    {
+                                        <th scope="col">@(days+1) (@WhatIsTheDayToday(days+1))</th>
+                                    }
+
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @{
+                                    int i = -1;
+                                }
+                                @foreach (string user in users_dt)
+                                {
+                                    i++;
+                                    var temp = i;
+
+                                    if (isAdmin || (!isAdmin && user == user_))
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (isAdmin || (!isAdmin && user == user_))
+                                                {
+                                                    @(i+1)
+                                                }
+                                                else
+                                                {
+                                                    <h5>1</h5>
+                                                }
+                                            </td>
+                                            <td>@fullname_dt[i]</td>
+                                            @foreach (int days in days_num)
+                                            {
+                                                debug_var = getUserMarkByIDAndDay(i, days + 1);
+                                                if (getUserMarkByIDAndDay(i, days + 1) == "")
+                                                {
+                                                    <td><button @onclick="() => ShowInfo(temp,days+1,true)" class="button_transparent" style="color:white"><b><i>0 / 0</i></b></button></td>
+                                                }
+                                                else
+                                                {
+                                                    <td><button @onclick="() => ShowInfo(temp,days+1,false)" class="button_transparent" style="color:red"><b><i>@getUserMarkByIDAndDay(temp,days+1)</i></b></button></td>
+                                                }
+                                            }
+
+
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+
+                            @if (users_dt.Count == 0)
+                            {
+                                <h5 class="text-truncate font-size-14 m-0"><a href="javascript: void(0);" class="text-dark">К сожалению, в списке нет пользователей</a></h5>
+                            }
+
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        }
+        else
+        {
+            <h5><i class="bx bx-buoy bx-spin text-primary display-3"></i> Загружаю дневник, ожидайте пожалуйста... </h5>
+        }
+        @if (DeleteDialogOpen)
+        {
+            <MarksChartModal mcm=@mcm operationType=@modal_operationType OnCreate=@CreateMarkInterpreter OnClose=@OnDeleteDialogClose OnDelete=@DeleteInterpreter OnUpdate=@UpdateInterpreter user_fullname_dt=@users_dt user_id_dt=@fullname_dt userName=@ConvertDT_ID_to_Fullname(mcm.userID.ToString()) />
+        }
+
+    </Authorized>
+
+    <NotAuthorized>
+        <AuthorizationPrompt Title="Вам необходимо зарегистрироваться или войти! " />
+    </NotAuthorized>
+
+</AuthorizeView>
+
+@code {
+
+    List<int> days_num = new List<int>();
+
+    private MySQL_Controller mysqlc = new MySQL_Controller();
+    private BackendController bc = new BackendController();
+    private Sentinel sentinel = new Sentinel();
+    private SystemCore systemcore = new SystemCore();
+
+    public int num { get; set; }
+
+    int day_num { get; set; } //Сколько дней в месяце
+
+    bool ready = false;
+
+    public string modal_operationType { get; set; }
+
+    public EviCRM.Server.Models.MarksChart.Marks mcm { get; set; }
+
+    public DateTime modal_Date { get; set; }
+
+    public int modal_ID { get; set; }
+
+    public string modal_Name { get; set; }
+
+    public DateTime _global_month { get; set; }
+
+    public DateTime _global_year { get; set; }
+
+    List<string> users_dt = new List<string>();
+    List<string> email_dt = new List<string>();
+    List<string> passwords_dt = new List<string>();
+    List<string> id_dt = new List<string>();
+    List<string> fullname_dt = new List<string>();
+    List<string> position_dt = new List<string>();
+    List<string> skills_dt = new List<string>();
+    List<string> avatarpath_dt = new List<string>();
+    List<string> projects_val_dt = new List<string>();
+
+    List<string> marks_idmarks = new List<string>();
+    List<string> marks_user_id = new List<string>();
+    List<string> marks_date = new List<string>();
+    List<string> marks_first_mark = new List<string>();
+    List<string> marks_second_mark = new List<string>();
+    List<string> marks_first_description = new List<string>();
+    List<string> marks_second_description = new List<string>();
+    List<string> marks_isTwoMarks = new List<string>();
+    //List<string> marks_attachments = new List<string>();
+
+    List<string> marks_first_attachments = new List<string>();
+    List<string> marks_second_attachments = new List<string>();
+
+    List<string> month = new List<string>(new string[] { "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь" });
+    List<string> years = new List<string>(new string[] { "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030", "2031", "2032", "2033" });
+
+    string debug_var { get; set; }
+    string user_ { get; set; }
+    string current_month { get; set; }
+    string current_year { get; set; }
+
+    bool isAdmin { get; set; }
+    public bool DeleteDialogOpen { get; set; }
+}
+
+@functions {
+
+    private void OnDeleteDialogClose(bool accepted)
+    {
+        DeleteDialogOpen = false;
+        StateHasChanged();
+
+    }
+
+    private void OpenDeleteDialog()
+    {
+        DeleteDialogOpen = true;
+        StateHasChanged();
+    }
+
+    public string ConvertDT_ID_to_Fullname(string ID)
+    {
+        for (int i = 0; i < fullname_dt.Count; i++)
+        {
+            if (id_dt[i] == ID)
+            {
+                return fullname_dt[i];
+            }
+        }
+        return "";
+    }
+
+    public string global_month
+    {
+        get => _global_month.Month.ToString();
+        set
+        {
+            _global_month = CreateCustomMonth(_global_month, int.Parse(value));
+            day_num = DateTime.DaysInMonth(_global_year.Year, _global_month.Month);
+            DayCounter();
+        }
+    }
+
+    public string global_year
+    {
+        get => _global_year.Year.ToString();
+        set
+        {
+            _global_year = CreateCustomYear(_global_year, int.Parse(value));
+            day_num = DateTime.DaysInMonth(_global_year.Year, _global_month.Month);
+            DayCounter();
+        }
+    }
+
+    public static DateTime CreateCustomMonth(DateTime time, int month)
+    {
+        return new DateTime(time.Year, month, time.Day, time.Hour, time.Minute, 0);
+    }
+    public static DateTime CreateCustomYear(DateTime time, int year)
+    {
+        return new DateTime(year, time.Month, time.Day, time.Hour, time.Minute, 0);
+    }
+
+    string WhatIsTheDayToday(int current_day)
+    {
+        DateTime dt = new DateTime(_global_year.Year, _global_month.Month, current_day);
+        switch (dt.DayOfWeek)
+        {
+            case DayOfWeek.Monday:
+                {
+                    return "Пн";
+                }
+            case DayOfWeek.Tuesday:
+                {
+                    return "Вт";
+                }
+            case DayOfWeek.Wednesday:
+                {
+                    return "Ср";
+                }
+            case DayOfWeek.Thursday:
+                {
+                    return "Чт";
+                }
+            case DayOfWeek.Friday:
+                {
+                    return "Пт";
+                }
+            case DayOfWeek.Saturday:
+                {
+                    return "Сб";
+                }
+            case DayOfWeek.Sunday:
+                {
+                    return "Вс";
+                }
+        }
+        return "??";
+    }
+
+    void DayCounter()
+    {
+        days_num.Clear();
+        for (int i = 0; i < day_num; i++)
+        {
+            days_num.Add(i);
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            new Timer(DateTimeCallback, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
+    }
+    private void DateTimeCallback(object state)
+    {
+        InvokeAsync(() => StateHasChanged());
+    }
+
+    public int convertUserID_to_TaskID(int user_ID, DateTime dt)
+    {
+        int a = 0;
+
+
+        for (int i = 0; i < marks_idmarks.Count; i++)
+        {
+            if (id_dt[user_ID] == marks_user_id[i] && DateTime.Parse(marks_date[i]) == dt)
+            {
+                return i;
+            }
+        }
+
+        return a;
+    }
+
+
+
+}

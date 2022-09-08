@@ -1,0 +1,321 @@
+﻿@using Blazorise.Charts 
+@using EviCRM.Server.Core
+@using EviCRM.Server.Models.Statistics
+@using EviCRM.Server.Pages.Charts
+
+@inject NavigationManager UriHelper
+@inject IWebHostEnvironment _env
+
+@inject IJSRuntime JSRuntime
+
+<LineChart @ref="lineChart" TItem="StatisticsLineData" Options="@lineChartOptions" />
+
+
+@code{
+    private LineChart<StatisticsLineData> lineChart;
+
+    [Parameter]
+    public string isInterpolation { get; set; }
+
+    [Parameter]
+    public ChartOptions co { get; set; }
+
+    [Parameter]
+    public LineChartDataset<StatisticsLineData> lcd { get; set; }
+
+    [Parameter]
+    public string[] lbls { get; set; }
+
+
+    public void UpdateInterpolationCase(string InterpolationCatsString)
+    {
+        LineChartDataset<StatisticsLineData> lcd_i;
+
+        switch(InterpolationCatsString)
+        {
+            case "disabled":
+                lcd_i = new LineChartDataset<StatisticsLineData>()
+                    {
+
+                        Data = lcd.Data,
+                        Stepped = false,
+                    };
+                lineChart.Clear();
+                lineChart.AddDatasetsAndUpdate(lcd_i);
+
+                break;
+
+            case "enabled":
+                lcd_i = new LineChartDataset<StatisticsLineData>()
+                    {
+                        Data = lcd.Data,
+                        Stepped = true,
+                    };
+                lineChart.Clear();
+                lineChart.AddDatasetsAndUpdate(lcd_i);
+                break;
+
+            case "stepbefore":
+                lcd_i = new LineChartDataset<StatisticsLineData>()
+                    {
+                        Data = lcd.Data,
+                        Stepped = "before",
+                    };
+                lineChart.Clear();
+                lineChart.AddDatasetsAndUpdate(lcd_i);
+                break;
+
+            case "stepafter":
+                lcd_i = new LineChartDataset<StatisticsLineData>()
+                    {
+                        Data = lcd.Data,
+                        Stepped = "after",
+                    };
+                lineChart.Clear();
+                lineChart.AddDatasetsAndUpdate(lcd_i);
+                break;
+
+            case "stepmiddle":
+                lcd_i = new LineChartDataset<StatisticsLineData>()
+                    {
+                        Data = lcd.Data,
+                        Stepped = "middle",
+                    };
+                lineChart.Clear();
+                lineChart.AddDatasetsAndUpdate(lcd_i);
+                break;
+
+            default:
+                lcd_i = new LineChartDataset<StatisticsLineData>()
+                    {
+                        Data = lcd.Data,
+                        Stepped = true,
+                    };
+                lineChart.Clear();
+                lineChart.AddDatasetsAndUpdate(lcd_i);
+                break;
+        }
+    }
+
+    LineChartOptions lineChartOptions = new()
+        {
+            Parsing = new ChartParsing
+            {
+                XAxisKey = "date_mark",
+                YAxisKey = "num",
+            },
+
+            Plugins = new ChartPlugins
+            {
+            Legend = new ChartLegend
+                        {
+                            Display = false,
+                        },
+            },
+
+            Scales = new ChartScales
+            {
+
+                X = new ChartAxis
+                {
+
+                   //Type = "time",
+                    //Time = new ChartAxisTime
+                    //{
+                    //    DisplayFormat = new ChartAxisTimeDisplayFormat
+                    //    {
+                    //      Second = "HH:mm:ss",
+                    //      Minute= "HH:mm",
+                    //      Hour= "HH",
+                    //    },
+                    //},
+                    
+                },
+              
+                
+            },
+        };
+
+
+
+    private List<string> backgroundColors = new() { ChartColor.FromRgba(255, 99, 132, 0.2f), ChartColor.FromRgba(54, 162, 235, 0.2f), ChartColor.FromRgba(255, 206, 86, 0.2f), ChartColor.FromRgba(75, 192, 192, 0.2f), ChartColor.FromRgba(153, 102, 255, 0.2f), ChartColor.FromRgba(255, 159, 64, 0.2f) };
+    private List<string> borderColors = new() { ChartColor.FromRgba(255, 99, 132, 1f), ChartColor.FromRgba(54, 162, 235, 1f), ChartColor.FromRgba(255, 206, 86, 1f), ChartColor.FromRgba(75, 192, 192, 1f), ChartColor.FromRgba(153, 102, 255, 1f), ChartColor.FromRgba(255, 159, 64, 1f) };
+
+    bool isAlreadyInitialized = false;
+   
+}
+
+       
+
+@functions{
+
+    private string[] Labels = { "Red", "Blue", "Yellow", "Green", "Purple", "Orange" };
+
+    public async void LoadExternalData(LineChartDataset<StatisticsLineData> lcd, string[] lbls)
+    {
+        await lineChart.Clear();
+        await lineChart.AddDatasetsAndUpdate(lcd);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+
+            if (lcd != null)
+            {
+
+                //await  pieChart.Clear();
+                //await pieChart.SetOptions(co);
+
+
+
+                //await pieChart.AddLabelsDatasetsAndUpdate(lbls, pcd);
+                // await pieChart.AddLabelsDatasetsAndUpdate( Labels, GetPieChartDataset() ); 
+                string[] labels_fake =  { "" };
+                LineChartDataset<StatisticsLineData> lcd_sld = GetLineChartDataset();
+                await lineChart.AddLabelsDatasetsAndUpdate(labels_fake,lcd_sld);
+
+                //await lineChart.AddDataSet(GetLineChartDataset());
+                isAlreadyInitialized = true;
+
+            }
+
+            // await lineChart.Update();
+            StateHasChanged();
+        }
+    }
+
+
+
+    private LineChartDataset<StatisticsLineData> GetLineChartDataset()
+    {
+        if (isInterpolation != null)
+        {
+            switch(isInterpolation)
+            {
+
+                case "disabled":
+                    return new()
+                        {
+                            Label = "Средний балл:",
+                            Data = lcd.Data,
+                            BackgroundColor = backgroundColors[1],
+                            BorderColor = borderColors[1],
+                            BorderWidth = 1,
+                            Fill = true,
+                            PointRadius = 1.0f,
+                            PointBorderColor = Enumerable.Repeat(borderColors.First(), 6).ToList(),
+                            CubicInterpolationMode = "monotone",
+                            Stepped = false,
+                    };
+                    break;
+                case "enabled":
+                    return new()
+                        {
+                            Label = "Средний балл:",
+                            Data = lcd.Data,
+                            BackgroundColor = backgroundColors[1],
+                            BorderColor = borderColors[1],
+                            BorderWidth = 1,
+                            Fill = true,
+                            PointRadius = 1.0f,
+                            PointBorderColor = Enumerable.Repeat(borderColors.First(), 6).ToList(),
+                            CubicInterpolationMode = "monotone",
+                            Stepped = true,
+                    };
+                    break;
+                case "stepbefore":
+                    return new()
+                        {
+                            Label = "Средний балл:",
+                            Data = lcd.Data,
+                            BackgroundColor = backgroundColors[1],
+                            BorderColor = borderColors[1],
+                            BorderWidth = 1,
+                            Fill = true,
+                            PointRadius = 1.0f,
+                            PointBorderColor = Enumerable.Repeat(borderColors.First(), 6).ToList(),
+                            CubicInterpolationMode = "monotone",
+                            Stepped = "before",
+                    };
+                    break;
+                case "stepafter":
+                    return new()
+                        {
+                            Label = "Средний балл:",
+                            Data = lcd.Data,
+                            BackgroundColor = backgroundColors[1],
+                            BorderColor = borderColors[1],
+                            BorderWidth = 1,
+                            Fill = true,
+                            PointRadius = 1.0f,
+                            PointBorderColor = Enumerable.Repeat(borderColors.First(), 6).ToList(),
+                            CubicInterpolationMode = "monotone",
+                            Stepped = "after",
+                    };
+                    break;
+                case "stepmiddle":
+                    return new()
+                        {
+                            Label = "Средний балл:",
+                            Data = lcd.Data,
+                            BackgroundColor = backgroundColors[1],
+                            BorderColor = borderColors[1],
+                            BorderWidth = 1,
+                            Fill = true,
+                            PointRadius = 1.0f,
+                            PointBorderColor = Enumerable.Repeat(borderColors.First(), 6).ToList(),
+                            CubicInterpolationMode = "monotone",
+                            Stepped = "middle",
+                        };
+                    break;
+                    default:
+                    return new()
+                        {
+                            Label = "Средний балл:",
+                            Data = lcd.Data,
+                            BackgroundColor = backgroundColors[1],
+                            BorderColor = borderColors[1],
+                            BorderWidth = 1,
+                            Fill = true,
+                            PointRadius = 1.0f,
+                            PointBorderColor = Enumerable.Repeat(borderColors.First(), 6).ToList(),
+                            CubicInterpolationMode = "monotone",
+                            Stepped = false,
+                    };
+                    break;
+                    }
+                  
+        }
+         return new()
+                        {
+                            Label = "Средний балл:",
+                            Data = lcd.Data,
+                            BackgroundColor = backgroundColors[1],
+                            BorderColor = borderColors[1],
+                            BorderWidth = 1,
+                            Fill = true,
+                            PointRadius = 1.0f,
+                            PointBorderColor = Enumerable.Repeat(borderColors.First(), 6).ToList(),
+                            CubicInterpolationMode = "monotone",
+                            Stepped = false,
+                    };
+        }
+
+         List<int> RandomizeData() => RandomizeData( 3, 50 );
+    private Random random = new( DateTime.Now.Millisecond );
+
+    List<int> RandomizeData( int min, int max )
+    {
+        List<int> lst_ind = new List<int>();
+
+        for (int i = 0; i<10;i++)
+        {
+            lst_ind.Add(i);
+        }
+        return lst_ind;
+    }
+
+}

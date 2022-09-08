@@ -1,0 +1,70 @@
+﻿<style>
+
+    body{
+        margin:auto;
+        font-family:Arial,Arial, Helvetica, sans-serif;
+    }
+    .container{
+        height:100vh;
+        display:grid;
+        grid-template-columns: 1fr 5fr;
+    }
+
+    main{
+        diplay:grid;
+        grid-template-columns:repeat(5,1fr);
+        grid-template-rows:repeat(7,1fr);
+    }
+
+    section{
+        border-right:3px solid black;
+        border-bottom:3px solid black;
+        display:grid;
+        justify-content: center;
+        align-content: center;
+    }
+</style>
+
+<div class="container">
+    <aside>
+        <section><h4>Столбец 1</h4></section>
+         <section><h4>Столбец 2</h4></section>
+          <section><h4>Столбец 3</h4></section>
+    </aside>
+    <main>
+        @foreach(var item in data)
+        {
+            <section style="background-color: @(colorCalculate(0))">
+                <p>
+                    <!--date-->
+                </p>
+                <!--temp-->
+                <p>
+
+                </p>
+            </section>
+        }
+    </main>
+</div>
+
+
+@code{
+    const int max_val = 0;
+    const int min_val = 0;
+
+    List<string> data = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        //data = await ....
+    }
+    public string colorCalculate(decimal temp)
+    {
+        return temp switch
+        {
+            >= 0 => $"rgba(255,0,0,{temp / max_val})",
+            < 0 => $"rgba(30,144,255, {temp / Math.Abs(min_val)})"
+    };
+}
+
+}

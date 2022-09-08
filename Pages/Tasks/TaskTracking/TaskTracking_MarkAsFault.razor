@@ -1,0 +1,147 @@
+﻿@using Blazorise
+@using Blazorise.RichTextEdit
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Завершение задачи как провал</h4>
+                <button type="button" class="close" @onclick="@ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row mb-4">
+
+
+                    <label>Вы собираетесь закрыть задачу как провальную</label>
+
+                    <label for="ttm_cmd_fail_body"><b>Почему принято решение такое решение?</b></label>
+                      </div>
+
+                        <RichTextEdit @ref="rtfMarkAsFault"
+                                                      Theme="RichTextEditTheme.Snow"
+                                                      ContentChanged="@OnContentChanged_rtfMarkAsFault"
+                                                      PlaceHolder="Введите текст изменений"
+                                                      ReadOnly=false
+                                                      SubmitOnEnter="true"
+                                                      EnterPressed="@OnSave_rtfMarkAsFault"
+                                                      ToolbarPosition="Placement.Top">
+                                                <Editor></Editor>
+                                                <Toolbar>
+                                                    <RichTextEditToolbarGroup>
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Bold" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Italic" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Blockquote" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Header" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Strike" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Underline" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.Align" />
+
+                                                        <RichTextEditToolbarSelect Action="RichTextEditAction.Size">
+                                                            <RichTextEditToolbarSelectItem Value="small" />
+                                                            <RichTextEditToolbarSelectItem Selected />
+                                                            <RichTextEditToolbarSelectItem Value="large" />
+                                                            <RichTextEditToolbarSelectItem Value="huge">Very Big</RichTextEditToolbarSelectItem>
+                                                        </RichTextEditToolbarSelect>
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="ordered" />
+                                                        <RichTextEditToolbarButton Action="RichTextEditAction.List" Value="bullet" />
+                                                    </RichTextEditToolbarGroup>
+                                                    <!-- Custom toolbar content -->
+                                                <RichTextEditToolbarGroup Float="Float.End">
+                                                        <!-- <Button onClick="window.open('https://www.quilljs.com/','quilljs')"><Icon Name="IconName.InfoCircle" /></Button> -->
+                                                    <Button Clicked="@OnSave_rtfMarkAsFault"><Icon Name="IconName.Save" /></Button>
+                                                    </RichTextEditToolbarGroup>
+                                                </Toolbar>
+                                            </RichTextEdit>
+
+
+              
+            </div>
+            <div class="modal-footer">
+
+
+                <button type="button" @onclick='(() => SendTOScriptCmd())' class="btn btn-primary waves-effect waves-light">Закрыть задачу</button>
+                <button type="button" class="btn" @onclick="@ModalCancel">Закрыть</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    RichTextEdit rtfMarkAsFault;
+
+    protected string contentAsHtml_rtfMarkAsFault;
+    protected string contentAsDeltaJson_rtfMarkAsFault;
+    protected string contentAsText_rtfMarkAsFault;
+    protected string savedContent_rtfMarkAsFault;
+
+    public async Task OnContentChanged_rtfMarkAsFault()
+    {
+        contentAsHtml_rtfMarkAsFault = await rtfMarkAsFault.GetHtmlAsync();
+        contentAsDeltaJson_rtfMarkAsFault = await rtfMarkAsFault.GetDeltaAsync();
+        contentAsText_rtfMarkAsFault= await rtfMarkAsFault.GetTextAsync();
+    }
+
+    public async Task OnSave_rtfMarkAsFault()
+    {
+        savedContent_rtfMarkAsFault = await rtfMarkAsFault.GetHtmlAsync();
+        await rtfMarkAsFault.ClearAsync();
+    }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnOk { get; set; }
+
+    [Parameter]
+    public string task_author { get; set; }
+
+    [Parameter]
+    public string task_id { get; set; }
+
+    TOScript to_script = new TOScript();
+
+    string ttm_cmd_fail_body { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    EviCRM.Server.Core.MySQL_Controller mysqlc = new EviCRM.Server.Core.MySQL_Controller();
+
+    public async Task SendTOScriptCmd()
+    {
+        EviCRM.Server.ViewModels.TaskTrackingModelFail ttmf = new EviCRM.Server.ViewModels.TaskTrackingModelFail();
+
+        ttmf.task_author = task_author;
+        ttmf.task_id = task_id;
+
+        string a = contentAsHtml_rtfMarkAsFault;
+        ttmf.ttm_cmd_fail_body = a;
+
+        await to_script.FAIL(ttmf);
+        await mysqlc.MySql_ContextAsyncGeneral(mysqlc.updateTaskStatus(task_id, "failed"));
+        await OnOk.InvokeAsync(false);
+    }
+
+     protected override void OnInitialized()
+    {
+        //QuillHtml.Placeholder = "Введите текст...";
+    }
+
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+        DeleteCancel
+    }
+}

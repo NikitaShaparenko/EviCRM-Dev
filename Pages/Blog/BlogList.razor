@@ -1,0 +1,289 @@
+﻿@page "/news_list"
+
+<div class="row">
+    <div class="col-xl-9 col-lg-8">
+        <div class="card">
+            <!-- Nav tabs -->
+            <ul class="nav nav-tabs nav-tabs-custom justify-content-center pt-2" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#all-post" role="tab">
+                        Все новости
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#archive" role="tab">
+                        Архив
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Tab panes -->
+            <div class="tab-content p-4">
+                <div class="tab-pane active" id="all-post" role="tabpanel">
+                    <div>
+                        <div class="row justify-content-center">
+                            <div class="col-xl-8">
+                                <div>
+                                    <div class="row align-items-center">
+                                        <div class="col-4">
+                                            <div>
+                                                <h5 class="mb-0">Список новостей</h5>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-8">
+                                            <div>
+                                                <ul class="nav nav-pills justify-content-end">
+                                                    <li class="nav-item">
+                                                        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Вид :</a>
+                                                    </li>
+                                                    <li class="nav-item" data-bs-placement="top" title="List">
+                                                        <a class="nav-link active" href="/news_list">
+                                                            <i class="mdi mdi-format-list-bulleted"></i>
+                                                        </a>
+                                                    </li>
+                                                    <li class="nav-item" data-bs-placement="top" title="Grid">
+                                                        <a class="nav-link" href="/news_grid">
+                                                            <i class="mdi mdi-view-grid-outline"></i>
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- end row -->
+
+                                    <hr class="mb-4">
+
+                                    <div>
+                                        <h5><a href="javascript: void(0);" class="text-dark">Собираем первую полноценную сборку</a></h5>
+                                        <p class="text-muted">29 мая 2022</p>
+
+                                        <div class="position-relative mb-3">
+                                            <img src="/assets/images/small/img-2.jpg" alt="" class="img-thumbnail">
+                                        </div>
+
+                                        <ul class="list-inline">
+                                            <li class="list-inline-item me-3">
+                                                <a href="javascript: void(0);" class="text-muted">
+                                                    <i class="bx bx-purchase-tag-alt align-middle text-muted me-1"></i> Приложение
+                                                </a>
+                                            </li>
+                                            <li class="list-inline-item me-3">
+                                                <a href="javascript: void(0);" class="text-muted">
+                                                    <i class="bx bx-comment-dots align-middle text-muted me-1"></i> 4 комментария
+                                                </a>
+                                            </li>
+                                        </ul>
+                                        <p>Добро пожаловать в раздел "Новости"!</p>
+
+                                        <div>
+                                            <a href="/news_body" class="text-primary">Читать подробнее <i class="mdi mdi-arrow-right"></i></a>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-5">
+
+
+                                    <div class="text-center">
+                                        <ul class="pagination justify-content-center pagination-rounded">
+                                            <li class="page-item disabled">
+                                                <a href="javascript: void(0);" class="page-link"><i class="mdi mdi-chevron-left"></i></a>
+                                            </li>
+                                            <li class="page-item active">
+                                                <a href="javascript: void(0);" class="page-link">1</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a href="javascript: void(0);" class="page-link">2</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a href="javascript: void(0);" class="page-link">3</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a href="javascript: void(0);" class="page-link">...</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a href="javascript: void(0);" class="page-link">10</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a href="javascript: void(0);" class="page-link"><i class="mdi mdi-chevron-right"></i></a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="archive" role="tabpanel">
+                    <div>
+                        <div class="row justify-content-center">
+                            <div class="col-xl-8">
+                                <h5>Архив</h5>
+
+                                <div class="mt-5">
+                                    <div class="d-flex flex-wrap">
+                                        <div class="me-2">
+                                            <h4>2022</h4>
+                                        </div>
+                                        <div class="ms-auto">
+                                            <span class="badge badge-success rounded-pill float-end ms-1 font-size-12">1</span>
+                                        </div>
+                                    </div>
+                                    <hr class="mt-2">
+
+                                    <div class="list-group list-group-flush">
+                                        <a href="/news_body" class="list-group-item text-muted"><i class="mdi mdi-circle-medium me-1"></i>  Собираем первую сборку</a>
+
+                                    </div>
+                                </div>
+
+                                <div class="mt-5">
+                                    <div class="d-flex flex-wrap">
+                                        <div class="me-2">
+                                            <h4>2021</h4>
+                                        </div>
+                                        <div class="ms-auto">
+                                            <span class="badge badge-success rounded-pill float-end ms-1 font-size-12">0</span>
+                                        </div>
+                                    </div>
+                                    <hr class="mt-2">
+
+                                    <div class="list-group list-group-flush">
+                                        <a href="javascript: void(0);" class="list-group-item text-muted"><i class="mdi mdi-circle-medium me-1"></i> Нет новостей</a>
+                                    </div>
+                                </div>
+
+                                <div class="mt-5">
+                                    <div class="d-flex flex-wrap">
+                                        <div class="me-2">
+                                            <h4>2019</h4>
+                                        </div>
+                                        <div class="ms-auto">
+                                            <span class="badge badge-success rounded-pill float-end ms-1 font-size-12">00</span>
+                                        </div>
+                                    </div>
+                                    <hr class="mt-2">
+
+                                    <div class="list-group list-group-flush">
+                                        <a href="javascript: void(0);" class="list-group-item text-muted"><i class="mdi mdi-circle-medium me-1"></i> Нет новостей</a>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- row justify-->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-lg-4">
+        <div class="card">
+            <div class="card-body p-4">
+                <div class="search-box">
+                    <p class="text-muted">Поиск</p>
+                    <div class="position-relative">
+                        <input type="text" class="form-control rounded bg-light border-light" placeholder="Искать...">
+                        <i class="mdi mdi-magnify search-icon"></i>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div>
+                    <p class="text-muted">Категории</p>
+
+                    <ul class="list-unstyled fw-medium">
+                        <li><a href="javascript: void(0);" class="text-muted py-2 d-block"><i class="mdi mdi-chevron-right me-1"></i> Реклама </a></li>
+                        <li><a href="javascript: void(0);" class="text-muted py-2 d-block"><i class="mdi mdi-chevron-right me-1"></i> ИТ <span class="badge badge-success rounded-pill float-end ms-1 font-size-12">01</span></a></li>
+                        <li><a href="javascript: void(0);" class="text-muted py-2 d-block"><i class="mdi mdi-chevron-right me-1"></i> Работа</a></li>
+                        <li><a href="javascript: void(0);" class="text-muted py-2 d-block"><i class="mdi mdi-chevron-right me-1"></i> Стройка</a></li>
+                        <li><a href="javascript: void(0);" class="text-muted py-2 d-block"><i class="mdi mdi-chevron-right me-1"></i> Претензии<span class="badge badge-danger rounded-pill ms-1 float-end font-size-12">12</span></a></li>
+                    </ul>
+                </div>
+
+                <hr class="my-4">
+
+                <div>
+                    <p class="text-muted">Архив</p>
+
+                    <ul class="list-unstyled fw-medium">
+                        <li><a href="javascript: void(0);" class="text-muted py-2 d-block"><i class="mdi mdi-chevron-right me-1"></i> 2022 <span class="badge badge-success rounded-pill float-end ms-1 font-size-12">01</span></a></li>
+                        <li><a href="javascript: void(0);" class="text-muted py-2 d-block"><i class="mdi mdi-chevron-right me-1"></i> 2021 <span class="badge badge-primary rounded-pill float-end ms-1 font-size-12">00</span></a></li>
+                        <li><a href="javascript: void(0);" class="text-muted py-2 d-block"><i class="mdi mdi-chevron-right me-1"></i> 2020 <span class="badge badge-primary rounded-pill float-end ms-1 font-size-12">00</span></a></li>
+                    </ul>
+                </div>
+
+                <hr class="my-4">
+
+                <div>
+                    <p class="text-muted mb-2">Что обсуждают?</p>
+
+                    <div class="list-group list-group-flush">
+
+                        @*<a href="javascript: void(0);" class="list-group-item text-muted py-3 px-2">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    <img src="/assets/images/small/img-7.jpg" alt="" class="avatar-md h-auto d-block rounded">
+                                </div>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <h5 class="font-size-13 text-truncate">Beautiful Day with Friends</h5>
+                                    <p class="mb-0 text-truncate">10 Apr, 2020</p>
+                                </div>
+                            </div>
+                        </a>
+
+                        <a href="javascript: void(0);" class="list-group-item text-muted py-3 px-2">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    <img src="/assets/images/small/img-4.jpg" alt="" class="avatar-md h-auto d-block rounded">
+                                </div>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <h5 class="font-size-13 text-truncate">Drawing a sketch</h5>
+                                    <p class="mb-0 text-truncate">24 Mar, 2020</p>
+                                </div>
+                            </div>
+                        </a>
+
+                        <a href="javascript: void(0);" class="list-group-item text-muted py-3 px-2">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    <img src="/assets/images/small/img-6.jpg" alt="" class="avatar-md h-auto d-block rounded">
+                                </div>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <h5 class="font-size-13 text-truncate">Project discussion with team</h5>
+                                    <p class="mb-0 text-truncate">11 Mar, 2020</p>
+                                </div>
+                            </div>
+                        </a>*@
+                        <h6>Нет новостей в текущем представлении</h6>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div>
+                    <p class="text-muted">Теги</p>
+
+                    <div class="d-flex flex-wrap gap-2 widget-tag">
+                         <div><a href="javascript: void(0);" class="badge bg-light font-size-12">Информационные технологии</a></div>
+                        <div><a href="javascript: void(0);" class="badge bg-light font-size-12">Разработка</a></div>
+                        <div><a href="javascript: void(0);" class="badge bg-light font-size-12">Стройка</a></div>
+                        <div><a href="javascript: void(0);" class="badge bg-light font-size-12">Проектирование</a></div>
+                        <div><a href="javascript: void(0);" class="badge bg-light font-size-12">Реновация</a></div>
+                        <div><a href="javascript: void(0);" class="badge bg-light font-size-12">Загородное строительство</a></div>
+                        <div><a href="javascript: void(0);" class="badge bg-light font-size-12">Просто необычный тег</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end card -->
+    </div>
+</div>
+<!-- end row -->
+<!-- JAVASCRIPT -->

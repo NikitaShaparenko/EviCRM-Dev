@@ -1,0 +1,240 @@
+﻿@using Blazorise.Charts
+@using EviCRM.Server.Core
+@using System.Text
+@using static EviCRM.Server.Pages.Statistics.TimeAccounting.Statistics_WorkingHoursChart
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">График активности на @dt_review.ToShortDateString()</h4>
+                <button type="button" class="close" @onclick="@ModalOk">&times;</button>
+            </div>
+            <div class="modal-body">
+               <EviCRM.Server.Pages.Charts.LineChartViewModule2 dt_datereview=@dt_review lst_data=@graphData @ref=lcvm_modal_chart chartExternalOptions=@chartExternalOptions/>
+            
+               <div class="row">
+                    <p></p>
+                    @foreach (var elem_list in mi_commonlst)
+                    {
+                        <p></p>
+                        <h6>Таблица событий</h6>
+
+                         <div class="input-group">
+                        <div class="p-2">
+                         <label><input type="checkbox" id="isCat1" name="isCat1" @onchange=@((e)=>SetViewCat(StatisticsCat.pressed_keys,e))> Нажатые клавиши</label>
+                        </div>
+                         <div class="p-2">
+                        <label><input type="checkbox" id="isCat2" name="isCat2" @onchange=@((e)=>SetViewCat(StatisticsCat.web_pages,e))> Веб-страницы</label>
+                        </div>
+                         <div class="p-2">
+                        <label><input type="checkbox" id="isCat3" name="isCat3"  @onchange=@((e)=>SetViewCat(StatisticsCat.SNS,e))> Социальные сети</label>
+                        </div>
+                         <div class="p-2">
+                         <label><input type="checkbox" id="isCat4" name="isCat4"  @onchange=@((e)=>SetViewCat(StatisticsCat.clipboard,e))> Буфер обмена</label>
+                        </div>
+                         <div class="p-2">
+                         <label><input type="checkbox" id="isCat5" name="isCat5"  @onchange=@((e)=>SetViewCat(StatisticsCat.files,e))>Файлы</label>
+                        </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-wrap align-middle mb-0">
+
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" style="width: 70px;">#</th>
+                                        <th scope="col">Категория</th>
+                                        <th scope="col">Дата и время</th>
+                                        <th scope="col">Путь к приложению</th>
+                                        <th scope="col">Название приложения</th>
+                                        <th scope="col">Описание</th>
+                                        <th scope="col">Данные</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        int temp3 = 1;
+                                    }
+                                    @foreach (var elem in elem_list)
+                                    {
+                                        @if (CatToView.Count < 1 || CatToView.Contains(elem.category))
+                                        {
+                                      
+                                        <tr>
+                                            <td>@temp3</td>
+
+                                            @switch (elem.category)
+                                            {
+                                                case StatisticsCat.clipboard:
+                                                    <td>Буфер обмена</td>
+                                                    break;
+
+                                                case StatisticsCat.files:
+                                                    <td>Файлы</td>
+                                                    break;
+
+                                                case StatisticsCat.pressed_keys:
+                                                    <td>Нажатые клавиши</td>
+                                                    break;
+
+                                                case StatisticsCat.SNS:
+                                                    <td>Социальные сети</td>
+                                                    break;
+
+                                                case StatisticsCat.web_pages:
+                                                    <td>Веб-сайты</td>
+                                                    break;
+                                            }
+
+                                            <td>
+                                                @elem.datetime
+                                            </td>
+
+                                            <td>
+                                                @elem.application_path
+                                            </td>
+
+                                            <td>
+                                               @* @if (elem.category != StatisticsCat.pressed_keys)
+                                                {*@
+                                                    @UTF8_Supressor(elem.application_name)
+                                               @* }
+                                                else
+                                                {
+                                                    @elem.application_name
+                                                }*@
+                                            </td>
+
+                                            <td>
+                                               @* @if (elem.category != StatisticsCat.pressed_keys)
+                                                {*@
+                                                    @UTF8_Supressor(elem.appplication_desc)
+                                               @* }
+                                                else
+                                                {
+                                                    @elem.appplication_desc
+                                                }*@
+                                            </td>
+                                            <td>
+                                                @if (elem.category != StatisticsCat.pressed_keys)
+                                                {
+                                                    @UTF8_Supressor(elem.appplication_data)
+                                                }
+                                                else
+                                                {
+                                                    @elem.appplication_data
+                                                }
+                                            </td>
+
+                                            
+                                            </tr>
+                                            temp3 = temp3 + 1;
+                                        }
+                                    }
+
+                                </tbody>
+
+
+                            </table>
+                        </div>
+                    }
+
+                </div>
+         
+           </div>
+            <div class="modal-footer">
+               
+                        <button type="button" class="btn btn-primary" @onclick=@ModalOk>Закрыть</button>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public List<List<MiCommonModel>> mi_commonlst { get; set; }
+
+    [Parameter]
+    public List<LineChartDataset<WatcherEvent>> graphData { get; set; }
+
+    LineChartViewModule2 lcvm_modal_chart = new LineChartViewModule2();
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public DateTime dt_review { get; set; }
+
+     [Parameter]
+    public LineChartOptions chartExternalOptions { get; set; }
+
+    List<StatisticsCat> CatToView = new List<StatisticsCat>();
+
+      public void SetViewCat(StatisticsCat sc, ChangeEventArgs cea)
+        {
+            if (bool.Parse(cea.Value.ToString()))
+            {
+                //checked
+                CatToView.Add(sc);
+                StateHasChanged();
+            }
+            else
+            {
+                if (CatToView.Contains(sc))
+                {
+                    int ind = CatToView.IndexOf(sc);
+                    CatToView.RemoveAt(ind);
+         
+                }
+                StateHasChanged();
+                //unchecked
+            }
+        }
+
+
+    public string UTF8_Supressor(string cp1251_encoded)
+        {
+            Encoding utf8 = Encoding.GetEncoding("UTF-8");
+            Encoding win1251 = Encoding.GetEncoding("Windows-1251");
+
+            byte[] win1251bytes = win1251.GetBytes(cp1251_encoded);
+            byte[] utf8bytes = Encoding.Convert(win1251, utf8, win1251bytes);
+
+            //string utf8_str = utf8.GetString(utf8bytes);
+            string utf8_str = ConvertWin1251ToUTF8(cp1251_encoded);
+            return utf8_str;
+
+
+
+        }
+
+        readonly static System.Text.Encoding WINDOWS1251 = Encoding.GetEncoding(1251);
+        readonly static System.Text.Encoding UTF8 = Encoding.UTF8;
+
+        static string ConvertWin1251ToUTF8(string inString)
+        {
+            return UTF8.GetString(WINDOWS1251.GetBytes(inString));
+        }
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    public async Task UpdateGraph(List<LineChartDataset<WatcherEvent>> llcdwe)
+    {
+        //    await lcvm_modal_chart.UpdateGraph(llcdwe);
+        //    await Task.CompletedTask;
+        await Task.CompletedTask;
+    }
+}
+
+
+
+
+@code {
+
+}
